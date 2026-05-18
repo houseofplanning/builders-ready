@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Platform defaults — overridden per-tenant on /<slug>/* routes via inline style */
+  --br-ink: #0B1418;
+  --br-ink-soft: #1A2C34;
+  --br-ink-muted: #5F7480;
+  --br-primary: #0F4C5C;
+  --br-primary-deep: #0A3641;
+  --br-primary-soft: rgba(15, 76, 92, 0.08);
+  --br-accent: #E07A5F;
+  --br-accent-deep: #C25A40;
+  --br-accent-soft: rgba(224, 122, 95, 0.12);
+  --br-canvas: #F4F6F7;
+  --br-card: #FFFFFF;
+  --br-hairline: #E1E6E9;
+}
+
+html, body {
+  background: var(--br-canvas);
+  color: var(--br-ink);
+}

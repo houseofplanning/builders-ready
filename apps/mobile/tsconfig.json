@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./*"],
+      "@br/shared": ["../../packages/shared/src"],
+      "@br/shared/*": ["../../packages/shared/src/*"]
+    },
+    "types": ["react", "react-native"]
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["node_modules"]
+}
