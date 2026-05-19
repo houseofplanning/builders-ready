@@ -105,6 +105,9 @@ export interface Project {
   progress_percent: number;
   current_stage_id: UUID | null;
   planning_application_id: string | null;
+  quoted_amount_pence: number | null;
+  completed_at: ISODateTime | null;
+  handover_pdf_storage_path: string | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
 }

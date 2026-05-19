@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import type { Tenant, TenantMemberRole } from '@br/shared';
 import { signOutAction } from '@/lib/server-actions/auth';
 
@@ -18,8 +19,8 @@ export function TenantHeader({
 
   return (
     <header className="border-b border-hairline bg-white">
-      <div className="mx-auto flex max-w-6xl items-center px-6 py-3">
-        <div className="flex items-center gap-3">
+      <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
+        <Link href={`/${tenant.slug}/dashboard`} className="flex items-center gap-3">
           {tenant.logo_url ? (
             <Image
               src={tenant.logo_url}
@@ -43,7 +44,16 @@ export function TenantHeader({
               {role === 'owner' ? 'Owner' : role === 'pm' ? 'Project Manager' : 'Client'}
             </div>
           </div>
-        </div>
+        </Link>
+
+        <nav className="ml-6 flex items-center gap-1 text-sm">
+          <NavItem href={`/${tenant.slug}/dashboard`}>Dashboard</NavItem>
+          <NavItem href={`/${tenant.slug}/projects`}>Projects</NavItem>
+          {(role === 'owner' || role === 'pm') && (
+            <NavItem href={`/${tenant.slug}/team`}>Team</NavItem>
+          )}
+        </nav>
+
         <form action={signOutAction} className="ml-auto">
           <button
             type="submit"
@@ -54,5 +64,16 @@ export function TenantHeader({
         </form>
       </div>
     </header>
+  );
+}
+
+function NavItem({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-md px-3 py-1.5 font-semibold text-ink-muted transition hover:bg-canvas hover:text-ink"
+    >
+      {children}
+    </Link>
   );
 }

@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 
 const STEPS = [
   { slug: 'account', label: 'Account' },
+  { slug: 'billing', label: 'Billing' },
   { slug: 'branding', label: 'Branding' },
   { slug: 'bank', label: 'Bank details' },
   { slug: 'invite', label: 'Invite team' },

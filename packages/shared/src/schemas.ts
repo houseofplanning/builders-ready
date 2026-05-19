@@ -85,6 +85,14 @@ export const projectCreate = z.object({
   pm_id: uuid,
   start_date: isoDate,
   estimated_end_date: isoDate,
+  /** Original quote in integer pence. Optional; captured at project creation
+   *  for the quote-vs-final finance summary and the handover PDF. */
+  quoted_amount_pence: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .optional(),
 });
 export type ProjectCreateInput = z.infer<typeof projectCreate>;
 
