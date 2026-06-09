@@ -65,6 +65,12 @@ export default function LoginPage() {
             />
           </label>
 
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-xs font-semibold text-primary">
+              Forgot password?
+            </Link>
+          </div>
+
           {error && (
             <div className="rounded-lg border border-error bg-error/5 px-3 py-2 text-xs text-error">
               {error}

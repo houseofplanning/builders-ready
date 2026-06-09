@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 /**
  * Auth + tenant middleware.
@@ -24,7 +24,7 @@ export async function middleware(req: NextRequest) {
         getAll() {
           return req.cookies.getAll();
         },
-        setAll(toSet) {
+        setAll(toSet: { name: string; value: string; options: CookieOptions }[]) {
           toSet.forEach(({ name, value, options }) => {
             res.cookies.set({ name, value, ...options });
           });
@@ -76,15 +76,30 @@ const RESERVED_TOP_LEVEL = new Set([
   'login',
   'signup',
   'accept',
+  'auth',
+  'forgot-password',
+  'reset-password',
   'onboarding',
+  // Marketing routes
   'pricing',
   'about',
   'contact',
+  'features',
+  'blog',
   'privacy',
   'terms',
+  // Infrastructure routes / files
   'api',
   '_next',
   'favicon.ico',
+  'icon',
+  'icon.svg',
+  'apple-icon',
+  'opengraph-image',
+  'sitemap.xml',
+  'robots.txt',
+  'manifest.json',
+  'manifest.webmanifest',
 ]);
 
 function isTenantSlugPath(path: string): boolean {
@@ -94,8 +109,11 @@ function isTenantSlugPath(path: string): boolean {
 }
 
 export const config = {
-  // Run on every path except static assets, _next internals, and webhooks.
+  // Run on every path except static assets, Next.js internals, common
+  // root-level files, and webhook / health endpoints. Adding new
+  // root-level routes (sitemap.xml, robots.txt, icon, opengraph-image)
+  // here means the middleware doesn't try to auth-gate them.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/webhooks|api/health).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|icon|apple-icon|opengraph-image|sitemap\\.xml|robots\\.txt|manifest\\.(?:json|webmanifest)|api/webhooks|api/health).*)',
   ],
 };
