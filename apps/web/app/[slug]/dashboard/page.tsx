@@ -14,12 +14,16 @@ export default async function Dashboard({ params }: Props) {
   const tier = tenant.subscription_tier ? TIERS[tenant.subscription_tier] : null;
   const supabase = await createSupabaseServer();
 
-  // Fire off counts in parallel.
+  // Fetch counts + summaries in parallel.
   const [
     { count: activeCount },
     { count: memberCount },
     { data: recent },
     { data: openDecisions },
+    { data: openVariations },
+    { data: unpaidInvoices },
+    { data: quoteRows },
+    { data: financeRows },
   ] = await Promise.all([
     supabase
       .from('projects')
@@ -38,15 +42,63 @@ export default async function Dashboard({ params }: Props) {
       .limit(4),
     supabase
       .from('decisions')
-      .select('id, title, deadline, project:projects(id, name)')
+      .select('id, title, deadline, created_at, project:projects(id, name)')
       .eq('status', 'open')
-      .order('deadline', { ascending: true })
-      .limit(3),
+      .order('deadline', { ascending: true, nullsFirst: false })
+      .limit(8),
+    supabase
+      .from('variations')
+      .select(
+        'id, number, title, delta_amount_gbp_pence, status, created_at, project:projects(id, name)',
+      )
+      .eq('status', 'proposed')
+      .order('created_at', { ascending: false })
+      .limit(8),
+    supabase
+      .from('invoices')
+      .select(
+        'id, number, title, amount_gbp_pence, due_at, status, project:projects(id, name)',
+      )
+      .in('status', ['sent', 'overdue'])
+      .order('due_at', { ascending: true })
+      .limit(8),
+    // Quotes for non-archived projects (used for "total contracted").
+    supabase
+      .from('projects')
+      .select('id, quoted_amount_pence')
+      .neq('status', 'archived'),
+    // Finance roll-up. project_finance is a VIEW, so we query it directly
+    // rather than embedding it on projects — PostgREST can't detect a
+    // foreign-key relationship to a view, so the embed silently returned
+    // null, which is what was zeroing out these cards. RLS scopes to tenant.
+    supabase
+      .from('project_finance')
+      .select('project_id, variations_pence, invoiced_pence, paid_pence'),
   ]);
 
   const activeProjects = activeCount ?? 0;
   const limit = tier?.activeProjectLimit ?? 10;
   const limitDisplay = limit >= 100000 ? 'unlimited' : limit;
+
+  // ---------- Cross-project finance roll-up ----------
+  // Restrict the finance view rows to the non-archived projects we just
+  // fetched (the view spans every project, archived included).
+  const activeProjectIds = new Set((quoteRows ?? []).map((p) => p.id));
+  let totalQuoted = 0;
+  for (const p of quoteRows ?? []) {
+    totalQuoted += Number(p.quoted_amount_pence ?? 0);
+  }
+  let totalVariations = 0;
+  let totalInvoiced = 0;
+  let totalPaid = 0;
+  for (const f of financeRows ?? []) {
+    if (!activeProjectIds.has(f.project_id)) continue;
+    totalVariations += Number(f.variations_pence ?? 0);
+    totalInvoiced += Number(f.invoiced_pence ?? 0);
+    totalPaid += Number(f.paid_pence ?? 0);
+  }
+  const totalContracted = totalQuoted + totalVariations; // quote + signed variations
+  const totalOutstanding = totalInvoiced - totalPaid;
 
   return (
     <div>
@@ -76,6 +128,7 @@ export default async function Dashboard({ params }: Props) {
         </div>
       </header>
 
+      {/* Top row: operational counters */}
       <div className="grid gap-3 md:grid-cols-4">
         <Card label="Active projects">
           <div className="text-2xl font-extrabold tracking-tight">{activeProjects}</div>
@@ -95,13 +148,43 @@ export default async function Dashboard({ params }: Props) {
           </div>
           <div className="mt-1 text-xs text-ink-muted">awaiting client response</div>
         </Card>
-        <Card label="Subscription">
-          <div className="text-xl font-extrabold tracking-tight">
-            {tier ? gbp(tier.monthlyPence, { whole: true }) : '—'}
-            <span className="text-xs font-medium text-ink-muted">/mo</span>
+        <Card label="Awaiting signature">
+          <div className="text-2xl font-extrabold tracking-tight">
+            {openVariations?.length ?? 0}
           </div>
-          <div className="mt-1 text-xs capitalize text-ink-muted">
-            {tenant.subscription_status ?? 'inactive'}
+          <div className="mt-1 text-xs text-ink-muted">variations not yet signed</div>
+        </Card>
+      </div>
+
+      {/* Second row: cross-project finance */}
+      <div className="mt-3 grid gap-3 md:grid-cols-4">
+        <Card label="Total contracted">
+          <div className="text-xl font-extrabold tracking-tight">
+            {gbp(totalContracted, { whole: true })}
+          </div>
+          <div className="mt-1 text-xs text-ink-muted">
+            quoted + signed variations
+          </div>
+        </Card>
+        <Card label="Invoiced">
+          <div className="text-xl font-extrabold tracking-tight">
+            {gbp(totalInvoiced, { whole: true })}
+          </div>
+          <div className="mt-1 text-xs text-ink-muted">all active projects</div>
+        </Card>
+        <Card label="Paid">
+          <div className="text-xl font-extrabold tracking-tight">
+            {gbp(totalPaid, { whole: true })}
+          </div>
+          <div className="mt-1 text-xs text-ink-muted">received to date</div>
+        </Card>
+        <Card label="Outstanding">
+          <div className="text-xl font-extrabold tracking-tight">
+            {gbp(totalOutstanding, { whole: true })}
+          </div>
+          <div className="mt-1 text-xs text-ink-muted">
+            {(unpaidInvoices?.length ?? 0)} unpaid invoice
+            {(unpaidInvoices?.length ?? 0) === 1 ? '' : 's'}
           </div>
         </Card>
       </div>
@@ -176,37 +259,59 @@ export default async function Dashboard({ params }: Props) {
         )}
       </section>
 
-      {/* Open decisions panel */}
-      {(openDecisions?.length ?? 0) > 0 && (
-        <section className="mt-4 rounded-card border border-hairline bg-white shadow-card">
-          <header className="border-b border-hairline px-5 py-3">
-            <h2 className="text-sm font-bold">Decisions needing client response</h2>
-          </header>
-          <ul>
-            {openDecisions!.map((d, i) => {
-              const proj = Array.isArray(d.project) ? d.project[0] : d.project;
-              return (
-                <li
-                  key={d.id}
-                  className={`flex items-center px-5 py-3 text-sm ${
-                    i > 0 ? 'border-t border-hairline' : ''
-                  }`}
-                >
-                  <span className="mr-3 inline-block h-2 w-2 rounded-full bg-accent" />
-                  <span className="flex-1">
-                    <span className="font-semibold">{proj?.name ?? 'Project'}</span> — {d.title}
-                  </span>
-                  {d.deadline && (
-                    <span className="text-[11px] text-ink-muted">
-                      deadline {relativeTime(d.deadline)}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
+      {/* Outstanding items: decisions / variations / invoices */}
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <OutstandingPanel
+          title="Open decisions"
+          empty="No open decisions."
+          items={(openDecisions ?? []).map((d) => {
+            const proj = Array.isArray(d.project) ? d.project[0] : d.project;
+            return {
+              href: proj ? `/${slug}/projects/${proj.id}` : `/${slug}/projects`,
+              primary: proj?.name ?? 'Project',
+              secondary: d.title,
+              meta: d.deadline ? `deadline ${relativeTime(d.deadline)}` : null,
+            };
+          })}
+          accent="accent"
+        />
+        <OutstandingPanel
+          title="Variations awaiting signature"
+          empty="All variations signed off."
+          items={(openVariations ?? []).map((v) => {
+            const proj = Array.isArray(v.project) ? v.project[0] : v.project;
+            return {
+              href: proj ? `/${slug}/projects/${proj.id}` : `/${slug}/projects`,
+              primary: proj?.name ?? 'Project',
+              secondary: `${v.number} · ${v.title}`,
+              meta: `${v.delta_amount_gbp_pence > 0 ? '+' : ''}${gbp(
+                Number(v.delta_amount_gbp_pence),
+                { whole: true },
+              )}`,
+            };
+          })}
+          accent="primary"
+        />
+        <OutstandingPanel
+          title="Unpaid invoices"
+          empty="No unpaid invoices."
+          items={(unpaidInvoices ?? []).map((inv) => {
+            const proj = Array.isArray(inv.project) ? inv.project[0] : inv.project;
+            const overdue = new Date(inv.due_at) < new Date();
+            return {
+              href: proj ? `/${slug}/projects/${proj.id}` : `/${slug}/projects`,
+              primary: proj?.name ?? 'Project',
+              secondary: `${inv.number} · ${gbp(
+                Number(inv.amount_gbp_pence),
+                { whole: true },
+              )}`,
+              meta: `${overdue ? 'overdue' : 'due'} ${relativeTime(inv.due_at)}`,
+              warn: overdue,
+            };
+          })}
+          accent="error"
+        />
+      </div>
     </div>
   );
 }
@@ -219,5 +324,83 @@ function Card({ label, children }: { label: string; children: React.ReactNode })
       </div>
       {children}
     </div>
+  );
+}
+
+interface OutstandingItem {
+  href: string;
+  primary: string;
+  secondary: string;
+  meta: string | null;
+  warn?: boolean;
+}
+
+function OutstandingPanel({
+  title,
+  empty,
+  items,
+  accent,
+}: {
+  title: string;
+  empty: string;
+  items: OutstandingItem[];
+  accent: 'accent' | 'primary' | 'error';
+}) {
+  const dotClass =
+    accent === 'accent'
+      ? 'bg-accent'
+      : accent === 'primary'
+        ? 'bg-primary'
+        : 'bg-error';
+  return (
+    <section className="rounded-card border border-hairline bg-white shadow-card">
+      <header className="border-b border-hairline px-5 py-3">
+        <h2 className="text-sm font-bold">
+          {title} · {items.length}
+        </h2>
+      </header>
+      {items.length === 0 ? (
+        <div className="px-5 py-6 text-center text-xs text-ink-muted">
+          {empty}
+        </div>
+      ) : (
+        <ul>
+          {items.map((it, i) => (
+            <li
+              key={`${it.primary}-${i}`}
+              className={i > 0 ? 'border-t border-hairline' : ''}
+            >
+              <Link
+                href={it.href}
+                className="block px-5 py-3 text-sm hover:bg-canvas"
+              >
+                <div className="flex items-start gap-2">
+                  <span
+                    className={`mt-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full ${dotClass}`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-semibold text-ink">
+                      {it.primary}
+                    </div>
+                    <div className="truncate text-[11px] text-ink-muted">
+                      {it.secondary}
+                    </div>
+                    {it.meta && (
+                      <div
+                        className={`mt-0.5 text-[10px] ${
+                          it.warn ? 'text-error' : 'text-ink-muted'
+                        }`}
+                      >
+                        {it.meta}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

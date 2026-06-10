@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { requireTenantBySlug } from '@/lib/tenant-resolver';
+import { requireTenantBySlug, isTenantInGoodStanding } from '@/lib/tenant-resolver';
 import { TIERS, gbp, formatDate } from '@br/shared';
 import { OpenPortalButton } from './portal-button';
 
@@ -10,9 +10,26 @@ interface Props {
 
 export default async function BillingSettingsPage({ params }: Props) {
   const { slug } = await params;
-  const { tenant, role } = await requireTenantBySlug(slug);
+  // allowInactive: this is the one page a locked-out tenant must still reach.
+  const { tenant, role } = await requireTenantBySlug(slug, { allowInactive: true });
+  const inactive = !isTenantInGoodStanding(tenant);
+
   if (role !== 'owner') {
-    redirect(`/${slug}/dashboard`);
+    // Owners manage billing. Other members are normally bounced to the
+    // dashboard — but if the tenant is locked out, bouncing would loop
+    // against the access gate, so show them a notice instead.
+    if (!inactive) {
+      redirect(`/${slug}/dashboard`);
+    }
+    return (
+      <div className="mx-auto max-w-md py-16 text-center">
+        <h1 className="text-xl font-extrabold tracking-tight">Subscription inactive</h1>
+        <p className="mt-2 text-sm text-ink-muted">
+          This account&apos;s subscription has ended. Please ask your account
+          owner to renew it to restore access.
+        </p>
+      </div>
+    );
   }
 
   const tierId = tenant.subscription_tier ?? 'starter';
@@ -54,6 +71,17 @@ export default async function BillingSettingsPage({ params }: Props) {
           </Link>
         </div>
       </header>
+
+      {inactive && (
+        <div className="mb-6 rounded-lg border border-error/30 bg-error/5 px-4 py-3 text-sm">
+          <div className="font-semibold text-error">Access paused</div>
+          <div className="mt-1 text-xs text-ink-muted">
+            Your trial or subscription has ended, so the rest of Builders Ready
+            is locked until you subscribe. Start your plan below to restore
+            access.
+          </div>
+        </div>
+      )}
 
       {/* Current plan */}
       <section className="rounded-card border border-hairline bg-white p-6 shadow-card">

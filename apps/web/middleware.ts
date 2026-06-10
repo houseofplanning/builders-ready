@@ -88,6 +88,7 @@ const RESERVED_TOP_LEVEL = new Set([
   'blog',
   'privacy',
   'terms',
+  'delete-account',
   // Infrastructure routes / files
   'api',
   '_next',

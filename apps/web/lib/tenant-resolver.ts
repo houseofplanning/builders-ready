@@ -39,15 +39,42 @@ export async function resolveCurrentTenant(): Promise<ResolvedTenant | null> {
 }
 
 /**
+ * True when a tenant may use the app: an active subscription, or a trial
+ * that hasn't expired yet. Everything else — an expired trial, past_due,
+ * cancelled, suspended or inactive — is locked out until they pay.
+ */
+export function isTenantInGoodStanding(tenant: Tenant): boolean {
+  const status = tenant.subscription_status;
+  if (status === 'active') return true;
+  if (status === 'trialing') {
+    if (!tenant.trial_ends_at) return true; // open-ended trial
+    return new Date(tenant.trial_ends_at).getTime() > Date.now();
+  }
+  return false;
+}
+
+/**
  * Server-Component guard: ensure the user is signed in and a member of the
  * tenant whose slug appears in the URL. Redirects on mismatch / no auth.
+ *
+ * Also enforces the subscription gate: a tenant whose trial has expired or
+ * whose subscription has lapsed is redirected to the billing page until they
+ * pay. Pass { allowInactive: true } on the pages that must stay reachable
+ * while locked out — the tenant layout and the billing page itself —
+ * otherwise the redirect would loop.
  */
-export async function requireTenantBySlug(slug: string): Promise<ResolvedTenant> {
+export async function requireTenantBySlug(
+  slug: string,
+  opts: { allowInactive?: boolean } = {},
+): Promise<ResolvedTenant> {
   const resolved = await resolveCurrentTenant();
   if (!resolved) redirect('/login');
   if (resolved.tenant.slug !== slug) {
     // User exists but is logged into a different tenant — send them home.
     redirect(`/${resolved.tenant.slug}/dashboard`);
+  }
+  if (!opts.allowInactive && !isTenantInGoodStanding(resolved.tenant)) {
+    redirect(`/${slug}/settings/billing`);
   }
   return resolved;
 }

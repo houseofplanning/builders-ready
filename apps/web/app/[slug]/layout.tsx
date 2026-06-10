@@ -13,7 +13,9 @@ interface Props {
  */
 export default async function TenantLayout({ children, params }: Props) {
   const { slug } = await params;
-  const { tenant, role } = await requireTenantBySlug(slug);
+  // Layout stays reachable even when the subscription has lapsed — the
+  // individual pages enforce the gate, and the billing page must render.
+  const { tenant, role } = await requireTenantBySlug(slug, { allowInactive: true });
 
   const palette = buildTenantPalette({
     primary: tenant.brand_primary,

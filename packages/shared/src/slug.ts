@@ -16,6 +16,7 @@ const RESERVED = new Set([
   'auth',
   'billing',
   'dashboard',
+  'delete-account',
   'docs',
   'forgot-password',
   'help',
