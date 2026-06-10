@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Tenant, TenantMemberRole } from '@br/shared';
-import { signOutAction } from '@/lib/server-actions/auth';
+import { AccountMenu } from '@/components/account-menu';
 
 export function TenantHeader({
   tenant,
@@ -54,14 +54,12 @@ export function TenantHeader({
           )}
         </nav>
 
-        <form action={signOutAction} className="ml-auto">
-          <button
-            type="submit"
-            className="rounded-lg border border-hairline bg-white px-3 py-1.5 text-xs font-semibold text-ink hover:bg-canvas"
-          >
-            Sign out
-          </button>
-        </form>
+        <AccountMenu
+          slug={tenant.slug}
+          role={role}
+          name={tenant.name}
+          initials={initials}
+        />
       </div>
     </header>
   );

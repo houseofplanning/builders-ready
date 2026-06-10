@@ -11,6 +11,7 @@ import {
 } from '@br/shared';
 import { createSupabaseServer } from '../supabase-server';
 import { getSupabaseAdmin } from '../supabase-admin';
+import { sendSignupNotification } from '../email';
 
 // -------------------------------------------------------------------------
 // createTenantAndOwner
@@ -126,6 +127,19 @@ export async function createTenantAndOwner(
   // 5. Sanity-check the tier limit table is in sync (typing).
   void TIERS;
 
+  // 6. Fire-and-forget ops notification. Wrapped so a failed email never
+  //    bubbles up to the signup response — Resend hiccups shouldn't break
+  //    a paying customer's first impression.
+  sendSignupNotification({
+    businessName: business_name,
+    ownerName: full_name,
+    ownerEmail: email,
+    slug,
+    tier: tier as 'starter' | 'pro' | 'unlimited',
+  }).catch((err) => {
+    console.error('[signup] notification email failed', err);
+  });
+
   return { ok: true, slug };
 }
 
@@ -183,5 +197,7 @@ export async function signInAction(
 export async function signOutAction(): Promise<void> {
   const supabase = await createSupabaseServer();
   await supabase.auth.signOut();
-  redirect('/login');
+  // Land on the public marketing home, not the login screen — feels less
+  // like a dead end and gives access to pricing, privacy, terms, etc.
+  redirect('/');
 }
