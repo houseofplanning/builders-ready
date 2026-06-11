@@ -1,0 +1,42 @@
+{
+  "cli": {
+    "version": ">= 19.0.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gxebyfkfrzijdpzntrkh.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4ZWJ5ZmtmcnppamRwem50cmtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTE1MzgsImV4cCI6MjA5NDY2NzUzOH0.jc4SitMoEXaxruo6iIXujx-AQnFepnJjx8kmSswFUFU"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://gxebyfkfrzijdpzntrkh.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4ZWJ5ZmtmcnppamRwem50cmtoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwOTE1MzgsImV4cCI6MjA5NDY2NzUzOH0.jc4SitMoEXaxruo6iIXujx-AQnFepnJjx8kmSswFUFU"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./play-store-service-account.json",
+        "track": "production",
+        "releaseStatus": "draft",
+        "changesNotSentForReview": false
+      }
+    }
+  }
+}

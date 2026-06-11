@@ -185,6 +185,97 @@ function renderInvitationHtml(args: {
 </html>`;
 }
 
+// -------------------------------------------------------------------------
+// New tenant signup notification — internal alert to ops
+// -------------------------------------------------------------------------
+export interface SignupNotificationParams {
+  businessName: string;
+  ownerName: string;
+  ownerEmail: string;
+  slug: string;
+  tier: 'starter' | 'pro' | 'unlimited';
+}
+
+export async function sendSignupNotification(
+  p: SignupNotificationParams,
+): Promise<void> {
+  const to =
+    process.env.SIGNUP_NOTIFICATION_EMAIL ?? 'info@buildersready.uk';
+  const subject = `New Builders Ready signup: ${p.businessName} (${p.tier})`;
+
+  const text = [
+    `A new tenant just signed up for Builders Ready.`,
+    ``,
+    `Business name : ${p.businessName}`,
+    `Slug          : ${p.slug}`,
+    `Owner         : ${p.ownerName}`,
+    `Owner email   : ${p.ownerEmail}`,
+    `Tier          : ${p.tier}`,
+    `Signed up at  : ${new Date().toUTCString()}`,
+    ``,
+    `Open the tenant: ${appUrl()}/${p.slug}/dashboard`,
+    ``,
+    `— Builders Ready signup bot`,
+  ].join('\n');
+
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:24px 28px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;letter-spacing:2px;font-size:13px;color:${INK};">BUILDERS <span style="color:${PRIMARY};">READY</span></div>
+          </td></tr>
+          <tr><td style="padding:24px 28px;">
+            <div style="font-size:11px;font-weight:600;color:${PRIMARY};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">
+              New signup
+            </div>
+            <h1 style="margin:0 0 14px;font-size:20px;line-height:1.25;font-weight:800;color:${INK};">
+              ${escapeHtml(p.businessName)} just signed up
+            </h1>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="font-size:13px;line-height:20px;color:${INK};margin:8px 0 16px;">
+              <tr><td style="padding:4px 0;color:${MUTED};width:130px;">Business name</td><td>${escapeHtml(p.businessName)}</td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Slug</td><td><code>${escapeHtml(p.slug)}</code></td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Owner</td><td>${escapeHtml(p.ownerName)}</td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Owner email</td><td><a href="mailto:${escapeHtml(p.ownerEmail)}" style="color:${PRIMARY};">${escapeHtml(p.ownerEmail)}</a></td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Tier</td><td><strong>${escapeHtml(p.tier)}</strong></td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Signed up at</td><td>${escapeHtml(new Date().toUTCString())}</td></tr>
+            </table>
+            <p style="margin:14px 0 0;font-size:13px;color:${MUTED};">
+              <a href="${appUrl()}/${encodeURIComponent(p.slug)}/dashboard" style="color:${PRIMARY};font-weight:700;">Open tenant dashboard &rarr;</a>
+            </p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  try {
+    const { error } = await getResend().emails.send({
+      from: fromAddress(),
+      to,
+      subject,
+      html,
+      text,
+    });
+    if (error) {
+      // Don't throw — a failed ops notification shouldn't block the
+      // signup flow. Log to the server for visibility instead.
+      console.error('[signup-notification] resend rejected', error);
+    }
+  } catch (err) {
+    console.error('[signup-notification] send failed', err);
+  }
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')

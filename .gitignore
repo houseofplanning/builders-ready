@@ -46,8 +46,12 @@ apps/mobile/android/
 *.p12
 *.mobileprovision
 *.keystore
+apps/mobile/play-store-service-account.json
+apps/mobile/google-services.json
 
 # Misc
 coverage/
 .next-env.d.ts
 next-env.d.ts
+
+.vercel

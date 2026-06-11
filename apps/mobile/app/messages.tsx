@@ -95,14 +95,12 @@ export default function MessagesScreen() {
     );
   }
 
+  const pmName = current.project.pm?.full_name ?? 'your project manager';
+  const clientName = current.project.client?.full_name ?? 'the client';
   const otherPartyLabel =
     role === 'client'
-      ? `your project manager${
-          current.project.pm.full_name ? ` (${current.project.pm.full_name})` : ''
-        }`
-      : `the client${
-          current.project.client.full_name ? ` (${current.project.client.full_name})` : ''
-        }`;
+      ? `your project manager (${pmName})`
+      : `the client (${clientName})`;
 
   return (
     <SafeAreaView
@@ -123,7 +121,7 @@ export default function MessagesScreen() {
             Messages
           </Text>
           <Text style={[styles.headerSub, { color: palette.inkMuted }]}>
-            with {role === 'client' ? current.project.pm.full_name : current.project.client.full_name}
+            with {role === 'client' ? pmName : clientName}
           </Text>
         </View>
         <View style={{ width: 28 }} />

@@ -22,6 +22,13 @@ import {
   setBiometricEnabled,
   type BiometricInfo,
 } from '../lib/biometric';
+import {
+  readPushPermission,
+  registerForPushNotifications,
+  deregisterPushToken,
+  type PushPermissionStatus,
+} from '../lib/push';
+import { Linking } from 'react-native';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -40,6 +47,9 @@ export default function SettingsScreen() {
   const [bio, setBio] = useState<BiometricInfo | null>(null);
   const [bioEnabled, setBioEnabled] = useState<boolean>(false);
   const [bioBusy, setBioBusy] = useState(false);
+
+  const [push, setPush] = useState<PushPermissionStatus | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
 
   const [signingOut, setSigningOut] = useState(false);
 
@@ -70,6 +80,52 @@ export default function SettingsScreen() {
       }
     })();
   }, [user_id]);
+
+  // --- load push permission state ---
+  useEffect(() => {
+    readPushPermission().then(setPush);
+  }, []);
+
+  async function togglePush(next: boolean) {
+    if (!user_id || !tenant) return;
+    setPushBusy(true);
+    try {
+      if (next) {
+        // If user previously denied, we can't re-prompt — open settings.
+        if (push && push.status === 'denied' && !push.canAskAgain) {
+          Alert.alert(
+            'Enable in iOS settings',
+            'You previously declined notifications. Tap "Open settings" and toggle them on for Builders Ready.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Open settings', onPress: () => Linking.openSettings() },
+            ],
+          );
+          return;
+        }
+        const token = await registerForPushNotifications({
+          userId: user_id,
+          tenantId: tenant.id,
+        });
+        const fresh = await readPushPermission();
+        setPush(fresh);
+        if (!token && !fresh.granted) {
+          Alert.alert(
+            'Notifications not enabled',
+            'Without notifications you won\'t get pinged about new updates, decisions or invoices. You can change this any time in iOS settings.',
+          );
+        }
+      } else {
+        await deregisterPushToken(user_id);
+        // We can't revoke permission from JS — just remove our token. The
+        // toggle reflects "we have a token for you" effectively.
+        const fresh = await readPushPermission();
+        setPush(fresh);
+      }
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   async function saveName() {
     if (!user_id || !nameDraft.trim()) return;
@@ -266,7 +322,7 @@ export default function SettingsScreen() {
           </Text>
         )}
 
-        {/* NOTIFICATIONS (placeholder) */}
+        {/* NOTIFICATIONS */}
         <Text style={[styles.section, { color: palette.inkMuted }]}>
           Notifications
         </Text>
@@ -282,17 +338,20 @@ export default function SettingsScreen() {
                 Push notifications
               </Text>
               <Text style={[styles.rowHint, { color: palette.inkMuted }]}>
-                Project updates, decisions, variations and invoices.
+                {push?.granted
+                  ? 'On — you\'ll get pinged for updates, decisions, variations and invoices.'
+                  : push?.status === 'denied' && !push.canAskAgain
+                    ? 'Blocked in iOS settings. Tap to open settings.'
+                    : 'Off. Toggle on to allow Builders Ready to send notifications.'}
               </Text>
             </View>
-            <Text
-              style={[
-                styles.soonBadge,
-                { backgroundColor: palette.accentSoft, color: palette.accentDeep },
-              ]}
-            >
-              Soon
-            </Text>
+            <Switch
+              value={!!push?.granted}
+              onValueChange={togglePush}
+              disabled={pushBusy}
+              trackColor={{ false: palette.hairline, true: palette.primary }}
+              thumbColor="#fff"
+            />
           </View>
         </View>
 

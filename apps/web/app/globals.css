@@ -22,3 +22,61 @@ html, body {
   background: var(--br-canvas);
   color: var(--br-ink);
 }
+
+/* ---------- Blog article typography ---------- */
+.prose-builders {
+  color: var(--br-ink);
+  font-size: 16px;
+  line-height: 1.7;
+}
+.prose-builders > * + * {
+  margin-top: 1.2em;
+}
+.prose-builders h2 {
+  margin-top: 2.4em;
+  margin-bottom: 0.6em;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--br-ink);
+}
+.prose-builders h3 {
+  margin-top: 1.8em;
+  margin-bottom: 0.5em;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--br-ink);
+}
+.prose-builders p {
+  color: var(--br-ink);
+}
+.prose-builders strong {
+  font-weight: 700;
+  color: var(--br-ink);
+}
+.prose-builders em {
+  font-style: italic;
+}
+.prose-builders ul,
+.prose-builders ol {
+  padding-left: 1.4em;
+}
+.prose-builders ul li {
+  list-style: disc;
+  margin-top: 0.5em;
+}
+.prose-builders ol li {
+  list-style: decimal;
+  margin-top: 0.5em;
+}
+.prose-builders code {
+  background: var(--br-canvas);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+.prose-builders a {
+  color: var(--br-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

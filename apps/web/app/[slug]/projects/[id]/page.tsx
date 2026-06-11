@@ -4,8 +4,14 @@ import { requireTenantBySlug } from '@/lib/tenant-resolver';
 import { createSupabaseServer } from '@/lib/supabase-server';
 import { formatDate, gbp, relativeTime } from '@br/shared';
 import { ProjectStatusPill } from '@/components/status-pill';
+import { HandoverCard } from '@/components/handover-card';
 import { StageRow } from './stage-row';
 import { UpdateComposer } from './update-composer';
+import { DecisionsSection, type DecisionListRow } from './decisions-section';
+import { VariationsSection, type VariationRow } from './variations-section';
+import { InvoicesSection, type InvoiceRow } from './invoices-section';
+import { ReportsSection, type ReportRow } from './reports-section';
+import { DocumentsSection, type DocumentRow } from './documents-section';
 
 interface Props {
   params: Promise<{ slug: string; id: string }>;
@@ -18,40 +24,187 @@ export default async function ProjectDetail({ params }: Props) {
 
   const supabase = await createSupabaseServer();
 
-  const [{ data: project }, { data: stages }, { data: updates }, { data: finance }] =
-    await Promise.all([
-      supabase
-        .from('projects')
-        .select(
-          `*,
-           client:profiles!projects_client_id_fkey(id, full_name, email),
-           pm:profiles!projects_pm_id_fkey(id, full_name, email)`,
-        )
-        .eq('id', id)
-        .maybeSingle(),
-      supabase
-        .from('project_stages')
-        .select('*')
-        .eq('project_id', id)
-        .order('position'),
-      supabase
-        .from('project_updates')
-        .select(
-          `id, headline, body, decision_needed, posted_at, stage_id,
-           posted_by_profile:profiles!project_updates_posted_by_fkey(id, full_name),
-           stage:project_stages!project_updates_stage_id_fkey(id, name)`,
-        )
-        .eq('project_id', id)
-        .order('posted_at', { ascending: false })
-        .limit(50),
-      supabase
-        .from('project_finance')
-        .select('*')
-        .eq('project_id', id)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: project },
+    { data: stages },
+    { data: updates },
+    { data: finance },
+    { data: decisionRows },
+    { data: variationRows },
+    { data: invoiceRows },
+    { data: reportRows },
+    { data: documentRows },
+  ] = await Promise.all([
+    supabase
+      .from('projects')
+      .select(
+        `*,
+         client:profiles!projects_client_id_fkey(id, full_name, email),
+         pm:profiles!projects_pm_id_fkey(id, full_name, email)`,
+      )
+      .eq('id', id)
+      .maybeSingle(),
+    supabase
+      .from('project_stages')
+      .select('*')
+      .eq('project_id', id)
+      .order('position'),
+    supabase
+      .from('project_updates')
+      .select(
+        `id, headline, body, decision_needed, posted_at, stage_id,
+         posted_by_profile:profiles!project_updates_posted_by_fkey(id, full_name),
+         stage:project_stages!project_updates_stage_id_fkey(id, name)`,
+      )
+      .eq('project_id', id)
+      .order('posted_at', { ascending: false })
+      .limit(50),
+    supabase
+      .from('project_finance')
+      .select('*')
+      .eq('project_id', id)
+      .maybeSingle(),
+    supabase
+      .from('decisions')
+      .select(
+        'id, title, description, status, deadline, decided_at, selected_option_id, raised_by, decided_by',
+      )
+      .eq('project_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('variations')
+      .select(
+        'id, number, title, description, delta_amount_gbp_pence, delta_days, status, decided_at, client_signature, proposed_by, created_at',
+      )
+      .eq('project_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('invoices')
+      .select(
+        'id, number, title, description, amount_gbp_pence, issued_at, due_at, status, paid_at, paid_reference',
+      )
+      .eq('project_id', id)
+      .order('issued_at', { ascending: false }),
+    supabase
+      .from('reports')
+      .select(
+        'id, title, kind, summary, next_week, risks, decisions_needed, pdf_storage_path, posted_at, acknowledged_at, posted_by, acknowledged_by',
+      )
+      .eq('project_id', id)
+      .order('posted_at', { ascending: false }),
+    supabase
+      .from('documents')
+      .select('id, name, category, storage_path, size_bytes, created_at')
+      .eq('project_id', id)
+      .order('created_at', { ascending: false }),
+  ]);
 
   if (!project) notFound();
+
+  // Resolve profile names for the new sections (raised_by, decided_by, etc.)
+  const profileIds = new Set<string>();
+  (decisionRows ?? []).forEach((d) => {
+    if (d.raised_by) profileIds.add(d.raised_by);
+    if (d.decided_by) profileIds.add(d.decided_by);
+  });
+  (variationRows ?? []).forEach((v) => {
+    if (v.proposed_by) profileIds.add(v.proposed_by);
+  });
+  (reportRows ?? []).forEach((r) => {
+    if (r.posted_by) profileIds.add(r.posted_by);
+    if (r.acknowledged_by) profileIds.add(r.acknowledged_by);
+  });
+  const { data: extraProfiles } = profileIds.size
+    ? await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', Array.from(profileIds))
+    : { data: [] as { id: string; full_name: string }[] };
+  const nameOf = (uid: string | null | undefined) =>
+    (uid && extraProfiles?.find((p) => p.id === uid)?.full_name) || 'Someone';
+
+  // Fetch options for this project's decisions in one round-trip.
+  interface OptionRow {
+    id: string;
+    decision_id: string;
+    label: string;
+    description: string | null;
+    price_gbp_pence: number | null;
+    position: number;
+  }
+  const decisionIds = (decisionRows ?? []).map((d) => d.id);
+  const { data: decisionOptions } = decisionIds.length
+    ? await supabase
+        .from('decision_options')
+        .select('id, decision_id, label, description, price_gbp_pence, position')
+        .in('decision_id', decisionIds)
+        .order('position')
+    : { data: [] as OptionRow[] };
+  const optionsByDecision = new Map<string, OptionRow[]>();
+  for (const o of (decisionOptions ?? []) as OptionRow[]) {
+    const list = optionsByDecision.get(o.decision_id) ?? [];
+    list.push(o);
+    optionsByDecision.set(o.decision_id, list);
+  }
+
+  const decisions: DecisionListRow[] = (decisionRows ?? []).map((d) => ({
+    id: d.id,
+    title: d.title,
+    description: d.description,
+    status: d.status,
+    deadline: d.deadline,
+    decided_at: d.decided_at,
+    raised_by_name: nameOf(d.raised_by),
+    decided_by_name: d.decided_by ? nameOf(d.decided_by) : null,
+    selected_option_id: d.selected_option_id,
+    options: (optionsByDecision.get(d.id) ?? []).map((o) => ({
+      id: o.id,
+      label: o.label,
+      description: o.description,
+      price_gbp_pence: o.price_gbp_pence,
+    })),
+  }));
+
+  const variations: VariationRow[] = (variationRows ?? []).map((v) => ({
+    id: v.id,
+    number: v.number,
+    title: v.title,
+    description: v.description,
+    delta_amount_gbp_pence: Number(v.delta_amount_gbp_pence),
+    delta_days: v.delta_days,
+    status: v.status,
+    decided_at: v.decided_at,
+    client_signature: v.client_signature,
+    proposed_by_name: nameOf(v.proposed_by),
+  }));
+
+  const invoices: InvoiceRow[] = (invoiceRows ?? []) as InvoiceRow[];
+  const reports: ReportRow[] = (reportRows ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    kind: r.kind,
+    summary: r.summary,
+    next_week: r.next_week,
+    risks: r.risks,
+    decisions_needed: r.decisions_needed,
+    pdf_storage_path: r.pdf_storage_path,
+    posted_at: r.posted_at,
+    acknowledged_at: r.acknowledged_at,
+    posted_by_name: nameOf(r.posted_by),
+    acknowledged_by_name: r.acknowledged_by ? nameOf(r.acknowledged_by) : null,
+  }));
+
+  // Suggest next numbers for variation / invoice forms.
+  const nextVariationNumber =
+    'V' +
+    String(
+      (variations.filter((v) => /^V\d+$/.test(v.number)).length || 0) + 1,
+    ).padStart(3, '0');
+  const nextInvoiceNumber =
+    'INV-' +
+    String(
+      (invoices.filter((i) => /^INV-\d+$/.test(i.number)).length || 0) + 1,
+    ).padStart(3, '0');
 
   const client = Array.isArray(project.client) ? project.client[0] : project.client;
   const pm = Array.isArray(project.pm) ? project.pm[0] : project.pm;
@@ -82,6 +235,14 @@ export default async function ProjectDetail({ params }: Props) {
               Client: <span className="font-semibold text-ink">{client?.full_name ?? '—'}</span>
               {'  ·  '}
               PM: <span className="font-semibold text-ink">{pm?.full_name ?? '—'}</span>
+              {canWrite && (
+                <Link
+                  href={`/${slug}/team`}
+                  className="ml-2 text-[10px] font-semibold text-primary hover:underline"
+                >
+                  Reassign in Team →
+                </Link>
+              )}
             </p>
           </div>
           <div className="min-w-[180px] text-right">
@@ -118,9 +279,25 @@ export default async function ProjectDetail({ params }: Props) {
       </section>
 
       {/* FINANCE */}
-      <section className="mt-4 grid gap-3 md:grid-cols-3">
-        <FinanceCard label="Variations to date" value={gbp(Number(finance?.variations_pence ?? 0))} />
-        <FinanceCard label="Invoiced" value={gbp(Number(finance?.invoiced_pence ?? 0))} />
+      <section className="mt-4 grid gap-3 md:grid-cols-4">
+        <FinanceCard
+          label="Original quote"
+          value={
+            project.quoted_amount_pence
+              ? gbp(Number(project.quoted_amount_pence))
+              : '—'
+          }
+        />
+        <FinanceCard
+          label="Variations to date"
+          value={gbp(Number(finance?.variations_pence ?? 0))}
+        />
+        <FinanceCard
+          label="Invoiced / paid"
+          value={`${gbp(Number(finance?.paid_pence ?? 0))} / ${gbp(
+            Number(finance?.invoiced_pence ?? 0),
+          )}`}
+        />
         <FinanceCard
           label="Outstanding"
           value={gbp(
@@ -212,8 +389,52 @@ export default async function ProjectDetail({ params }: Props) {
         </ul>
       </section>
 
+      {/* DECISIONS */}
+      <DecisionsSection
+        projectId={project.id}
+        decisions={decisions}
+        canWrite={canWrite}
+      />
+
+      {/* VARIATIONS */}
+      <VariationsSection
+        projectId={project.id}
+        variations={variations}
+        canWrite={canWrite}
+        suggestedNextNumber={nextVariationNumber}
+      />
+
+      {/* INVOICES */}
+      <InvoicesSection
+        projectId={project.id}
+        invoices={invoices}
+        canWrite={canWrite}
+        suggestedNextNumber={nextInvoiceNumber}
+      />
+
+      {/* REPORTS */}
+      <ReportsSection
+        projectId={project.id}
+        reports={reports}
+        canWrite={canWrite}
+      />
+
+      {/* DOCUMENTS */}
+      <DocumentsSection
+        projectId={project.id}
+        documents={(documentRows ?? []) as DocumentRow[]}
+        canManage={canWrite}
+      />
+
+      <HandoverCard
+        projectId={project.id}
+        hasPdf={!!project.handover_pdf_storage_path}
+        canGenerate={canWrite}
+      />
+
       <p className="mt-6 text-center text-[10px] text-ink-muted">
-        Photo uploads, reports, invoices and decisions land in the next sessions.
+        The handover PDF includes everything above plus variations and invoices.
+        Regenerate it any time before final handover.
       </p>
     </div>
   );

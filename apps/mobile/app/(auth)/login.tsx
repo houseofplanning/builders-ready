@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { palette, spacing, radius, typography } from '@br/shared';
@@ -105,17 +104,16 @@ export default function LoginScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() =>
-                Linking.openURL('https://app.buildersready.uk/signup')
-              }
-              activeOpacity={0.6}
-              style={styles.linkRow}
-            >
-              <Text style={styles.linkText}>
-                New builder? <Text style={styles.linkStrong}>Sign up on the web →</Text>
-              </Text>
-            </TouchableOpacity>
+            {/*
+              Apple's anti-steering rules don't love iOS apps that link to
+              external signup/billing flows. Builders Ready is a B2B SaaS
+              where customers create their account on the web; the iOS app
+              is the companion for already-onboarded users. Keep the login
+              screen sign-in-only.
+            */}
+            <Text style={styles.linkText}>
+              Use the same details you signed up with on the web.
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -4,9 +4,9 @@ import { usePathname } from 'next/navigation';
 
 const STEPS = [
   { slug: 'account', label: 'Account' },
-  { slug: 'billing', label: 'Billing' },
+  { slug: 'billing', label: 'Pay subscription' },
   { slug: 'branding', label: 'Branding' },
-  { slug: 'bank', label: 'Bank details' },
+  { slug: 'bank', label: 'Invoice details' },
   { slug: 'invite', label: 'Invite team' },
 ];
 

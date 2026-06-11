@@ -2,9 +2,7 @@
 
 import 'server-only';
 import { z } from 'zod';
-import { redirect } from 'next/navigation';
 import { TIERS, type SubscriptionTier } from '@br/shared';
-import { createSupabaseServer } from '../supabase-server';
 import { getSupabaseAdmin } from '../supabase-admin';
 import { resolveCurrentTenant } from '../tenant-resolver';
 import {

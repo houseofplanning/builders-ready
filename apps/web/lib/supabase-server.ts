@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 
 /**
  * Server-side Supabase client. Reads the session from cookies set by the
@@ -18,7 +18,7 @@ export async function createSupabaseServer() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(toSet) {
+        setAll(toSet: { name: string; value: string; options: CookieOptions }[]) {
           try {
             toSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options),

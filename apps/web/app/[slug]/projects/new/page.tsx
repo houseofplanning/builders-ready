@@ -24,17 +24,25 @@ export default async function NewProjectPage({ params }: Props) {
   const supabase = await createSupabaseServer();
   const { data: members } = await supabase
     .from('tenant_members')
-    .select('user_id, role, profile:profiles(full_name)')
+    .select('user_id, role')
     .eq('tenant_id', tenant.id);
 
-  const options: MemberOption[] = (members ?? []).map((m) => {
-    const profile = Array.isArray(m.profile) ? m.profile[0] : m.profile;
-    return {
-      user_id: m.user_id,
-      full_name: profile?.full_name ?? 'Unknown',
-      role: m.role as 'owner' | 'pm' | 'client',
-    };
-  });
+  // tenant_members.user_id FKs to auth.users, not profiles, so we can't
+  // join profiles in the same select. Fetch profiles separately and merge.
+  const userIds = (members ?? []).map((m) => m.user_id);
+  const { data: profileRows } = userIds.length
+    ? await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds)
+    : { data: [] as { id: string; full_name: string }[] };
+  const profileById = new Map((profileRows ?? []).map((p) => [p.id, p]));
+
+  const options: MemberOption[] = (members ?? []).map((m) => ({
+    user_id: m.user_id,
+    full_name: profileById.get(m.user_id)?.full_name ?? 'Unknown',
+    role: m.role as 'owner' | 'pm' | 'client',
+  }));
 
   return (
     <div className="mx-auto max-w-2xl">

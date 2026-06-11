@@ -19,13 +19,22 @@ import {
 } from '@br/shared';
 import { useTenant } from '../../lib/tenant-provider';
 import { useCurrentProject } from '../../lib/current-project';
+import { getHandoverSignedUrl } from '../../lib/handover';
 import { ProjectPickerButton } from '../../components/project-picker-button';
+import { ProjectGrid } from '../../components/project-grid';
 import { StagePill, ProjectStatusPill } from '../../components/stage-pill';
 import { ProgressBar } from '../../components/progress-bar';
 
 export default function HomeScreen() {
   const { tenant, role, palette } = useTenant();
-  const { current, projects, loading, refresh } = useCurrentProject();
+  const {
+    current,
+    projects,
+    selectedId,
+    loading,
+    refresh,
+    clearSelection,
+  } = useCurrentProject();
 
   // Re-fetch when the tab regains focus (so progress reflects status changes
   // made from Timeline tab).
@@ -57,6 +66,13 @@ export default function HomeScreen() {
     );
   }
 
+  // No project selected → show the grid picker. The provider auto-selects
+  // when there's exactly one project, so this only fires for owners/PMs
+  // with multiple projects (or after a back-to-grid tap).
+  if (!selectedId) {
+    return <ProjectGrid />;
+  }
+
   if (!current) {
     return (
       <View style={[styles.center, { backgroundColor: palette.canvas }]}>
@@ -64,6 +80,11 @@ export default function HomeScreen() {
       </View>
     );
   }
+
+  // Show the back-to-grid affordance only when the grid is actually a
+  // meaningful destination — i.e. multiple projects exist. Clients with
+  // a single project never see this.
+  const showBackToGrid = projects.length > 1;
 
   const { project, currentStage, finance } = current;
   const variations = Number(finance.variations_pence ?? 0);
@@ -79,7 +100,25 @@ export default function HomeScreen() {
         <RefreshControl refreshing={loading} onRefresh={refresh} />
       }
     >
-      <ProjectPickerButton />
+      {showBackToGrid ? (
+        <TouchableOpacity
+          onPress={clearSelection}
+          activeOpacity={0.7}
+          hitSlop={10}
+          style={styles.backRow}
+        >
+          <Ionicons name="chevron-back" size={18} color={palette.primary} />
+          <Text style={[styles.backLabel, { color: palette.primary }]}>
+            All projects
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <ProjectPickerButton />
+      )}
+
+      <Text style={[styles.projectName, { color: palette.ink }]}>
+        {project.name}
+      </Text>
 
       {/* PROJECT HEADER CARD */}
       <View
@@ -249,6 +288,132 @@ export default function HomeScreen() {
         )}
       </View>
 
+      {/* HANDOVER PDF
+          Always render the card so clients understand the deliverable
+          exists. If the builder hasn't generated the PDF yet, show a
+          state-aware placeholder; once generated, the same card becomes
+          the download CTA. PDF generation itself is web-only (it's a
+          heavy server-side render). */}
+      <Text style={[styles.sectionTitle, { color: palette.ink }]}>
+        Project handover
+      </Text>
+      {project.handover_pdf_storage_path ? (
+        <TouchableOpacity
+          onPress={async () => {
+            const url = await getHandoverSignedUrl(
+              project.handover_pdf_storage_path!,
+            );
+            if (url) Linking.openURL(url);
+          }}
+          activeOpacity={0.7}
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.card,
+              borderColor: palette.primary,
+              borderWidth: 1.5,
+              flexDirection: 'row',
+              alignItems: 'center',
+            },
+          ]}
+        >
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: palette.primarySoft,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons
+              name="document-text"
+              size={22}
+              color={palette.primary}
+            />
+          </View>
+          <View style={{ flex: 1, marginLeft: spacing.md }}>
+            <Text
+              style={{
+                fontSize: typography.size.body,
+                fontWeight: typography.weightExtraBold as '800',
+                color: palette.ink,
+              }}
+            >
+              Download handover PDF
+            </Text>
+            <Text
+              style={{
+                fontSize: typography.size.xs,
+                color: palette.inkMuted,
+                marginTop: 2,
+              }}
+            >
+              Quote, variations, timeline, updates, decisions, invoices — one document
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={palette.inkMuted}
+          />
+        </TouchableOpacity>
+      ) : (
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.card,
+              borderColor: palette.hairline,
+              flexDirection: 'row',
+              alignItems: 'center',
+              opacity: 0.85,
+            },
+          ]}
+        >
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: palette.canvas,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons
+              name="document-text-outline"
+              size={22}
+              color={palette.inkMuted}
+            />
+          </View>
+          <View style={{ flex: 1, marginLeft: spacing.md }}>
+            <Text
+              style={{
+                fontSize: typography.size.body,
+                fontWeight: typography.weightExtraBold as '800',
+                color: palette.ink,
+              }}
+            >
+              Available at handover
+            </Text>
+            <Text
+              style={{
+                fontSize: typography.size.xs,
+                color: palette.inkMuted,
+                marginTop: 2,
+                lineHeight: 18,
+              }}
+            >
+              {role === 'client'
+                ? 'Your builder will generate a complete project record at the end of the job — quote, variations, timeline, every update, decisions and invoices in one PDF you keep for life.'
+                : 'Generate the handover PDF from the web admin (app.buildersready.uk) once the project is complete. Clients can download it from here.'}
+            </Text>
+          </View>
+        </View>
+      )}
+
       <View style={{ height: spacing.xl }} />
     </ScrollView>
   );
@@ -361,6 +526,25 @@ function EmptyState({ title, body }: { title: string; body: string }) {
 const styles = StyleSheet.create({
   scroll: {
     paddingBottom: spacing.xl,
+  },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  backLabel: {
+    fontSize: typography.size.body,
+    fontWeight: typography.weightSemibold as '600',
+    marginLeft: 2,
+  },
+  projectName: {
+    fontSize: typography.size.xl,
+    fontWeight: typography.weightExtraBold as '800',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   center: {
     flex: 1,

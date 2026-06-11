@@ -93,6 +93,101 @@ export async function createProject(
 }
 
 // -------------------------------------------------------------------------
+// reassignProjectClient — repoint a project at a different tenant member
+// with role 'client'. Needed because the create-project form defaults the
+// client to the current user when no other clients exist; once the real
+// client accepts their invite, owner/PM uses this to fix the link.
+// -------------------------------------------------------------------------
+const reassignClientSchema = z.object({
+  project_id: z.string().uuid(),
+  new_client_user_id: z.string().uuid(),
+});
+
+export async function reassignProjectClient(
+  raw: Record<string, unknown>,
+): Promise<ProjectActionResult> {
+  const parsed = reassignClientSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Invalid input.' };
+  const tenant = await resolveCurrentTenant();
+  if (!tenant) return { ok: false, error: 'Not signed in.' };
+  if (tenant.role !== 'owner' && tenant.role !== 'pm') {
+    return { ok: false, error: 'Only owners and PMs can reassign clients.' };
+  }
+  const supabase = await createSupabaseServer();
+
+  // Verify the target user is a tenant member with role 'client'.
+  const { data: member } = await supabase
+    .from('tenant_members')
+    .select('role')
+    .eq('user_id', parsed.data.new_client_user_id)
+    .eq('tenant_id', tenant.tenant.id)
+    .maybeSingle();
+  if (!member || member.role !== 'client') {
+    return {
+      ok: false,
+      error: 'That user is not a client of this tenant yet — invite them first.',
+    };
+  }
+
+  const { error } = await supabase
+    .from('projects')
+    .update({ client_id: parsed.data.new_client_user_id })
+    .eq('id', parsed.data.project_id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/${tenant.tenant.slug}/projects/${parsed.data.project_id}`);
+  revalidatePath(`/${tenant.tenant.slug}/team`);
+  return { ok: true, projectId: parsed.data.project_id };
+}
+
+// -------------------------------------------------------------------------
+// reassignProjectPm — repoint a project at a different owner/PM. Same
+// motivation as reassignProjectClient: lonely-tenant defaults at create
+// time mean a project is often stuck on the owner until they delegate.
+// -------------------------------------------------------------------------
+const reassignPmSchema = z.object({
+  project_id: z.string().uuid(),
+  new_pm_user_id: z.string().uuid(),
+});
+
+export async function reassignProjectPm(
+  raw: Record<string, unknown>,
+): Promise<ProjectActionResult> {
+  const parsed = reassignPmSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Invalid input.' };
+  const tenant = await resolveCurrentTenant();
+  if (!tenant) return { ok: false, error: 'Not signed in.' };
+  if (tenant.role !== 'owner' && tenant.role !== 'pm') {
+    return { ok: false, error: 'Only owners and PMs can reassign the PM.' };
+  }
+  const supabase = await createSupabaseServer();
+
+  // Verify the target user is a tenant member with role owner or pm.
+  const { data: member } = await supabase
+    .from('tenant_members')
+    .select('role')
+    .eq('user_id', parsed.data.new_pm_user_id)
+    .eq('tenant_id', tenant.tenant.id)
+    .maybeSingle();
+  if (!member || (member.role !== 'owner' && member.role !== 'pm')) {
+    return {
+      ok: false,
+      error: 'That user is not an owner or PM of this tenant.',
+    };
+  }
+
+  const { error } = await supabase
+    .from('projects')
+    .update({ pm_id: parsed.data.new_pm_user_id })
+    .eq('id', parsed.data.project_id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/${tenant.tenant.slug}/projects/${parsed.data.project_id}`);
+  revalidatePath(`/${tenant.tenant.slug}/team`);
+  return { ok: true, projectId: parsed.data.project_id };
+}
+
+// -------------------------------------------------------------------------
 // archiveProject — frees a slot against the tier limit.
 // -------------------------------------------------------------------------
 export async function archiveProject(projectId: string): Promise<void> {

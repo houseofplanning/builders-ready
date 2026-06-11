@@ -49,23 +49,24 @@ export function PhotoViewer({
       statusBarTranslucent
     >
       <SafeAreaView style={styles.backdrop} edges={['top', 'bottom']}>
-        <View style={styles.topBar}>
+        {/* The entire top bar dismisses on tap. The visible X is still the
+            primary affordance, but tapping anywhere in this strip works —
+            which is critical because users naturally aim near the X and
+            the FlatList's pan handler can otherwise steal touches landing
+            just below it. */}
+        <Pressable
+          onPress={onClose}
+          style={styles.topBar}
+          accessibilityRole="button"
+          accessibilityLabel="Close photo viewer"
+        >
           <Text style={styles.counter}>
             {currentIndex + 1} / {photos.length}
           </Text>
-          <Pressable
-            onPress={onClose}
-            hitSlop={20}
-            style={({ pressed }) => [
-              styles.closeBtn,
-              pressed && styles.closeBtnPressed,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Close photo viewer"
-          >
+          <View style={styles.closeBtn}>
             <Ionicons name="close" size={28} color="#fff" />
-          </Pressable>
-        </View>
+          </View>
+        </Pressable>
 
         <View style={styles.photoArea}>
           <FlatList
@@ -117,7 +118,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
+    // Generous bottom padding so the whole strip stays out of the
+    // FlatList's pan gesture detection.
+    paddingBottom: spacing.lg,
     // Ensures the bar paints above the FlatList in case of any z-fighting.
     zIndex: 10,
     elevation: 10,
@@ -129,15 +133,12 @@ const styles = StyleSheet.create({
     fontWeight: typography.weightSemibold as '600',
   },
   closeBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-  },
-  closeBtnPressed: {
-    backgroundColor: 'rgba(255,255,255,0.32)',
+    backgroundColor: 'rgba(255,255,255,0.22)',
   },
   photoArea: {
     flex: 1,

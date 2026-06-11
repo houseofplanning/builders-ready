@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet, Platform } from 'react-native';
 import { palette as defaultPalette, typography } from '@br/shared';
 import { useTenant } from '../../lib/tenant-provider';
+import { useCurrentProject } from '../../lib/current-project';
 import { TenantHeader } from '../../components/tenant-header';
 
 // NOTE: CurrentProjectProvider lives in app/_layout.tsx so the modal route
@@ -10,6 +11,12 @@ import { TenantHeader } from '../../components/tenant-header';
 // read the current project. Don't reintroduce it here.
 export default function TabsLayout() {
   const { palette } = useTenant();
+  const { selectedId } = useCurrentProject();
+
+  // Hide the tab bar entirely when no project is selected. The Home tab in
+  // that state renders the project grid; the other tabs only make sense
+  // once you're inside a project.
+  const tabBarHidden = !selectedId;
 
   return (
     <View style={styles.shell}>
@@ -19,14 +26,16 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarActiveTintColor: palette.primary,
           tabBarInactiveTintColor: defaultPalette.inkMuted,
-          tabBarStyle: {
-            backgroundColor: palette.card,
-            borderTopColor: palette.hairline,
-            borderTopWidth: 1,
-            paddingTop: 6,
-            paddingBottom: Platform.OS === 'ios' ? 22 : 10,
-            height: Platform.OS === 'ios' ? 84 : 64,
-          },
+          tabBarStyle: tabBarHidden
+            ? { display: 'none' }
+            : {
+                backgroundColor: palette.card,
+                borderTopColor: palette.hairline,
+                borderTopWidth: 1,
+                paddingTop: 6,
+                paddingBottom: Platform.OS === 'ios' ? 22 : 10,
+                height: Platform.OS === 'ios' ? 84 : 64,
+              },
           tabBarLabelStyle: {
             fontSize: typography.size.xs,
             fontWeight: typography.weightSemibold as '600',

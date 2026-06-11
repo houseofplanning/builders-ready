@@ -102,7 +102,7 @@ async function createPrice(args: {
 }
 
 async function main() {
-  console.log(`Connecting to Stripe (key prefix: ${SECRET.slice(0, 12)}…)\n`);
+  console.log(`Connecting to Stripe (key prefix: ${SECRET!.slice(0, 12)}…)\n`);
 
   const product = await findOrCreateProduct();
   console.log('Creating 6 Prices…\n');

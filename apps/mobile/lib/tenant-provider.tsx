@@ -127,6 +127,18 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // ignore cache write errors
       }
+
+      // Register for push notifications once we know the user + tenant.
+      // Lazy-imported so the module side effects (notification handler
+      // config) don't load until we actually need them.
+      try {
+        const { registerForPushNotifications } = await import('./push');
+        registerForPushNotifications({ userId: uid, tenantId: t.id }).catch(
+          () => null,
+        );
+      } catch {
+        // ignore — push registration is best-effort
+      }
     },
     [],
   );

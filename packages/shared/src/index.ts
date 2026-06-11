@@ -7,3 +7,4 @@ export * from './billing';
 export * from './format';
 export * from './slug';
 export * from './stages';
+export * from './documents';

@@ -49,6 +49,8 @@ interface CurrentProjectContextValue {
   error: string | null;
   /** Switch the active project. Persists to AsyncStorage. */
   setSelectedId: (id: string) => void;
+  /** Drop the selection so the grid is shown again. */
+  clearSelection: () => void;
   /** Refetch everything for the current project. */
   refresh: () => Promise<void>;
 }
@@ -60,6 +62,7 @@ const CurrentProjectContext = createContext<CurrentProjectContextValue>({
   loading: true,
   error: null,
   setSelectedId: () => {},
+  clearSelection: () => {},
   refresh: async () => {},
 });
 
@@ -106,14 +109,20 @@ export function CurrentProjectProvider({
       const list = (data ?? []) as ProjectListItem[];
       setProjects(list);
 
-      // Pick a selected id: cached → first active → none.
+      // Selection policy:
+      //   - 1 project total (typical client)         → auto-select it
+      //   - cached selection still valid             → restore it
+      //   - otherwise                                → leave NULL so the
+      //     Home tab shows the project grid
       const cachedId = await AsyncStorage.getItem(
         `${SELECTED_KEY}.${tenant.id}`,
       );
       const validCached = cachedId && list.some((p) => p.id === cachedId);
       const next = validCached
         ? cachedId
-        : (list.find((p) => p.status === 'active') ?? list[0])?.id ?? null;
+        : list.length === 1
+          ? list[0].id
+          : null;
       setSelectedIdState(next);
       initialisedFor.current = tenant.id;
       if (!next) {
@@ -164,12 +173,25 @@ export function CurrentProjectProvider({
         return;
       }
       // Supabase may hand back joined relations as arrays; flatten.
-      const client = Array.isArray((project as { client: unknown }).client)
-        ? (project as { client: Profile[] }).client[0]
-        : ((project as { client: Profile }).client as Profile);
-      const pm = Array.isArray((project as { pm: unknown }).pm)
-        ? (project as { pm: Profile[] }).pm[0]
-        : ((project as { pm: Profile }).pm as Profile);
+      // If a join is RLS-hidden or unresolved, fall back to a placeholder
+      // profile so consumers can rely on .full_name etc. never being null.
+      const rawClient = (project as { client: unknown }).client;
+      const rawPm = (project as { pm: unknown }).pm;
+      const flatClient = Array.isArray(rawClient)
+        ? (rawClient[0] as Profile | undefined)
+        : (rawClient as Profile | null | undefined);
+      const flatPm = Array.isArray(rawPm)
+        ? (rawPm[0] as Profile | undefined)
+        : (rawPm as Profile | null | undefined);
+      const placeholder = (which: 'Client' | 'Project manager'): Profile =>
+        ({
+          id: '',
+          full_name: which,
+          email: '',
+          phone: null,
+        } as unknown as Profile);
+      const client = flatClient ?? placeholder('Client');
+      const pm = flatPm ?? placeholder('Project manager');
       const allStages = (stages ?? []) as ProjectStage[];
       const currentStage =
         allStages.find((s) => s.id === project.current_stage_id) ?? null;
@@ -210,6 +232,16 @@ export function CurrentProjectProvider({
     [tenant],
   );
 
+  const clearSelection = useCallback(() => {
+    setSelectedIdState(null);
+    setCurrent(null);
+    if (tenant) {
+      AsyncStorage.removeItem(`${SELECTED_KEY}.${tenant.id}`).catch(
+        () => null,
+      );
+    }
+  }, [tenant]);
+
   const refresh = useCallback(async () => {
     if (!tenant) return;
     const { data } = await supabase
@@ -229,9 +261,19 @@ export function CurrentProjectProvider({
       loading,
       error,
       setSelectedId,
+      clearSelection,
       refresh,
     }),
-    [projects, selectedId, current, loading, error, setSelectedId, refresh],
+    [
+      projects,
+      selectedId,
+      current,
+      loading,
+      error,
+      setSelectedId,
+      clearSelection,
+      refresh,
+    ],
   );
 
   return (
