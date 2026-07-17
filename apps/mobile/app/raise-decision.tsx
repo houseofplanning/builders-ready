@@ -105,11 +105,8 @@ export default function RaiseDecisionScreen() {
   }
 
   async function pickPhotoFor(idx: number) {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Allow photo library access to attach an image.');
-      return;
-    }
+    // System photo picker — no READ_MEDIA_IMAGES permission required
+    // (Google Play Photo and Video Permissions compliance).
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 1,

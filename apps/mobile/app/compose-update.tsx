@@ -91,14 +91,9 @@ export default function ComposeUpdate() {
 
   async function pickFromGallery() {
     if (photos.length >= MAX_PHOTOS) return;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        'Permission needed',
-        'Allow photo library access to attach images.',
-      );
-      return;
-    }
+    // No media-library permission is requested: launchImageLibraryAsync uses
+    // the Android system photo picker (and the iOS picker), which need no
+    // READ_MEDIA_IMAGES permission — required for Google Play compliance.
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
