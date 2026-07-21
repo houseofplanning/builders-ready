@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireTenantBySlug } from '@/lib/tenant-resolver';
 import { createSupabaseServer } from '@/lib/supabase-server';
-import { formatDate, gbp, relativeTime } from '@br/shared';
+import { formatDate, relativeTime } from '@br/shared';
 import { ProjectStatusPill } from '@/components/status-pill';
 import { HandoverCard } from '@/components/handover-card';
 import { StageRow } from './stage-row';
