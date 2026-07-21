@@ -145,7 +145,7 @@ export default function FeaturesPage() {
 
       {/* OTHER */}
       <section className="bg-canvas">
-        <div className="mx-auto max-w-6xl px-6 py-20">
+        <div className="mx-auto max-w-7xl px-6 py-20">
           <h2 className="mb-3 text-center text-3xl font-extrabold tracking-tight">
             Plus everything else you&rsquo;d expect.
           </h2>
@@ -228,7 +228,7 @@ function FeatureRow({
 }) {
   return (
     <section className="border-b border-hairline">
-      <div className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mx-auto max-w-7xl px-6 py-20">
         <div className="grid gap-12 md:grid-cols-2 md:items-center">
           <div className={reverse ? 'md:order-2' : ''}>
             <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-primary">

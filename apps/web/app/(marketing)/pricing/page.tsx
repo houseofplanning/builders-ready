@@ -88,7 +88,7 @@ export default function PricingPage() {
       </section>
 
       {/* TIERS */}
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section className="mx-auto max-w-7xl px-6 py-16">
         <div className="grid gap-5 md:grid-cols-3">
           {TIERS.map((t) => (
             <div

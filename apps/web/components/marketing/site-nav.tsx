@@ -10,7 +10,7 @@ const NAV_LINKS = [
 export function SiteNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-hairline bg-white/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center px-6 py-4">
+      <div className="mx-auto flex max-w-7xl items-center px-6 py-4">
         <Link href="/" className="font-extrabold tracking-[0.2em] text-ink">
           BUILDERS <span className="text-primary">READY</span>
         </Link>

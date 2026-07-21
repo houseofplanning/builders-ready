@@ -34,7 +34,7 @@ export default function LandingPage() {
     <main>
       {/* HERO */}
       <section className="bg-gradient-to-b from-canvas to-white">
-        <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-[1.1fr_1fr] md:items-center md:py-28">
+        <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 md:grid-cols-[1.1fr_1fr] md:items-center md:py-28">
           <div>
             <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.25em] text-primary">
               For UK builders · solo trade to multi-PM firm
@@ -77,7 +77,7 @@ export default function LandingPage() {
 
       {/* TRUST STRIP */}
       <section className="border-y border-hairline bg-white">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-y-6 px-6 py-8 text-center text-[11px] font-semibold uppercase tracking-widest text-ink-muted md:grid-cols-4">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-y-6 px-6 py-8 text-center text-[11px] font-semibold uppercase tracking-widest text-ink-muted md:grid-cols-4">
           <span>Built in the UK</span>
           <span>UK GDPR compliant</span>
           <span>Stripe billing</span>
@@ -86,7 +86,7 @@ export default function LandingPage() {
       </section>
 
       {/* PROBLEM */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
+      <section className="mx-auto max-w-7xl px-6 py-20">
         <div className="grid gap-12 md:grid-cols-2 md:items-center">
           <div>
             <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-accent-deep">
@@ -122,7 +122,7 @@ export default function LandingPage() {
 
       {/* SOLUTION */}
       <section className="bg-canvas">
-        <div className="mx-auto max-w-6xl px-6 py-20">
+        <div className="mx-auto max-w-7xl px-6 py-20">
           <div className="text-center">
             <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-primary">
               The solution
@@ -169,7 +169,7 @@ export default function LandingPage() {
       </section>
 
       {/* MOBILE SHOWCASE */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
+      <section className="mx-auto max-w-7xl px-6 py-20">
         <div className="grid gap-12 md:grid-cols-2 md:items-center">
           <div>
             <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-primary">
@@ -200,7 +200,7 @@ export default function LandingPage() {
 
       {/* WEB SHOWCASE */}
       <section className="bg-canvas">
-        <div className="mx-auto max-w-6xl px-6 py-20">
+        <div className="mx-auto max-w-7xl px-6 py-20">
           <div className="grid gap-12 md:grid-cols-2 md:items-center">
             <div className="order-2 md:order-1">
               <MockupDashboard className="h-auto w-full rounded-2xl shadow-2xl ring-1 ring-hairline" />
@@ -230,7 +230,7 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING SNAPSHOT */}
-      <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
+      <section id="pricing" className="mx-auto max-w-7xl px-6 py-20">
         <div className="text-center">
           <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-primary">
             Pricing
