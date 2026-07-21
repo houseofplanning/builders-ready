@@ -4,9 +4,24 @@ import { createSupabaseServer } from '@/lib/supabase-server';
 import { gbp, TIERS, formatDate, relativeTime } from '@br/shared';
 import { ProjectStatusPill } from '@/components/status-pill';
 import { DashboardGreeting } from './dashboard-greeting';
+import {
+  KpiTile,
+  CashChart,
+  CompletionRing,
+  IconStack,
+  IconPen,
+  IconChat,
+  IconCash,
+} from './dashboard-visuals';
 
 interface Props {
   params: Promise<{ slug: string }>;
+}
+
+function compactGbp(pence: number): string {
+  const pounds = pence / 100;
+  if (pounds >= 1000) return `£${Math.round(pounds / 1000)}k`;
+  return `£${Math.round(pounds)}`;
 }
 
 export default async function Dashboard({ params }: Props) {
@@ -17,11 +32,10 @@ export default async function Dashboard({ params }: Props) {
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
 
-  // Fetch counts + summaries in parallel.
   const [
     { count: activeCount },
-    { count: memberCount },
     { data: recent },
     { data: openDecisions },
     { data: openVariations },
@@ -31,12 +45,12 @@ export default async function Dashboard({ params }: Props) {
     { data: profile },
     { data: activityRows },
     { data: paidThisMonthRows },
+    { data: paidLastMonthRows },
   ] = await Promise.all([
     supabase
       .from('projects')
       .select('id', { count: 'exact', head: true })
       .in('status', ['active', 'on_hold']),
-    supabase.from('tenant_members').select('user_id', { count: 'exact', head: true }),
     supabase
       .from('projects')
       .select(
@@ -69,29 +83,27 @@ export default async function Dashboard({ params }: Props) {
       .in('status', ['sent', 'overdue'])
       .order('due_at', { ascending: true })
       .limit(8),
-    // Quotes for non-archived projects (used for "total contracted").
-    supabase
-      .from('projects')
-      .select('id, quoted_amount_pence')
-      .neq('status', 'archived'),
-    // Finance roll-up. project_finance is a VIEW, so query it directly.
+    supabase.from('projects').select('id, quoted_amount_pence').neq('status', 'archived'),
     supabase
       .from('project_finance')
       .select('project_id, variations_pence, invoiced_pence, paid_pence'),
-    // Current user's name for the greeting.
     supabase.from('profiles').select('full_name').eq('id', user_id).maybeSingle(),
-    // Recent activity across all projects (timeline updates).
     supabase
       .from('project_updates')
       .select('id, headline, posted_at, project:projects(id, name)')
       .order('posted_at', { ascending: false })
       .limit(8),
-    // Payments received this calendar month.
     supabase
       .from('invoices')
       .select('amount_gbp_pence')
       .eq('status', 'paid')
       .gte('paid_at', monthStart),
+    supabase
+      .from('invoices')
+      .select('amount_gbp_pence')
+      .eq('status', 'paid')
+      .gte('paid_at', lastMonthStart)
+      .lt('paid_at', monthStart),
   ]);
 
   const activeProjects = activeCount ?? 0;
@@ -116,6 +128,20 @@ export default async function Dashboard({ params }: Props) {
 
   let paidThisMonth = 0;
   for (const r of paidThisMonthRows ?? []) paidThisMonth += Number(r.amount_gbp_pence ?? 0);
+  let paidLastMonth = 0;
+  for (const r of paidLastMonthRows ?? []) paidLastMonth += Number(r.amount_gbp_pence ?? 0);
+
+  let trendChip: string | null = null;
+  if (paidLastMonth > 0) {
+    const pct = Math.round(((paidThisMonth - paidLastMonth) / paidLastMonth) * 100);
+    trendChip = `${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct)}%`;
+  } else if (paidThisMonth > 0) {
+    trendChip = 'new';
+  }
+
+  let pendingVariationValue = 0;
+  for (const v of openVariations ?? [])
+    pendingVariationValue += Number(v.delta_amount_gbp_pence ?? 0);
 
   const firstName = (profile?.full_name ?? '').trim().split(/\s+/)[0] || null;
 
@@ -224,160 +250,135 @@ export default async function Dashboard({ params }: Props) {
         </div>
       )}
 
-      {/* Operational counters */}
+      {/* Coloured KPI tiles */}
       <div className="grid gap-3 md:grid-cols-4">
-        <Card label="Active projects">
-          <div className="text-2xl font-extrabold tracking-tight">{activeProjects}</div>
-          <div className="mt-1 text-xs text-ink-muted">
-            of {limitDisplay} on {tier?.label ?? '—'}
-          </div>
-        </Card>
-        <Card label="Team">
-          <div className="text-2xl font-extrabold tracking-tight">{memberCount ?? 1}</div>
-          <div className="mt-1 text-xs text-ink-muted">
-            {memberCount === 1 ? 'Just you so far' : 'across all roles'}
-          </div>
-        </Card>
-        <Card label="Open decisions">
-          <div className="text-2xl font-extrabold tracking-tight">
-            {openDecisions?.length ?? 0}
-          </div>
-          <div className="mt-1 text-xs text-ink-muted">awaiting client response</div>
-        </Card>
-        <Card label="Awaiting signature">
-          <div className="text-2xl font-extrabold tracking-tight">
-            {openVariations?.length ?? 0}
-          </div>
-          <div className="mt-1 text-xs text-ink-muted">variations not yet signed</div>
-        </Card>
+        <KpiTile
+          tint="teal"
+          icon={IconStack}
+          value={activeProjects}
+          label="Active projects"
+          chip={`of ${limitDisplay}`}
+        />
+        <KpiTile
+          tint="coral"
+          icon={IconPen}
+          value={openVariations?.length ?? 0}
+          label="Awaiting signature"
+          chip={
+            pendingVariationValue !== 0 ? gbp(pendingVariationValue, { whole: true }) : null
+          }
+        />
+        <KpiTile
+          tint="amber"
+          icon={IconChat}
+          value={openDecisions?.length ?? 0}
+          label="Open decisions"
+          chip={lateDecisions.length > 0 ? `${lateDecisions.length} overdue` : null}
+        />
+        <KpiTile
+          tint="green"
+          icon={IconCash}
+          value={compactGbp(paidThisMonth)}
+          label="Received this month"
+          chip={trendChip}
+        />
       </div>
 
-      {/* Cross-project finance */}
-      <div className="mt-3 grid gap-3 md:grid-cols-4">
-        <Card label="Total contracted">
-          <div className="text-xl font-extrabold tracking-tight">
-            {gbp(totalContracted, { whole: true })}
-          </div>
-          <div className="mt-1 text-xs text-ink-muted">quoted + signed variations</div>
-        </Card>
-        <Card label="Invoiced">
-          <div className="text-xl font-extrabold tracking-tight">
-            {gbp(totalInvoiced, { whole: true })}
-          </div>
-          <div className="mt-1 text-xs text-ink-muted">all active projects</div>
-        </Card>
-        <Card label="Paid">
-          <div className="text-xl font-extrabold tracking-tight">
-            {gbp(totalPaid, { whole: true })}
-          </div>
-          <div className="mt-1 text-xs text-ink-muted">
-            {paidThisMonth > 0
-              ? `${gbp(paidThisMonth, { whole: true })} received this month`
-              : 'received to date'}
-          </div>
-        </Card>
-        <Card label="Outstanding">
-          <div className="text-xl font-extrabold tracking-tight">
-            {gbp(totalOutstanding, { whole: true })}
-          </div>
-          <div className="mt-1 text-xs text-ink-muted">
-            {(unpaidInvoices?.length ?? 0)} unpaid invoice
-            {(unpaidInvoices?.length ?? 0) === 1 ? '' : 's'}
-          </div>
-        </Card>
-      </div>
-
-      {/* Cash position chart + recent activity */}
+      {/* Cash position + completion ring */}
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <div className="md:col-span-2">
-          <FinanceChart
+          <CashChart
             contracted={totalContracted}
             invoiced={totalInvoiced}
             paid={totalPaid}
             outstanding={totalOutstanding}
           />
         </div>
+        <CompletionRing paid={totalPaid} contracted={totalContracted} />
+      </div>
+
+      {/* Recent projects + activity */}
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <section className="rounded-card border border-hairline bg-white shadow-card md:col-span-2">
+          <header className="flex items-center border-b border-hairline px-5 py-3">
+            <h2 className="text-sm font-bold">Recent projects</h2>
+            <Link
+              href={`/${slug}/projects`}
+              className="ml-auto text-xs font-semibold text-primary hover:underline"
+            >
+              View all →
+            </Link>
+          </header>
+          {(recent ?? []).length === 0 ? (
+            <div className="px-5 py-10 text-center">
+              <p className="text-sm text-ink-muted">No projects yet.</p>
+              {(role === 'owner' || role === 'pm') && (
+                <Link
+                  href={`/${slug}/projects/new`}
+                  className="mt-3 inline-block rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-white"
+                >
+                  + Create your first project
+                </Link>
+              )}
+            </div>
+          ) : (
+            <ul>
+              {recent!.map((p, i) => {
+                const pm = Array.isArray(p.pm) ? p.pm[0] : p.pm;
+                const atRisk =
+                  p.estimated_end_date &&
+                  new Date(p.estimated_end_date).getTime() < nowMs &&
+                  p.status !== 'complete' &&
+                  p.status !== 'archived';
+                return (
+                  <li key={p.id} className={i > 0 ? 'border-t border-hairline' : ''}>
+                    <Link
+                      href={`/${slug}/projects/${p.id}`}
+                      className="flex items-center px-5 py-3 hover:bg-canvas"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold">{p.name}</span>
+                          <ProjectStatusPill status={p.status} />
+                          {atRisk && (
+                            <span className="rounded-full bg-error/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-error">
+                              Overdue
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-ink-muted">
+                          {p.city} · {p.postcode} · PM {pm?.full_name ?? '—'}
+                        </div>
+                      </div>
+                      <div className="mr-4 w-32">
+                        <div className="mb-1 flex justify-between text-[10px] text-ink-muted">
+                          <span>{p.progress_percent}%</span>
+                          <span>{formatDate(p.estimated_end_date, { short: true })}</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-canvas">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${p.progress_percent}%`,
+                              background:
+                                'linear-gradient(90deg, var(--br-primary), var(--br-accent))',
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-xs font-semibold text-primary">Open →</div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
         <ActivityFeed items={activity} />
       </div>
 
-      {/* Recent projects */}
-      <section className="mt-6 rounded-card border border-hairline bg-white shadow-card">
-        <header className="flex items-center border-b border-hairline px-5 py-3">
-          <h2 className="text-sm font-bold">Recent projects</h2>
-          <Link
-            href={`/${slug}/projects`}
-            className="ml-auto text-xs font-semibold text-primary hover:underline"
-          >
-            View all →
-          </Link>
-        </header>
-        {(recent ?? []).length === 0 ? (
-          <div className="px-5 py-10 text-center">
-            <p className="text-sm text-ink-muted">No projects yet.</p>
-            {(role === 'owner' || role === 'pm') && (
-              <Link
-                href={`/${slug}/projects/new`}
-                className="mt-3 inline-block rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-white"
-              >
-                + Create your first project
-              </Link>
-            )}
-          </div>
-        ) : (
-          <ul>
-            {recent!.map((p, i) => {
-              const pm = Array.isArray(p.pm) ? p.pm[0] : p.pm;
-              const atRisk =
-                p.estimated_end_date &&
-                new Date(p.estimated_end_date).getTime() < nowMs &&
-                p.status !== 'complete' &&
-                p.status !== 'archived';
-              return (
-                <li key={p.id} className={i > 0 ? 'border-t border-hairline' : ''}>
-                  <Link
-                    href={`/${slug}/projects/${p.id}`}
-                    className="flex items-center px-5 py-3 hover:bg-canvas"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">{p.name}</span>
-                        <ProjectStatusPill status={p.status} />
-                        {atRisk && (
-                          <span className="rounded-full bg-error/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-error">
-                            Overdue
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-ink-muted">
-                        {p.city} · {p.postcode} · PM {pm?.full_name ?? '—'}
-                      </div>
-                    </div>
-                    <div className="mr-4 w-32">
-                      <div className="mb-1 flex justify-between text-[10px] text-ink-muted">
-                        <span>{p.progress_percent}%</span>
-                        <span>{formatDate(p.estimated_end_date, { short: true })}</span>
-                      </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-canvas">
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${p.progress_percent}%`,
-                            background:
-                              'linear-gradient(90deg, var(--br-primary), var(--br-accent))',
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="text-xs font-semibold text-primary">Open →</div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      {/* Outstanding items: decisions / variations / invoices */}
+      {/* Outstanding items */}
       <div className="mt-6 grid gap-4 md:grid-cols-3">
         <OutstandingPanel
           title="Open decisions"
@@ -433,59 +434,12 @@ export default async function Dashboard({ params }: Props) {
   );
 }
 
-function Card({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-card border border-hairline bg-white p-5 shadow-card">
-      <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
-        {label}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function FinanceChart({
-  contracted,
-  invoiced,
-  paid,
-  outstanding,
-}: {
-  contracted: number;
-  invoiced: number;
-  paid: number;
-  outstanding: number;
-}) {
-  const max = Math.max(contracted, invoiced, paid, outstanding, 1);
-  const rows: { label: string; value: number; cls: string }[] = [
-    { label: 'Contracted', value: contracted, cls: 'bg-primary' },
-    { label: 'Invoiced', value: invoiced, cls: 'bg-primary/60' },
-    { label: 'Paid', value: paid, cls: 'bg-success' },
-    { label: 'Outstanding', value: outstanding, cls: 'bg-accent' },
-  ];
-  return (
-    <section className="h-full rounded-card border border-hairline bg-white p-5 shadow-card">
-      <h2 className="mb-4 text-sm font-bold">Cash position</h2>
-      <div className="space-y-3">
-        {rows.map((r) => (
-          <div key={r.label}>
-            <div className="mb-1 flex justify-between text-xs">
-              <span className="text-ink-muted">{r.label}</span>
-              <span className="font-semibold text-ink">{gbp(r.value, { whole: true })}</span>
-            </div>
-            <div className="h-2.5 overflow-hidden rounded-full bg-canvas">
-              <div
-                className={`h-full rounded-full ${r.cls}`}
-                style={{ width: `${Math.max(2, (r.value / max) * 100)}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="mt-4 text-[11px] text-ink-muted">
-        Across all active projects. Outstanding = invoiced minus paid.
-      </p>
-    </section>
-  );
+interface OutstandingItem {
+  href: string;
+  primary: string;
+  secondary: string;
+  meta: string | null;
+  warn?: boolean;
 }
 
 function ActivityFeed({
@@ -520,14 +474,6 @@ function ActivityFeed({
   );
 }
 
-interface OutstandingItem {
-  href: string;
-  primary: string;
-  secondary: string;
-  meta: string | null;
-  warn?: boolean;
-}
-
 function OutstandingPanel({
   title,
   empty,
@@ -540,11 +486,7 @@ function OutstandingPanel({
   accent: 'accent' | 'primary' | 'error';
 }) {
   const dotClass =
-    accent === 'accent'
-      ? 'bg-accent'
-      : accent === 'primary'
-        ? 'bg-primary'
-        : 'bg-error';
+    accent === 'accent' ? 'bg-accent' : accent === 'primary' ? 'bg-primary' : 'bg-error';
   return (
     <section className="rounded-card border border-hairline bg-white shadow-card">
       <header className="border-b border-hairline px-5 py-3">
