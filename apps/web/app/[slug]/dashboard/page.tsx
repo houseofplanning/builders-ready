@@ -3,6 +3,7 @@ import { requireTenantBySlug } from '@/lib/tenant-resolver';
 import { createSupabaseServer } from '@/lib/supabase-server';
 import { gbp, TIERS, formatDate, relativeTime } from '@br/shared';
 import { ProjectStatusPill } from '@/components/status-pill';
+import { DashboardGreeting } from './dashboard-greeting';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -10,9 +11,12 @@ interface Props {
 
 export default async function Dashboard({ params }: Props) {
   const { slug } = await params;
-  const { tenant, role } = await requireTenantBySlug(slug);
+  const { tenant, role, user_id } = await requireTenantBySlug(slug);
   const tier = tenant.subscription_tier ? TIERS[tenant.subscription_tier] : null;
   const supabase = await createSupabaseServer();
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
   // Fetch counts + summaries in parallel.
   const [
@@ -24,6 +28,9 @@ export default async function Dashboard({ params }: Props) {
     { data: unpaidInvoices },
     { data: quoteRows },
     { data: financeRows },
+    { data: profile },
+    { data: activityRows },
+    { data: paidThisMonthRows },
   ] = await Promise.all([
     supabase
       .from('projects')
@@ -39,7 +46,7 @@ export default async function Dashboard({ params }: Props) {
       )
       .neq('status', 'archived')
       .order('updated_at', { ascending: false })
-      .limit(4),
+      .limit(5),
     supabase
       .from('decisions')
       .select('id, title, deadline, created_at, project:projects(id, name)')
@@ -67,13 +74,24 @@ export default async function Dashboard({ params }: Props) {
       .from('projects')
       .select('id, quoted_amount_pence')
       .neq('status', 'archived'),
-    // Finance roll-up. project_finance is a VIEW, so we query it directly
-    // rather than embedding it on projects — PostgREST can't detect a
-    // foreign-key relationship to a view, so the embed silently returned
-    // null, which is what was zeroing out these cards. RLS scopes to tenant.
+    // Finance roll-up. project_finance is a VIEW, so query it directly.
     supabase
       .from('project_finance')
       .select('project_id, variations_pence, invoiced_pence, paid_pence'),
+    // Current user's name for the greeting.
+    supabase.from('profiles').select('full_name').eq('id', user_id).maybeSingle(),
+    // Recent activity across all projects (timeline updates).
+    supabase
+      .from('project_updates')
+      .select('id, headline, posted_at, project:projects(id, name)')
+      .order('posted_at', { ascending: false })
+      .limit(8),
+    // Payments received this calendar month.
+    supabase
+      .from('invoices')
+      .select('amount_gbp_pence')
+      .eq('status', 'paid')
+      .gte('paid_at', monthStart),
   ]);
 
   const activeProjects = activeCount ?? 0;
@@ -81,13 +99,9 @@ export default async function Dashboard({ params }: Props) {
   const limitDisplay = limit >= 100000 ? 'unlimited' : limit;
 
   // ---------- Cross-project finance roll-up ----------
-  // Restrict the finance view rows to the non-archived projects we just
-  // fetched (the view spans every project, archived included).
   const activeProjectIds = new Set((quoteRows ?? []).map((p) => p.id));
   let totalQuoted = 0;
-  for (const p of quoteRows ?? []) {
-    totalQuoted += Number(p.quoted_amount_pence ?? 0);
-  }
+  for (const p of quoteRows ?? []) totalQuoted += Number(p.quoted_amount_pence ?? 0);
   let totalVariations = 0;
   let totalInvoiced = 0;
   let totalPaid = 0;
@@ -97,19 +111,76 @@ export default async function Dashboard({ params }: Props) {
     totalInvoiced += Number(f.invoiced_pence ?? 0);
     totalPaid += Number(f.paid_pence ?? 0);
   }
-  const totalContracted = totalQuoted + totalVariations; // quote + signed variations
+  const totalContracted = totalQuoted + totalVariations;
   const totalOutstanding = totalInvoiced - totalPaid;
+
+  let paidThisMonth = 0;
+  for (const r of paidThisMonthRows ?? []) paidThisMonth += Number(r.amount_gbp_pence ?? 0);
+
+  const firstName = (profile?.full_name ?? '').trim().split(/\s+/)[0] || null;
+
+  // ---------- Needs-your-attention items ----------
+  const nowMs = Date.now();
+  const overdueInvoices = (unpaidInvoices ?? []).filter(
+    (inv) => inv.due_at && new Date(inv.due_at).getTime() < nowMs,
+  );
+  const lateDecisions = (openDecisions ?? []).filter(
+    (d) => d.deadline && new Date(d.deadline).getTime() < nowMs,
+  );
+  const attention: {
+    label: string;
+    count: number;
+    href: string;
+    tone: 'error' | 'accent' | 'primary';
+  }[] = [];
+  if (overdueInvoices.length)
+    attention.push({
+      label: overdueInvoices.length === 1 ? 'overdue invoice' : 'overdue invoices',
+      count: overdueInvoices.length,
+      href: `/${slug}/projects`,
+      tone: 'error',
+    });
+  if (lateDecisions.length)
+    attention.push({
+      label:
+        lateDecisions.length === 1
+          ? 'decision past its deadline'
+          : 'decisions past their deadline',
+      count: lateDecisions.length,
+      href: `/${slug}/projects`,
+      tone: 'accent',
+    });
+  if ((openVariations?.length ?? 0) > 0)
+    attention.push({
+      label:
+        openVariations!.length === 1
+          ? 'variation awaiting signature'
+          : 'variations awaiting signature',
+      count: openVariations!.length,
+      href: `/${slug}/projects`,
+      tone: 'primary',
+    });
+
+  // ---------- Activity feed ----------
+  const activity = (activityRows ?? []).map((u) => {
+    const proj = Array.isArray(u.project) ? u.project[0] : u.project;
+    return {
+      id: u.id,
+      headline: u.headline as string,
+      projectName: proj?.name ?? 'Project',
+      href: proj ? `/${slug}/projects/${proj.id}` : `/${slug}/projects`,
+      at: u.posted_at as string,
+    };
+  });
 
   return (
     <div>
       <header className="mb-6 flex items-center">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
-            Tenant · {tenant.name}
+            {tenant.name}
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight">
-            Welcome back
-          </h1>
+          <DashboardGreeting firstName={firstName} />
         </div>
         <div className="ml-auto flex items-center gap-3">
           {tenant.subscription_status === 'trialing' && tenant.trial_ends_at && (
@@ -128,7 +199,32 @@ export default async function Dashboard({ params }: Props) {
         </div>
       </header>
 
-      {/* Top row: operational counters */}
+      {/* Needs your attention */}
+      {attention.length > 0 && (
+        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-card border border-hairline bg-white p-4 shadow-card">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">
+            Needs your attention
+          </span>
+          {attention.map((a, i) => (
+            <Link
+              key={i}
+              href={a.href}
+              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold ${
+                a.tone === 'error'
+                  ? 'bg-error/10 text-error'
+                  : a.tone === 'accent'
+                    ? 'bg-accent/10 text-accent'
+                    : 'bg-primary/10 text-primary'
+              }`}
+            >
+              <span className="text-base font-extrabold">{a.count}</span>
+              <span>{a.label}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Operational counters */}
       <div className="grid gap-3 md:grid-cols-4">
         <Card label="Active projects">
           <div className="text-2xl font-extrabold tracking-tight">{activeProjects}</div>
@@ -156,15 +252,13 @@ export default async function Dashboard({ params }: Props) {
         </Card>
       </div>
 
-      {/* Second row: cross-project finance */}
+      {/* Cross-project finance */}
       <div className="mt-3 grid gap-3 md:grid-cols-4">
         <Card label="Total contracted">
           <div className="text-xl font-extrabold tracking-tight">
             {gbp(totalContracted, { whole: true })}
           </div>
-          <div className="mt-1 text-xs text-ink-muted">
-            quoted + signed variations
-          </div>
+          <div className="mt-1 text-xs text-ink-muted">quoted + signed variations</div>
         </Card>
         <Card label="Invoiced">
           <div className="text-xl font-extrabold tracking-tight">
@@ -176,7 +270,11 @@ export default async function Dashboard({ params }: Props) {
           <div className="text-xl font-extrabold tracking-tight">
             {gbp(totalPaid, { whole: true })}
           </div>
-          <div className="mt-1 text-xs text-ink-muted">received to date</div>
+          <div className="mt-1 text-xs text-ink-muted">
+            {paidThisMonth > 0
+              ? `${gbp(paidThisMonth, { whole: true })} received this month`
+              : 'received to date'}
+          </div>
         </Card>
         <Card label="Outstanding">
           <div className="text-xl font-extrabold tracking-tight">
@@ -189,8 +287,21 @@ export default async function Dashboard({ params }: Props) {
         </Card>
       </div>
 
+      {/* Cash position chart + recent activity */}
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <FinanceChart
+            contracted={totalContracted}
+            invoiced={totalInvoiced}
+            paid={totalPaid}
+            outstanding={totalOutstanding}
+          />
+        </div>
+        <ActivityFeed items={activity} />
+      </div>
+
       {/* Recent projects */}
-      <section className="mt-8 rounded-card border border-hairline bg-white shadow-card">
+      <section className="mt-6 rounded-card border border-hairline bg-white shadow-card">
         <header className="flex items-center border-b border-hairline px-5 py-3">
           <h2 className="text-sm font-bold">Recent projects</h2>
           <Link
@@ -216,11 +327,13 @@ export default async function Dashboard({ params }: Props) {
           <ul>
             {recent!.map((p, i) => {
               const pm = Array.isArray(p.pm) ? p.pm[0] : p.pm;
+              const atRisk =
+                p.estimated_end_date &&
+                new Date(p.estimated_end_date).getTime() < nowMs &&
+                p.status !== 'complete' &&
+                p.status !== 'archived';
               return (
-                <li
-                  key={p.id}
-                  className={i > 0 ? 'border-t border-hairline' : ''}
-                >
+                <li key={p.id} className={i > 0 ? 'border-t border-hairline' : ''}>
                   <Link
                     href={`/${slug}/projects/${p.id}`}
                     className="flex items-center px-5 py-3 hover:bg-canvas"
@@ -229,6 +342,11 @@ export default async function Dashboard({ params }: Props) {
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{p.name}</span>
                         <ProjectStatusPill status={p.status} />
+                        {atRisk && (
+                          <span className="rounded-full bg-error/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-error">
+                            Overdue
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-ink-muted">
                         {p.city} · {p.postcode} · PM {pm?.full_name ?? '—'}
@@ -301,10 +419,9 @@ export default async function Dashboard({ params }: Props) {
             return {
               href: proj ? `/${slug}/projects/${proj.id}` : `/${slug}/projects`,
               primary: proj?.name ?? 'Project',
-              secondary: `${inv.number} · ${gbp(
-                Number(inv.amount_gbp_pence),
-                { whole: true },
-              )}`,
+              secondary: `${inv.number} · ${gbp(Number(inv.amount_gbp_pence), {
+                whole: true,
+              })}`,
               meta: `${overdue ? 'overdue' : 'due'} ${relativeTime(inv.due_at)}`,
               warn: overdue,
             };
@@ -324,6 +441,82 @@ function Card({ label, children }: { label: string; children: React.ReactNode })
       </div>
       {children}
     </div>
+  );
+}
+
+function FinanceChart({
+  contracted,
+  invoiced,
+  paid,
+  outstanding,
+}: {
+  contracted: number;
+  invoiced: number;
+  paid: number;
+  outstanding: number;
+}) {
+  const max = Math.max(contracted, invoiced, paid, outstanding, 1);
+  const rows: { label: string; value: number; cls: string }[] = [
+    { label: 'Contracted', value: contracted, cls: 'bg-primary' },
+    { label: 'Invoiced', value: invoiced, cls: 'bg-primary/60' },
+    { label: 'Paid', value: paid, cls: 'bg-success' },
+    { label: 'Outstanding', value: outstanding, cls: 'bg-accent' },
+  ];
+  return (
+    <section className="h-full rounded-card border border-hairline bg-white p-5 shadow-card">
+      <h2 className="mb-4 text-sm font-bold">Cash position</h2>
+      <div className="space-y-3">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <div className="mb-1 flex justify-between text-xs">
+              <span className="text-ink-muted">{r.label}</span>
+              <span className="font-semibold text-ink">{gbp(r.value, { whole: true })}</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-canvas">
+              <div
+                className={`h-full rounded-full ${r.cls}`}
+                style={{ width: `${Math.max(2, (r.value / max) * 100)}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-[11px] text-ink-muted">
+        Across all active projects. Outstanding = invoiced minus paid.
+      </p>
+    </section>
+  );
+}
+
+function ActivityFeed({
+  items,
+}: {
+  items: { id: string; headline: string; projectName: string; href: string; at: string }[];
+}) {
+  return (
+    <section className="rounded-card border border-hairline bg-white shadow-card">
+      <header className="border-b border-hairline px-5 py-3">
+        <h2 className="text-sm font-bold">Recent activity</h2>
+      </header>
+      {items.length === 0 ? (
+        <div className="px-5 py-8 text-center text-xs text-ink-muted">
+          No activity yet. Updates you post will show here.
+        </div>
+      ) : (
+        <ul>
+          {items.map((it, i) => (
+            <li key={it.id} className={i > 0 ? 'border-t border-hairline' : ''}>
+              <Link href={it.href} className="block px-5 py-3 hover:bg-canvas">
+                <div className="truncate text-sm font-medium text-ink">{it.headline}</div>
+                <div className="text-[11px] text-ink-muted">
+                  {it.projectName} · {relativeTime(it.at)}
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -360,9 +553,7 @@ function OutstandingPanel({
         </h2>
       </header>
       {items.length === 0 ? (
-        <div className="px-5 py-6 text-center text-xs text-ink-muted">
-          {empty}
-        </div>
+        <div className="px-5 py-6 text-center text-xs text-ink-muted">{empty}</div>
       ) : (
         <ul>
           {items.map((it, i) => (
@@ -370,21 +561,14 @@ function OutstandingPanel({
               key={`${it.primary}-${i}`}
               className={i > 0 ? 'border-t border-hairline' : ''}
             >
-              <Link
-                href={it.href}
-                className="block px-5 py-3 text-sm hover:bg-canvas"
-              >
+              <Link href={it.href} className="block px-5 py-3 text-sm hover:bg-canvas">
                 <div className="flex items-start gap-2">
                   <span
                     className={`mt-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full ${dotClass}`}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate font-semibold text-ink">
-                      {it.primary}
-                    </div>
-                    <div className="truncate text-[11px] text-ink-muted">
-                      {it.secondary}
-                    </div>
+                    <div className="truncate font-semibold text-ink">{it.primary}</div>
+                    <div className="truncate text-[11px] text-ink-muted">{it.secondary}</div>
                     {it.meta && (
                       <div
                         className={`mt-0.5 text-[10px] ${

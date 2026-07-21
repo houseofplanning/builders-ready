@@ -26,7 +26,7 @@ export default async function TenantLayout({ children, params }: Props) {
   return (
     <div style={cssVars} className="min-h-screen bg-canvas">
       <TenantHeader tenant={tenant} role={role} />
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-[1600px] px-6 py-8 lg:px-10">{children}</main>
     </div>
   );
 }

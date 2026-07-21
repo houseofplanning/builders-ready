@@ -19,7 +19,7 @@ export function TenantHeader({
 
   return (
     <header className="border-b border-hairline bg-white">
-      <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center gap-6 px-6 py-3 lg:px-10">
         <Link href={`/${tenant.slug}/dashboard`} className="flex items-center gap-3">
           {tenant.logo_url ? (
             <Image
