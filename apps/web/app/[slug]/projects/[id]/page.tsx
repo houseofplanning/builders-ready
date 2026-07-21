@@ -12,6 +12,7 @@ import { VariationsSection, type VariationRow } from './variations-section';
 import { InvoicesSection, type InvoiceRow } from './invoices-section';
 import { ReportsSection, type ReportRow } from './reports-section';
 import { DocumentsSection, type DocumentRow } from './documents-section';
+import { ProjectActions } from './project-actions';
 
 interface Props {
   params: Promise<{ slug: string; id: string }>;
@@ -436,6 +437,16 @@ export default async function ProjectDetail({ params }: Props) {
         The handover PDF includes everything above plus variations and invoices.
         Regenerate it any time before final handover.
       </p>
+
+      {canWrite && (
+        <ProjectActions
+          projectId={project.id}
+          slug={slug}
+          projectName={project.name}
+          isOwner={role === 'owner'}
+          canArchive={canWrite}
+        />
+      )}
     </div>
   );
 }

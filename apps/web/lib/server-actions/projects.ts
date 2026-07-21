@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { projectCreate, distributeStages } from '@br/shared';
 import { createSupabaseServer } from '../supabase-server';
+import { getSupabaseAdmin } from '../supabase-admin';
 import { resolveCurrentTenant } from '../tenant-resolver';
 
 export interface ProjectActionResult {
@@ -235,5 +236,39 @@ export async function setProjectStatus(
     .eq('id', parsed.data.project_id);
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/${tenant.tenant.slug}/projects/${parsed.data.project_id}`);
+  return { ok: true };
+}
+
+// -------------------------------------------------------------------------
+// deleteProject — permanent hard delete for a mistaken project. Owner only.
+// Child rows (decisions, variations, invoices, updates, stages, documents)
+// cascade automatically. There is no RLS delete policy on projects, so we
+// authorise in code and delete via the service-role admin client.
+// -------------------------------------------------------------------------
+export async function deleteProject(
+  projectId: string,
+): Promise<ProjectActionResult> {
+  const tenant = await resolveCurrentTenant();
+  if (!tenant) return { ok: false, error: 'Not signed in.' };
+  if (tenant.role !== 'owner') {
+    return { ok: false, error: 'Only the account owner can delete a project.' };
+  }
+  const supabase = await createSupabaseServer();
+  const { data: project } = await supabase
+    .from('projects')
+    .select('id, tenant_id')
+    .eq('id', projectId)
+    .maybeSingle();
+  if (!project) return { ok: false, error: 'Project not found.' };
+  if (project.tenant_id !== tenant.tenant.id) {
+    return { ok: false, error: 'Not authorised for this project.' };
+  }
+
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.from('projects').delete().eq('id', projectId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/${tenant.tenant.slug}/projects`);
+  revalidatePath(`/${tenant.tenant.slug}/dashboard`);
   return { ok: true };
 }
