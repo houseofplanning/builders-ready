@@ -171,6 +171,47 @@ const styles = StyleSheet.create({
     borderTopColor: HAIRLINE,
     paddingTop: 6,
   },
+  // Cover page
+  coverPage: { fontFamily: 'Helvetica', color: INK },
+  coverBand: {
+    backgroundColor: PRIMARY,
+    paddingTop: 92,
+    paddingBottom: 40,
+    paddingHorizontal: 44,
+  },
+  coverBrand: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 13,
+    letterSpacing: 3,
+    color: '#FFFFFF',
+  },
+  coverKicker: {
+    fontSize: 9,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: '#9FE1CB',
+    marginTop: 10,
+  },
+  coverBody: { paddingHorizontal: 44, paddingTop: 48 },
+  coverProject: { fontFamily: 'Helvetica-Bold', fontSize: 30, color: INK },
+  coverAddress: { fontSize: 12, color: MUTED, marginTop: 8 },
+  coverMetaRow: { flexDirection: 'row', marginTop: 48, gap: 16 },
+  coverMetaLabel: {
+    fontSize: 7,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: MUTED,
+    marginBottom: 4,
+  },
+  coverMetaValue: { fontFamily: 'Helvetica-Bold', fontSize: 13, color: INK },
+  coverFooter: { position: 'absolute', bottom: 40, left: 44, fontSize: 8, color: MUTED },
+  paidBarTrack: {
+    height: 4,
+    backgroundColor: '#C0DD97',
+    borderRadius: 2,
+    marginTop: 5,
+  },
+  paidBarFill: { height: 4, backgroundColor: '#3B6D11', borderRadius: 2 },
 });
 
 interface HandoverData {
@@ -251,6 +292,41 @@ function HandoverDocument({ data }: { data: HandoverData }) {
 
   return (
     <Document>
+      {/* Cover page */}
+      <Page size="A4" style={styles.coverPage}>
+        <View style={styles.coverBand}>
+          <Text style={styles.coverBrand}>
+            BUILDERS <Text style={{ color: '#9FE1CB' }}>READY</Text>
+          </Text>
+          <Text style={styles.coverKicker}>Project handover document</Text>
+        </View>
+        <View style={styles.coverBody}>
+          <Text style={styles.coverProject}>{project.name}</Text>
+          <Text style={styles.coverAddress}>
+            {project.address_line1}
+            {project.address_line2 ? `, ${project.address_line2}` : ''}, {project.city}{' '}
+            {project.postcode}
+          </Text>
+          <View style={styles.coverMetaRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.coverMetaLabel}>Prepared for</Text>
+              <Text style={styles.coverMetaValue}>{project.client.full_name}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.coverMetaLabel}>Final value</Text>
+              <Text style={styles.coverMetaValue}>
+                {finalValue > 0 ? gbp(finalValue, { whole: true }) : '—'}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.coverMetaLabel}>Prepared by</Text>
+              <Text style={styles.coverMetaValue}>{tenant.name}</Text>
+            </View>
+          </View>
+        </View>
+        <Text style={styles.coverFooter}>Generated {today} · buildersready.uk</Text>
+      </Page>
+
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header} fixed>
@@ -280,35 +356,47 @@ function HandoverDocument({ data }: { data: HandoverData }) {
 
         {/* Summary cards */}
         <View style={styles.summaryGrid}>
-          <View style={styles.summaryCell}>
+          <View style={[styles.summaryCell, { backgroundColor: '#E1F5EE' }]}>
             <Text style={styles.cellLabel}>Original quote</Text>
-            <Text style={styles.cellValue}>
+            <Text style={[styles.cellValue, { color: '#04342C' }]}>
               {quote > 0 ? gbp(quote, { whole: true }) : '—'}
             </Text>
           </View>
-          <View style={styles.summaryCell}>
+          <View style={[styles.summaryCell, { backgroundColor: '#FAEEDA' }]}>
             <Text style={styles.cellLabel}>Variations</Text>
-            <Text style={styles.cellValue}>
+            <Text style={[styles.cellValue, { color: '#412402' }]}>
               {variationsTotal === 0 ? '£0' : gbp(variationsTotal, { whole: true })}
             </Text>
             <Text style={styles.cellMeta}>
               {variations.filter((v) => v.status === 'accepted').length} signed
             </Text>
           </View>
-          <View style={styles.summaryCell}>
-            <Text style={styles.cellLabel}>Final value</Text>
-            <Text style={styles.cellValue}>
+          <View style={[styles.summaryCell, { backgroundColor: PRIMARY }]}>
+            <Text style={[styles.cellLabel, { color: '#9FE1CB' }]}>Final value</Text>
+            <Text style={[styles.cellValue, { color: '#FFFFFF' }]}>
               {finalValue > 0 ? gbp(finalValue, { whole: true }) : '—'}
             </Text>
           </View>
-          <View style={styles.summaryCell}>
+          <View style={[styles.summaryCell, { backgroundColor: '#EAF3DE' }]}>
             <Text style={styles.cellLabel}>Paid</Text>
-            <Text style={styles.cellValue}>
+            <Text style={[styles.cellValue, { color: '#173404' }]}>
               {paidTotal === 0 ? '£0' : gbp(paidTotal, { whole: true })}
             </Text>
             <Text style={styles.cellMeta}>
               of {invoicedTotal === 0 ? '£0' : gbp(invoicedTotal, { whole: true })} invoiced
             </Text>
+            <View style={styles.paidBarTrack}>
+              <View
+                style={[
+                  styles.paidBarFill,
+                  {
+                    width: `${
+                      invoicedTotal > 0 ? Math.round((paidTotal / invoicedTotal) * 100) : 0
+                    }%`,
+                  },
+                ]}
+              />
+            </View>
           </View>
         </View>
 

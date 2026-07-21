@@ -13,6 +13,7 @@ import { InvoicesSection, type InvoiceRow } from './invoices-section';
 import { ReportsSection, type ReportRow } from './reports-section';
 import { DocumentsSection, type DocumentRow } from './documents-section';
 import { ProjectActions } from './project-actions';
+import { CashChart, CompletionRing } from '@/components/finance-visuals';
 
 interface Props {
   params: Promise<{ slug: string; id: string }>;
@@ -280,30 +281,26 @@ export default async function ProjectDetail({ params }: Props) {
       </section>
 
       {/* FINANCE */}
-      <section className="mt-4 grid gap-3 md:grid-cols-4">
-        <FinanceCard
-          label="Original quote"
-          value={
-            project.quoted_amount_pence
-              ? gbp(Number(project.quoted_amount_pence))
-              : '—'
+      <section className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <CashChart
+            contracted={
+              Number(project.quoted_amount_pence ?? 0) +
+              Number(finance?.variations_pence ?? 0)
+            }
+            invoiced={Number(finance?.invoiced_pence ?? 0)}
+            paid={Number(finance?.paid_pence ?? 0)}
+            outstanding={
+              Number(finance?.invoiced_pence ?? 0) - Number(finance?.paid_pence ?? 0)
+            }
+          />
+        </div>
+        <CompletionRing
+          paid={Number(finance?.paid_pence ?? 0)}
+          contracted={
+            Number(project.quoted_amount_pence ?? 0) +
+            Number(finance?.variations_pence ?? 0)
           }
-        />
-        <FinanceCard
-          label="Variations to date"
-          value={gbp(Number(finance?.variations_pence ?? 0))}
-        />
-        <FinanceCard
-          label="Invoiced / paid"
-          value={`${gbp(Number(finance?.paid_pence ?? 0))} / ${gbp(
-            Number(finance?.invoiced_pence ?? 0),
-          )}`}
-        />
-        <FinanceCard
-          label="Outstanding"
-          value={gbp(
-            Number(finance?.invoiced_pence ?? 0) - Number(finance?.paid_pence ?? 0),
-          )}
         />
       </section>
 
@@ -460,11 +457,3 @@ function DateLabel({ label, value }: { label: string; value: string }) {
   );
 }
 
-function FinanceCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-card border border-hairline bg-white p-4 shadow-card">
-      <div className="text-[10px] uppercase tracking-widest text-ink-muted">{label}</div>
-      <div className="mt-1 text-lg font-extrabold tracking-tight">{value}</div>
-    </div>
-  );
-}

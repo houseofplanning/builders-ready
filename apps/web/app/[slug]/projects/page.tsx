@@ -118,19 +118,39 @@ function EmptyState({
   slug: string;
 }) {
   return (
-    <div className="rounded-card border border-dashed border-hairline bg-white p-12 text-center">
-      <h2 className="text-lg font-bold">No projects yet</h2>
-      <p className="mt-1 text-sm text-ink-muted">
+    <div className="rounded-card border border-dashed border-hairline bg-white p-14 text-center">
+      <div
+        className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
+        style={{ background: '#E1F5EE' }}
+      >
+        <svg
+          width="26"
+          height="26"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#0F6E56"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+        </svg>
+      </div>
+      <h2 className="text-lg font-extrabold tracking-tight">
+        {canCreate ? 'Start your first project' : 'No projects yet'}
+      </h2>
+      <p className="mx-auto mt-1 max-w-sm text-sm text-ink-muted">
         {canCreate
-          ? 'Create your first project to start posting site-visit updates to your client.'
-          : 'Your PM hasn’t set up a project for you yet.'}
+          ? 'Create a project and your client gets a branded app to follow every milestone, decision and invoice.'
+          : 'Your builder hasn’t set up a project for you yet — you’ll get a notification when they do.'}
       </p>
       {canCreate && (
         <Link
           href={`/${slug}/projects/new`}
           className="mt-5 inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white"
         >
-          + Create the first project
+          Create your first project
         </Link>
       )}
     </div>

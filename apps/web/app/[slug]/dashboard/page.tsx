@@ -310,14 +310,35 @@ export default async function Dashboard({ params }: Props) {
             </Link>
           </header>
           {(recent ?? []).length === 0 ? (
-            <div className="px-5 py-10 text-center">
-              <p className="text-sm text-ink-muted">No projects yet.</p>
+            <div className="px-5 py-12 text-center">
+              <div
+                className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl"
+                style={{ background: '#E1F5EE' }}
+              >
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0F6E56"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+                </svg>
+              </div>
+              <p className="text-sm font-semibold text-ink">Start your first project</p>
+              <p className="mx-auto mt-1 max-w-xs text-xs text-ink-muted">
+                Your client gets a branded app to follow every milestone, decision and invoice.
+              </p>
               {(role === 'owner' || role === 'pm') && (
                 <Link
                   href={`/${slug}/projects/new`}
-                  className="mt-3 inline-block rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-white"
+                  className="mt-4 inline-block rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-white"
                 >
-                  + Create your first project
+                  Create your first project
                 </Link>
               )}
             </div>
