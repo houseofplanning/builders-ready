@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { saveBranding } from '@/lib/server-actions/onboarding';
+import { saveBranding, uploadLogo } from '@/lib/server-actions/onboarding';
 import { normaliseSlug } from '@br/shared';
 
 const PRIMARY_SWATCHES = ['#0F4C5C', '#1A2C34', '#2C5F2D', '#5B2A86', '#8B2635', '#111111'];
@@ -25,7 +25,25 @@ export function BrandingForm({ initial }: Props) {
   const [primary, setPrimary] = useState(initial.brand_primary);
   const [accent, setAccent] = useState(initial.brand_accent);
   const [logoUrl, setLogoUrl] = useState<string | null>(initial.logo_url);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function onLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    setUploading(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await uploadLogo(fd);
+    setUploading(false);
+    e.target.value = '';
+    if (!res.ok || !res.url) {
+      setError(res.error ?? 'Could not upload the logo.');
+      return;
+    }
+    setLogoUrl(res.url);
+  }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -65,22 +83,52 @@ export function BrandingForm({ initial }: Props) {
           className="block w-full rounded-lg border border-hairline bg-white px-3 py-2 font-mono text-sm focus:border-primary focus:outline-none"
         />
         <p className="mt-1 text-[11px] text-ink-muted">
-          Your clients will see: app.buildersready.uk/<strong>{slug || '…'}</strong>
+          Your clients will see: buildersready.uk/<strong>{slug || '…'}</strong>
         </p>
       </label>
 
       {/* LOGO */}
-      <label className="block">
+      <div>
         <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-          Logo URL (PNG or SVG, transparent background)
+          Logo
         </span>
-        <input
-          value={logoUrl ?? ''}
-          onChange={(e) => setLogoUrl(e.target.value || null)}
-          placeholder="https://… (logo upload widget lands next session)"
-          className="block w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
-        />
-      </label>
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-hairline bg-canvas">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="Your logo" className="h-full w-full object-contain" />
+            ) : (
+              <span className="text-xs font-extrabold tracking-widest text-ink-muted">
+                {initials || 'BR'}
+              </span>
+            )}
+          </div>
+          <div>
+            <label className="inline-block cursor-pointer rounded-lg border border-hairline bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas">
+              {uploading ? 'Uploading…' : logoUrl ? 'Replace logo' : 'Upload logo'}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                disabled={uploading}
+                onChange={onLogoChange}
+              />
+            </label>
+            {logoUrl && (
+              <button
+                type="button"
+                onClick={() => setLogoUrl(null)}
+                className="ml-2 text-xs font-semibold text-error"
+              >
+                Remove
+              </button>
+            )}
+            <p className="mt-1 text-[11px] text-ink-muted">
+              PNG, JPG, SVG or WebP · transparent background works best · max 2 MB
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* PRIMARY COLOUR */}
       <div>
@@ -115,10 +163,15 @@ export function BrandingForm({ initial }: Props) {
         </div>
         <div className="flex items-center gap-3">
           <div
-            className="flex h-9 w-9 items-center justify-center rounded-md text-xs font-extrabold tracking-widest text-white"
-            style={{ background: primary }}
+            className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md text-xs font-extrabold tracking-widest text-white"
+            style={{ background: logoUrl ? '#ffffff' : primary }}
           >
-            {initials || 'BR'}
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="" className="h-full w-full object-contain" />
+            ) : (
+              initials || 'BR'
+            )}
           </div>
           <div>
             <div className="text-xs font-extrabold tracking-widest">{initial.name}</div>

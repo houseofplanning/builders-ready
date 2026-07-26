@@ -4,12 +4,59 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { tenantBranding, tenantBank, isValidSlug } from '@br/shared';
 import { createSupabaseServer } from '../supabase-server';
+import { getSupabaseAdmin } from '../supabase-admin';
 import { resolveCurrentTenant } from '../tenant-resolver';
 
 export interface ActionResult {
   ok: boolean;
   error?: string;
   redirectTo?: string;
+}
+
+// -------------------------------------------------------------------------
+// uploadLogo — store a builder's logo in the public tenant-logos bucket and
+// return its public URL. The branding form then saves that URL via
+// saveBranding. Owner only.
+// -------------------------------------------------------------------------
+export async function uploadLogo(
+  formData: FormData,
+): Promise<{ ok: boolean; url?: string; error?: string }> {
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: 'Choose an image file.' };
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    return { ok: false, error: 'Logo must be under 2 MB.' };
+  }
+  const allowed = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+  if (!allowed.includes(file.type)) {
+    return { ok: false, error: 'Use a PNG, JPG, WebP or SVG file.' };
+  }
+
+  const resolved = await resolveCurrentTenant();
+  if (!resolved) return { ok: false, error: 'Not signed in.' };
+  if (resolved.role !== 'owner') {
+    return { ok: false, error: 'Only the tenant owner can set the logo.' };
+  }
+
+  const ext =
+    file.type === 'image/svg+xml'
+      ? 'svg'
+      : file.type === 'image/png'
+        ? 'png'
+        : file.type === 'image/webp'
+          ? 'webp'
+          : 'jpg';
+  const path = `${resolved.tenant.id}/logo-${Date.now()}.${ext}`;
+  const admin = getSupabaseAdmin();
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const { error } = await admin.storage
+    .from('tenant-logos')
+    .upload(path, buffer, { contentType: file.type, upsert: true });
+  if (error) return { ok: false, error: `Upload failed: ${error.message}` };
+
+  const { data } = admin.storage.from('tenant-logos').getPublicUrl(path);
+  return { ok: true, url: data.publicUrl };
 }
 
 export async function saveBranding(
