@@ -11,7 +11,7 @@ import {
 } from '@br/shared';
 import { createSupabaseServer } from '../supabase-server';
 import { getSupabaseAdmin } from '../supabase-admin';
-import { sendSignupNotification } from '../email';
+import { sendSignupNotification, sendWelcomeEmail } from '../email';
 
 // -------------------------------------------------------------------------
 // createTenantAndOwner
@@ -138,6 +138,17 @@ export async function createTenantAndOwner(
     tier: tier as 'starter' | 'pro' | 'unlimited',
   }).catch((err) => {
     console.error('[signup] notification email failed', err);
+  });
+
+  // Welcome the new owner. Fire-and-forget — a failed welcome email must
+  // never block signup.
+  sendWelcomeEmail({
+    to: email,
+    ownerName: full_name,
+    businessName: business_name,
+    slug,
+  }).catch((err) => {
+    console.error('[signup] welcome email failed', err);
   });
 
   return { ok: true, slug };

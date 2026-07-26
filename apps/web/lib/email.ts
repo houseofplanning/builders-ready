@@ -196,6 +196,97 @@ export interface SignupNotificationParams {
   tier: 'starter' | 'pro' | 'unlimited';
 }
 
+// -------------------------------------------------------------------------
+// Welcome email — sent to the owner immediately after they sign up
+// -------------------------------------------------------------------------
+export interface WelcomeEmailParams {
+  to: string;
+  ownerName: string;
+  businessName: string;
+  slug: string;
+}
+
+export async function sendWelcomeEmail(p: WelcomeEmailParams): Promise<void> {
+  const firstName = (p.ownerName ?? '').trim().split(/\s+/)[0] || 'there';
+  const subject = 'Welcome to Builders Ready';
+  const dashboardUrl = `${appUrl()}/${encodeURIComponent(p.slug)}/dashboard`;
+
+  const text = [
+    `Hi ${firstName},`,
+    ``,
+    `Thanks for signing up to Builders Ready — welcome aboard!`,
+    ``,
+    `You're all set up for ${p.businessName}. Builders Ready gives each of your clients a branded app that follows every milestone, decision, variation and invoice — and you run it all from one dashboard.`,
+    ``,
+    `A few things worth trying first:`,
+    `- Create your first project (about a minute)`,
+    `- Invite a client so they get the app on their phone`,
+    `- Raise a decision or propose a variation and watch it get signed off`,
+    `- Generate the one-click handover PDF at the end of a job`,
+    ``,
+    `Open your dashboard: ${dashboardUrl}`,
+    ``,
+    `I really hope you enjoy using it. If you have any feedback, or an idea for a feature you'd love to see, just reply to this email — I read every one.`,
+    ``,
+    `All the best,`,
+    `The Builders Ready team`,
+    `buildersready.uk`,
+  ].join('\n');
+
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:24px 28px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;letter-spacing:2px;font-size:13px;color:${INK};">BUILDERS <span style="color:${PRIMARY};">READY</span></div>
+          </td></tr>
+          <tr><td style="padding:26px 28px;">
+            <div style="font-size:11px;font-weight:600;color:${PRIMARY};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Welcome aboard</div>
+            <h1 style="margin:0 0 14px;font-size:22px;line-height:1.25;font-weight:800;color:${INK};">Thanks for signing up, ${escapeHtml(firstName)}</h1>
+            <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:${INK};">You're all set up for <strong>${escapeHtml(p.businessName)}</strong>. Builders Ready gives each of your clients a branded app that follows every milestone, decision, variation and invoice — and you run it all from one dashboard.</p>
+            <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:${INK};">A few things worth trying first:</p>
+            <ul style="margin:0 0 20px;padding-left:18px;font-size:14px;line-height:1.7;color:${INK};">
+              <li>Create your first project — it takes about a minute</li>
+              <li>Invite a client so they get the app on their phone</li>
+              <li>Raise a decision or propose a variation and watch it get signed off</li>
+              <li>Generate the one-click handover PDF at the end of a job</li>
+            </ul>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-radius:10px;background:${PRIMARY};">
+              <a href="${dashboardUrl}" style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">Open your dashboard &rarr;</a>
+            </td></tr></table>
+            <p style="margin:22px 0 0;font-size:14px;line-height:1.6;color:${INK};">I really hope you enjoy using it. If you have any feedback, or an idea for a feature you'd love to see, just reply to this email — I read every one.</p>
+            <p style="margin:16px 0 0;font-size:14px;color:${INK};">All the best,<br/>The Builders Ready team</p>
+          </td></tr>
+          <tr><td style="padding:16px 28px;border-top:1px solid ${HAIRLINE};font-size:11px;color:${MUTED};">
+            Builders Ready · <a href="https://buildersready.uk" style="color:${PRIMARY};">buildersready.uk</a>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const { error } = await getResend().emails.send({
+    from: fromAddress(),
+    to: p.to,
+    subject,
+    html,
+    text,
+  });
+  if (error) {
+    // Never block signup on a welcome email — log for visibility.
+    console.error('[welcome-email] resend rejected', error);
+  }
+}
+
 export async function sendSignupNotification(
   p: SignupNotificationParams,
 ): Promise<void> {
