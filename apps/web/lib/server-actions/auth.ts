@@ -130,26 +130,30 @@ export async function createTenantAndOwner(
   // 6. Fire-and-forget ops notification. Wrapped so a failed email never
   //    bubbles up to the signup response — Resend hiccups shouldn't break
   //    a paying customer's first impression.
-  sendSignupNotification({
-    businessName: business_name,
-    ownerName: full_name,
-    ownerEmail: email,
-    slug,
-    tier: tier as 'starter' | 'pro' | 'unlimited',
-  }).catch((err) => {
-    console.error('[signup] notification email failed', err);
-  });
-
-  // Welcome the new owner. Fire-and-forget — a failed welcome email must
-  // never block signup.
-  sendWelcomeEmail({
-    to: email,
-    ownerName: full_name,
-    businessName: business_name,
-    slug,
-  }).catch((err) => {
-    console.error('[signup] welcome email failed', err);
-  });
+  // Send the ops notification + welcome email. These MUST be awaited: on
+  // Vercel the serverless function freezes the moment this action returns,
+  // which kills any un-awaited fetch mid-flight — that was the Resend
+  // "request could not be resolved" error. Errors are caught individually
+  // so a failed email never blocks signup.
+  await Promise.all([
+    sendSignupNotification({
+      businessName: business_name,
+      ownerName: full_name,
+      ownerEmail: email,
+      slug,
+      tier: tier as 'starter' | 'pro' | 'unlimited',
+    }).catch((err) => {
+      console.error('[signup] notification email failed', err);
+    }),
+    sendWelcomeEmail({
+      to: email,
+      ownerName: full_name,
+      businessName: business_name,
+      slug,
+    }).catch((err) => {
+      console.error('[signup] welcome email failed', err);
+    }),
+  ]);
 
   return { ok: true, slug };
 }
