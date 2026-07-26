@@ -287,6 +287,149 @@ export async function sendWelcomeEmail(p: WelcomeEmailParams): Promise<void> {
   }
 }
 
+// -------------------------------------------------------------------------
+// Cancellation emails — sent from the Stripe webhook when a subscription
+// is cancelled. One warm win-back email to the customer, one ops alert.
+// -------------------------------------------------------------------------
+export interface CancellationEmailParams {
+  to: string;
+  ownerName: string;
+  businessName: string;
+}
+
+export async function sendCancellationEmail(p: CancellationEmailParams): Promise<void> {
+  const firstName = (p.ownerName ?? '').trim().split(/\s+/)[0] || 'there';
+  const subject = 'Sorry to see you go';
+
+  const text = [
+    `Hi ${firstName},`,
+    ``,
+    `We noticed you cancelled your Builders Ready subscription — sorry to see you go.`,
+    ``,
+    `If there's anything that didn't click — a missing feature, something that got in the way, or the timing just wasn't right — I'd genuinely love to hear it. Just reply to this email; I read every message and it shapes what we build next.`,
+    ``,
+    `Your account and data are safe, and you can pick up right where you left off any time at https://buildersready.uk.`,
+    ``,
+    `Thanks for giving us a go — the door's always open.`,
+    ``,
+    `All the best,`,
+    `The Builders Ready team`,
+    `buildersready.uk`,
+  ].join('\n');
+
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:24px 28px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;letter-spacing:2px;font-size:13px;color:${INK};">BUILDERS <span style="color:${PRIMARY};">READY</span></div>
+          </td></tr>
+          <tr><td style="padding:26px 28px;">
+            <div style="font-size:11px;font-weight:600;color:${PRIMARY};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Subscription cancelled</div>
+            <h1 style="margin:0 0 14px;font-size:22px;line-height:1.25;font-weight:800;color:${INK};">Sorry to see you go, ${escapeHtml(firstName)}</h1>
+            <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:${INK};">We noticed you cancelled your Builders Ready subscription. No hard feelings — but if there's anything that didn't click for you, I'd genuinely love to know.</p>
+            <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:${INK};">A missing feature? Something that got in the way? The timing just wasn't right? Just reply to this email — I read every message, and it shapes what we build next.</p>
+            <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:${INK};">Your account and data are safe, and you can pick up right where you left off any time.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-radius:10px;background:${PRIMARY};">
+              <a href="https://buildersready.uk" style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">Come back any time &rarr;</a>
+            </td></tr></table>
+            <p style="margin:22px 0 0;font-size:14px;color:${INK};">All the best,<br/>The Builders Ready team</p>
+          </td></tr>
+          <tr><td style="padding:16px 28px;border-top:1px solid ${HAIRLINE};font-size:11px;color:${MUTED};">
+            Builders Ready · <a href="https://buildersready.uk" style="color:${PRIMARY};">buildersready.uk</a>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const { error } = await getResend().emails.send({
+    from: fromAddress(),
+    to: p.to,
+    subject,
+    html,
+    text,
+  });
+  if (error) {
+    console.error('[cancellation-email] resend rejected', error);
+  }
+}
+
+export interface CancellationNotificationParams {
+  businessName: string;
+  ownerEmail: string;
+  tier: string;
+}
+
+export async function sendCancellationNotification(
+  p: CancellationNotificationParams,
+): Promise<void> {
+  const to = process.env.SIGNUP_NOTIFICATION_EMAIL ?? 'info@buildersready.uk';
+  const subject = `Cancellation: ${p.businessName} (${p.tier})`;
+
+  const text = [
+    `A tenant has cancelled their Builders Ready subscription.`,
+    ``,
+    `Business name : ${p.businessName}`,
+    `Owner email   : ${p.ownerEmail}`,
+    `Tier          : ${p.tier}`,
+    `Cancelled at  : ${new Date().toUTCString()}`,
+    ``,
+    `— Builders Ready`,
+  ].join('\n');
+
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:24px 28px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;letter-spacing:2px;font-size:13px;color:${INK};">BUILDERS <span style="color:${PRIMARY};">READY</span></div>
+          </td></tr>
+          <tr><td style="padding:24px 28px;">
+            <div style="font-size:11px;font-weight:600;color:#8B2635;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Cancellation</div>
+            <h1 style="margin:0 0 14px;font-size:20px;line-height:1.25;font-weight:800;color:${INK};">${escapeHtml(p.businessName)} cancelled</h1>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="font-size:13px;line-height:20px;color:${INK};">
+              <tr><td style="padding:4px 0;color:${MUTED};width:130px;">Business</td><td>${escapeHtml(p.businessName)}</td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Owner email</td><td><a href="mailto:${escapeHtml(p.ownerEmail)}" style="color:${PRIMARY};">${escapeHtml(p.ownerEmail)}</a></td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Tier</td><td><strong>${escapeHtml(p.tier)}</strong></td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Cancelled at</td><td>${escapeHtml(new Date().toUTCString())}</td></tr>
+            </table>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const { error } = await getResend().emails.send({
+    from: fromAddress(),
+    to,
+    subject,
+    html,
+    text,
+  });
+  if (error) {
+    console.error('[cancellation-notification] resend rejected', error);
+  }
+}
+
 export async function sendSignupNotification(
   p: SignupNotificationParams,
 ): Promise<void> {

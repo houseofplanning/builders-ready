@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { getStripe, tierForPriceId } from '@/lib/stripe';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { sendCancellationEmail, sendCancellationNotification } from '@/lib/email';
 
 /**
  * Stripe webhook receiver for Builders Ready subscriptions.
@@ -201,13 +202,50 @@ async function handleSubscriptionDeleted(
   const tenantId = await findTenantBySubscriptionContext(sub);
   if (!tenantId) return null;
   const admin = getSupabaseAdmin();
-  await admin
+  const { data: tenant } = await admin
     .from('tenants')
     .update({
       subscription_status: 'cancelled',
       stripe_subscription_id: null,
     })
-    .eq('id', tenantId);
+    .eq('id', tenantId)
+    .select('name, business_email, subscription_tier')
+    .maybeSingle();
+
+  // Best-effort: the owner's name for a personal win-back email.
+  let ownerName = '';
+  const { data: owner } = await admin
+    .from('tenant_members')
+    .select('user_id')
+    .eq('tenant_id', tenantId)
+    .eq('role', 'owner')
+    .maybeSingle();
+  if (owner?.user_id) {
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', owner.user_id)
+      .maybeSingle();
+    ownerName = profile?.full_name ?? '';
+  }
+
+  // Win-back email + ops alert. Awaited so the serverless function doesn't
+  // freeze mid-send; errors are swallowed so a failed email never fails the
+  // webhook (which would make Stripe retry the event).
+  if (tenant?.business_email) {
+    await Promise.all([
+      sendCancellationEmail({
+        to: tenant.business_email,
+        ownerName,
+        businessName: tenant.name,
+      }).catch((e) => console.error('[cancel] customer email failed', e)),
+      sendCancellationNotification({
+        businessName: tenant.name,
+        ownerEmail: tenant.business_email,
+        tier: tenant.subscription_tier ?? 'starter',
+      }).catch((e) => console.error('[cancel] notification failed', e)),
+    ]);
+  }
   return tenantId;
 }
 
