@@ -115,6 +115,6 @@ export const config = {
   // root-level routes (sitemap.xml, robots.txt, icon, opengraph-image)
   // here means the middleware doesn't try to auth-gate them.
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|icon|apple-icon|opengraph-image|sitemap\\.xml|robots\\.txt|manifest\\.(?:json|webmanifest)|api/webhooks|api/health).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|icon|apple-icon|opengraph-image|sitemap\\.xml|robots\\.txt|manifest\\.(?:json|webmanifest)|api/webhooks|api/health|onboarding/complete).*)',
   ],
 };

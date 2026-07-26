@@ -29,7 +29,7 @@ function fromAddress(): string {
 }
 
 function appUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.buildersready.uk';
+  return process.env.NEXT_PUBLIC_APP_URL ?? 'https://buildersready.uk';
 }
 
 // -------------------------------------------------------------------------
