@@ -113,7 +113,7 @@ export async function createCheckoutSession(
     customer_update: { name: 'auto', address: 'auto' },
     tax_id_collection: { enabled: true },
     allow_promotion_codes: true,
-    success_url: `${appUrl()}/onboarding/branding?stripe=success`,
+    success_url: `${appUrl()}/onboarding/complete?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl()}/onboarding/billing?cancelled=1`,
     metadata: {
       tenant_id: tenant.id,

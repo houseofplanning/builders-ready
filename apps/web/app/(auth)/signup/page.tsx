@@ -27,7 +27,7 @@ export default function SignupPage() {
         setError(res.error ?? 'Something went wrong.');
         return;
       }
-      router.push('/onboarding/branding');
+      router.push('/onboarding/billing');
     });
   }
 
@@ -57,7 +57,7 @@ export default function SignupPage() {
         <div className="w-full max-w-sm">
           <h1 className="text-2xl font-extrabold tracking-tight">Start your free trial</h1>
           <p className="mt-1 text-xs text-ink-muted">
-            14 days free · Card collected once Stripe is wired · No charge during trial
+            14 days free · Card required to start · No charge until day 15
           </p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-3">

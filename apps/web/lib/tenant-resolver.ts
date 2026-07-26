@@ -73,8 +73,20 @@ export async function requireTenantBySlug(
     // User exists but is logged into a different tenant — send them home.
     redirect(`/${resolved.tenant.slug}/dashboard`);
   }
-  if (!opts.allowInactive && !isTenantInGoodStanding(resolved.tenant)) {
-    redirect(`/${slug}/settings/billing`);
+  if (!opts.allowInactive) {
+    const t = resolved.tenant;
+    const hasCard = !!t.stripe_subscription_id;
+    if (!isTenantInGoodStanding(t)) {
+      // Trial expired, past due, or cancelled. If they carded up, send them
+      // to settings billing to fix payment; if they never did, to onboarding.
+      redirect(hasCard ? `/${slug}/settings/billing` : '/onboarding/billing');
+    }
+    if (t.subscription_status !== 'active' && !hasCard) {
+      // In-trial but no card on file yet — must finish the billing step
+      // before reaching the app. ('active' covers comped/manually-set
+      // tenants that legitimately have no Stripe subscription.)
+      redirect('/onboarding/billing');
+    }
   }
   return resolved;
 }

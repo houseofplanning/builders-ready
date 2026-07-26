@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { requireAuth } from '@/lib/tenant-resolver';
 import { TIERS } from '@br/shared';
 import { BillingStep } from './billing-step';
@@ -8,6 +9,10 @@ interface Props {
 
 export default async function BillingOnboardingStep({ searchParams }: Props) {
   const { tenant } = await requireAuth();
+  // Already carded up? Don't show Checkout again — continue onboarding.
+  if (tenant.stripe_subscription_id) {
+    redirect('/onboarding/branding');
+  }
   const { cancelled } = await searchParams;
 
   const tier = tenant.subscription_tier ?? 'starter';
