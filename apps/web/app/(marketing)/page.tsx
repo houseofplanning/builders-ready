@@ -81,7 +81,7 @@ export default function LandingPage() {
           <span>Built in the UK</span>
           <span>UK GDPR compliant</span>
           <span>Stripe billing</span>
-          <span>iOS app + web admin</span>
+          <span>iOS + Android + web</span>
         </div>
       </section>
 
@@ -303,8 +303,8 @@ export default function LandingPage() {
                 a: 'You can archive a finished project to free a slot, or upgrade. Either way, no data is lost.',
               },
               {
-                q: 'Is the mobile app on the App Store?',
-                a: 'Yes — Builders Ready is on the iOS App Store. Android is on the roadmap; right now Android clients can use the responsive web app via their phone browser.',
+                q: 'Is there a mobile app for iPhone and Android?',
+                a: 'Yes — Builders Ready is live on both the Apple App Store and Google Play, so your clients can use it whatever phone they are on. There is also a responsive web app for any device with a browser.',
               },
             ]}
           />
@@ -333,8 +333,8 @@ export default function LandingPage() {
               a="You can archive a finished project to free a slot — projects you've handed over don't need to count against your active limit. Or upgrade. Either way, no data is lost."
             />
             <Faq
-              q="Is the mobile app on the App Store?"
-              a="Yes — Builders Ready is on the iOS App Store. Android is on the roadmap; right now Android clients can use the responsive web app via their phone browser."
+              q="Is there a mobile app for iPhone and Android?"
+              a="Yes — Builders Ready is live on both the Apple App Store and Google Play, so your clients can use it whatever phone they're on. There's also a responsive web app for any device with a browser."
             />
           </div>
         </div>
