@@ -360,15 +360,51 @@ export function MockupVariation({ className }: PhoneProps) {
   );
 }
 
+/** Small stroke icon used inside the mockup KPI tiles, matching the live app. */
+function MockIcon({ type, x, y }: { type: string; x: number; y: number }) {
+  return (
+    <g
+      transform={`translate(${x} ${y}) scale(0.6667)`}
+      stroke="#0F4C5C"
+      strokeWidth="1.7"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {type === 'stack' && (
+        <>
+          <path d="M12 3 3 8l9 5 9-5-9-5Z" />
+          <path d="m3 13 9 5 9-5" />
+        </>
+      )}
+      {type === 'pen' && (
+        <>
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+        </>
+      )}
+      {type === 'chat' && (
+        <path d="M21 11.5a8.4 8.4 0 0 1-12.9 7.5L3 21l1.9-4.5A8.4 8.4 0 1 1 21 11.5Z" />
+      )}
+      {type === 'cash' && (
+        <>
+          <rect x="2" y="6" width="20" height="12" rx="2" />
+          <circle cx="12" cy="12" r="2.5" />
+        </>
+      )}
+    </g>
+  );
+}
+
 /** Web dashboard — mirrors the live owner dashboard: greeting, attention
  * strip, KPI cards, cash position bars and the collected ring. Restrained,
  * mono-teal palette; colour is reserved for meaning. */
 export function MockupDashboard({ className }: { className?: string }) {
   const kpis = [
-    { x: 24, value: '3', label: 'Active projects', chip: 'of unlimited' },
-    { x: 196, value: '2', label: 'Awaiting signature', chip: '£1,960' },
-    { x: 368, value: '1', label: 'Open decisions', chip: '1 overdue' },
-    { x: 540, value: '£0', label: 'Received this month', chip: null },
+    { x: 24, value: '3', label: 'Active projects', chip: 'of unlimited', icon: 'stack' },
+    { x: 196, value: '2', label: 'Awaiting signature', chip: '£1,960', icon: 'pen' },
+    { x: 368, value: '1', label: 'Open decisions', chip: '1 overdue', icon: 'chat' },
+    { x: 540, value: '£0', label: 'Received this month', chip: null, icon: 'cash' },
   ];
   const bars = [
     { y: 338, label: 'Contracted', value: '£870,830', frac: 1, col: '#0F4C5C' },
@@ -423,7 +459,7 @@ export function MockupDashboard({ className }: { className?: string }) {
           <g key={k.label}>
             <rect x={k.x} y="198" width="156" height="74" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
             <rect x={k.x + 14} y="212" width="28" height="28" rx="8" fill="#EEF2F1" />
-            <rect x={k.x + 22} y="220" width="12" height="12" rx="4" fill="#0F4C5C" />
+            <MockIcon type={k.icon} x={k.x + 20} y={218} />
             {k.chip && (
               <>
                 <rect x={k.x + 142 - cw} y="214" width={cw} height="18" rx="9" fill="#F4F6F7" />
