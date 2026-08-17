@@ -1,10 +1,15 @@
 export { CashChart, CompletionRing } from '@/components/finance-visuals';
 
+// Restrained, uniform palette — one calm teal icon tone across every tile.
+// Colour is reserved for meaning (attention dots, outstanding balance), not
+// decoration, which reads as premium B2B rather than a consumer app.
+const ICON_BG = '#EEF2F1';
+const ICON_FG = '#0F4C5C';
 const TINTS = {
-  teal: { bg: '#E1F5EE', icon: '#0F6E56', num: '#04342C', label: '#0F6E56', chipBg: '#9FE1CB', chipText: '#085041' },
-  coral: { bg: '#FAECE7', icon: '#993C1D', num: '#4A1B0C', label: '#993C1D', chipBg: '#F5C4B3', chipText: '#712B13' },
-  amber: { bg: '#FAEEDA', icon: '#854F0B', num: '#412402', label: '#854F0B', chipBg: '#FAC775', chipText: '#633806' },
-  green: { bg: '#EAF3DE', icon: '#3B6D11', num: '#173404', label: '#3B6D11', chipBg: '#C0DD97', chipText: '#27500A' },
+  teal: { bg: ICON_BG, icon: ICON_FG },
+  coral: { bg: ICON_BG, icon: ICON_FG },
+  amber: { bg: ICON_BG, icon: ICON_FG },
+  green: { bg: ICON_BG, icon: ICON_FG },
 } as const;
 
 export type Tint = keyof typeof TINTS;
@@ -24,29 +29,22 @@ export function KpiTile({
 }) {
   const t = TINTS[tint];
   return (
-    <div style={{ background: t.bg, borderRadius: 12, padding: 14 }}>
+    <div className="rounded-card border border-hairline bg-white p-4 shadow-card">
       <div className="flex items-center justify-between">
         <span
-          className="flex items-center justify-center text-white"
-          style={{ width: 30, height: 30, borderRadius: 8, background: t.icon }}
+          className="flex items-center justify-center"
+          style={{ width: 30, height: 30, borderRadius: 8, background: t.bg, color: t.icon }}
         >
           {icon}
         </span>
         {chip && (
-          <span
-            className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
-            style={{ background: t.chipBg, color: t.chipText }}
-          >
+          <span className="rounded-full bg-canvas px-2 py-0.5 text-[11px] font-semibold text-ink-muted">
             {chip}
           </span>
         )}
       </div>
-      <div className="mt-2.5 text-2xl font-extrabold tracking-tight" style={{ color: t.num }}>
-        {value}
-      </div>
-      <div className="text-xs" style={{ color: t.label }}>
-        {label}
-      </div>
+      <div className="mt-3 text-2xl font-extrabold tracking-tight text-ink">{value}</div>
+      <div className="text-xs text-ink-muted">{label}</div>
     </div>
   );
 }

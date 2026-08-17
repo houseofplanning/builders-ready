@@ -231,22 +231,25 @@ export default async function Dashboard({ params }: Props) {
           <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">
             Needs your attention
           </span>
-          {attention.map((a, i) => (
-            <Link
-              key={i}
-              href={a.href}
-              className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold ${
-                a.tone === 'error'
-                  ? 'bg-error/10 text-error'
-                  : a.tone === 'accent'
-                    ? 'bg-accent/10 text-accent'
-                    : 'bg-primary/10 text-primary'
-              }`}
-            >
-              <span className="text-base font-extrabold">{a.count}</span>
-              <span>{a.label}</span>
-            </Link>
-          ))}
+          {attention.map((a, i) => {
+            const dot =
+              a.tone === 'error'
+                ? 'bg-error'
+                : a.tone === 'accent'
+                  ? 'bg-accent'
+                  : 'bg-primary';
+            return (
+              <Link
+                key={i}
+                href={a.href}
+                className="flex items-center gap-2 rounded-lg bg-canvas px-3 py-1.5 text-sm text-ink hover:opacity-80"
+              >
+                <span className={`inline-block h-2 w-2 flex-shrink-0 rounded-full ${dot}`} />
+                <span className="font-extrabold">{a.count}</span>
+                <span className="font-medium text-ink-muted">{a.label}</span>
+              </Link>
+            );
+          })}
         </div>
       )}
 

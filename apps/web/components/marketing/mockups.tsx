@@ -360,127 +360,98 @@ export function MockupVariation({ className }: PhoneProps) {
   );
 }
 
-/** Web dashboard — 4 KPI tiles + outstanding items panels. */
+/** Web dashboard — mirrors the live owner dashboard: greeting, attention
+ * strip, KPI cards, cash position bars and the collected ring. Restrained,
+ * mono-teal palette; colour is reserved for meaning. */
 export function MockupDashboard({ className }: { className?: string }) {
+  const kpis = [
+    { x: 24, value: '3', label: 'Active projects', chip: 'of unlimited' },
+    { x: 196, value: '2', label: 'Awaiting signature', chip: '£1,960' },
+    { x: 368, value: '1', label: 'Open decisions', chip: '1 overdue' },
+    { x: 540, value: '£0', label: 'Received this month', chip: null },
+  ];
+  const bars = [
+    { y: 338, label: 'Contracted', value: '£870,830', frac: 1, col: '#0F4C5C' },
+    { y: 376, label: 'Invoiced', value: '£171,000', frac: 0.196, col: '#3E7C77' },
+    { y: 414, label: 'Paid', value: '£128,250', frac: 0.147, col: '#6FA49C' },
+    { y: 452, label: 'Outstanding', value: '£42,750', frac: 0.049, col: '#E07A5F' },
+  ];
+  const chips = [
+    { x: 190, w: 120, dot: '#C0392B', t: '1 overdue invoice' },
+    { x: 322, w: 150, dot: '#C0862E', t: '1 decision past deadline' },
+    { x: 486, w: 190, dot: '#0F4C5C', t: '2 variations awaiting signature' },
+  ];
   return (
     <svg
-      viewBox="0 0 720 480"
+      viewBox="0 0 720 540"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       role="img"
-      aria-label="Builders Ready web admin dashboard — cross-project KPIs and outstanding items for the owner"
+      aria-label="Builders Ready web dashboard — morning greeting, attention items, KPI cards, cash position and collected ring"
     >
-      <defs>
-        <linearGradient id="progGrad2" x1="0" x2="1" y1="0" y2="0">
-          <stop offset="0%" stopColor="#0F4C5C" />
-          <stop offset="100%" stopColor="#E07A5F" />
-        </linearGradient>
-      </defs>
-
-      {/* Browser chrome */}
-      <rect width="720" height="480" rx="14" fill="#F4F6F7" />
+      <rect width="720" height="540" rx="14" fill="#F4F6F7" />
       <rect width="720" height="40" rx="14" fill="#FFFFFF" />
       <rect y="26" width="720" height="14" fill="#FFFFFF" />
-      <circle cx="20" cy="20" r="5" fill="#E07A5F" />
-      <circle cx="36" cy="20" r="5" fill="#E5C46F" />
-      <circle cx="52" cy="20" r="5" fill="#80B384" />
-      <rect x="80" y="12" width="240" height="16" rx="8" fill="#F4F6F7" />
-      <text x="92" y="23" fontSize="9" fill="#5F7480">
-        app.buildersready.uk/heritage/dashboard
-      </text>
-
-      {/* Top bar inside app */}
-      <rect y="40" width="720" height="44" fill="#FFFFFF" />
-      <text x="24" y="68" fontSize="11" fill="#0B1418" fontWeight="800" letterSpacing="2">
-        HERITAGE BUILD CO
-      </text>
-      <text x="640" y="68" fontSize="10" fill="#5F7480" fontWeight="600">
-        Sam Patterson
-      </text>
-
-      {/* Heading */}
-      <text x="24" y="116" fontSize="9" fill="#5F7480" fontWeight="700" letterSpacing="2">
-        TENANT · HERITAGE BUILD CO
-      </text>
-      <text x="24" y="138" fontSize="20" fill="#0B1418" fontWeight="800">
-        Welcome back
-      </text>
-
-      {/* Operational KPI tiles */}
-      {[
-        { x: 24, label: 'ACTIVE PROJECTS', value: '3', sub: 'of 50 on Pro' },
-        { x: 196, label: 'TEAM', value: '4', sub: 'across all roles' },
-        { x: 368, label: 'OPEN DECISIONS', value: '2', sub: 'awaiting response' },
-        { x: 540, label: 'AWAITING SIGNATURE', value: '1', sub: 'variations' },
-      ].map((t) => (
-        <g key={t.label}>
-          <rect x={t.x} y="156" width="156" height="64" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
-          <text x={t.x + 14} y="174" fontSize="8" fill="#5F7480" fontWeight="700" letterSpacing="1.5">
-            {t.label}
-          </text>
-          <text x={t.x + 14} y="200" fontSize="20" fill="#0B1418" fontWeight="800">
-            {t.value}
-          </text>
-          <text x={t.x + 14} y="214" fontSize="8" fill="#5F7480">
-            {t.sub}
-          </text>
+      <circle cx="20" cy="20" r="5" fill="#D7DCDE" />
+      <circle cx="36" cy="20" r="5" fill="#D7DCDE" />
+      <circle cx="52" cy="20" r="5" fill="#D7DCDE" />
+      <rect x="80" y="12" width="260" height="16" rx="8" fill="#F4F6F7" />
+      <text x="92" y="23" fontSize="9" fill="#5F7480">app.buildersready.uk/heritage/dashboard</text>
+      <rect y="40" width="720" height="46" fill="#FFFFFF" />
+      <rect x="24" y="52" width="24" height="24" rx="6" fill="#0F4C5C" />
+      <text x="36" y="68" fontSize="10" fill="#fff" fontWeight="800" textAnchor="middle">HB</text>
+      <text x="56" y="61" fontSize="11" fill="#0B1418" fontWeight="800">Heritage Build Co</text>
+      <text x="56" y="73" fontSize="7" fill="#5F7480" fontWeight="700" letterSpacing="1">OWNER</text>
+      <circle cx="686" cy="63" r="13" fill="#EEF2F1" />
+      <text x="686" y="67" fontSize="9" fill="#0F4C5C" fontWeight="800" textAnchor="middle">HB</text>
+      <text x="24" y="112" fontSize="8" fill="#5F7480" fontWeight="700" letterSpacing="1.5">HERITAGE BUILD CO</text>
+      <text x="24" y="136" fontSize="21" fill="#0B1418" fontWeight="800">Good morning, Sam</text>
+      <rect x="600" y="112" width="96" height="26" rx="8" fill="#0F4C5C" />
+      <text x="648" y="129" fontSize="10" fill="#fff" fontWeight="700" textAnchor="middle">+ New project</text>
+      <rect x="24" y="152" width="672" height="34" rx="10" fill="#FFFFFF" stroke="#E1E6E9" />
+      <text x="40" y="173" fontSize="8" fill="#5F7480" fontWeight="700" letterSpacing="1">NEEDS YOUR ATTENTION</text>
+      {chips.map((c) => (
+        <g key={c.t}>
+          <rect x={c.x} y="159" width={c.w} height="20" rx="6" fill="#F4F6F7" />
+          <circle cx={c.x + 13} cy="169" r="3.5" fill={c.dot} />
+          <text x={c.x + 24} y="173" fontSize="9" fill="#0B1418" fontWeight="600">{c.t}</text>
         </g>
       ))}
-
-      {/* Finance tiles */}
-      {[
-        { x: 24, label: 'TOTAL CONTRACTED', value: '£867k' },
-        { x: 196, label: 'INVOICED', value: '£412k' },
-        { x: 368, label: 'PAID', value: '£298k' },
-        { x: 540, label: 'OUTSTANDING', value: '£114k' },
-      ].map((t) => (
-        <g key={t.label}>
-          <rect x={t.x} y="232" width="156" height="60" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
-          <text x={t.x + 14} y="250" fontSize="8" fill="#5F7480" fontWeight="700" letterSpacing="1.5">
-            {t.label}
-          </text>
-          <text x={t.x + 14} y="276" fontSize="18" fill="#0B1418" fontWeight="800">
-            {t.value}
-          </text>
+      {kpis.map((k) => {
+        const cw = k.chip ? k.chip.length * 5.4 + 16 : 0;
+        return (
+          <g key={k.label}>
+            <rect x={k.x} y="198" width="156" height="74" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
+            <rect x={k.x + 14} y="212" width="28" height="28" rx="8" fill="#EEF2F1" />
+            <rect x={k.x + 22} y="220" width="12" height="12" rx="4" fill="#0F4C5C" />
+            {k.chip && (
+              <>
+                <rect x={k.x + 142 - cw} y="214" width={cw} height="18" rx="9" fill="#F4F6F7" />
+                <text x={k.x + 142 - cw / 2} y="226" fontSize="9" fill="#5F7480" fontWeight="600" textAnchor="middle">{k.chip}</text>
+              </>
+            )}
+            <text x={k.x + 14} y="256" fontSize="20" fill="#0B1418" fontWeight="800">{k.value}</text>
+            <text x={k.x + 14} y="268" fontSize="8.5" fill="#5F7480">{k.label}</text>
+          </g>
+        );
+      })}
+      <rect x="24" y="286" width="456" height="238" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
+      <text x="40" y="312" fontSize="11" fill="#0B1418" fontWeight="800">Cash position</text>
+      {bars.map((b) => (
+        <g key={b.label}>
+          <text x="40" y={b.y} fontSize="10" fill="#5F7480">{b.label}</text>
+          <text x="456" y={b.y} fontSize="11" fill="#0B1418" fontWeight="700" textAnchor="end">{b.value}</text>
+          <rect x="40" y={b.y + 8} width="416" height="8" rx="4" fill="#EEF1F2" />
+          <rect x="40" y={b.y + 8} width={Math.round(416 * b.frac)} height="8" rx="4" fill={b.col} />
         </g>
       ))}
-
-      {/* Project list card */}
-      <rect x="24" y="308" width="672" height="148" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
-      <text x="40" y="332" fontSize="11" fill="#0B1418" fontWeight="800">
-        Recent projects
-      </text>
-      <line x1="24" y1="346" x2="696" y2="346" stroke="#E1E6E9" />
-
-      {[
-        { y: 366, name: 'Hammersmith Townhouse', addr: 'W6 9AB · PM Sam P.', progress: 62 },
-        { y: 396, name: 'Notting Hill Mews', addr: 'W11 4PN · PM Sam P.', progress: 94 },
-        { y: 426, name: 'Highgate Loft Extension', addr: 'N6 5HE · PM Sam P.', progress: 4 },
-      ].map((row) => (
-        <g key={row.name}>
-          <text x={40} y={row.y} fontSize="11" fill="#0B1418" fontWeight="700">
-            {row.name}
-          </text>
-          <text x={40} y={row.y + 13} fontSize="8" fill="#5F7480">
-            {row.addr}
-          </text>
-          <rect x="460" y={row.y - 6} width="160" height="5" rx="2.5" fill="#F4F6F7" />
-          <rect
-            x="460"
-            y={row.y - 6}
-            width={(160 * row.progress) / 100}
-            height="5"
-            rx="2.5"
-            fill="url(#progGrad2)"
-          />
-          <text x="630" y={row.y - 1} fontSize="9" fill="#5F7480" fontWeight="600">
-            {row.progress}%
-          </text>
-          <text x="660" y={row.y + 4} fontSize="9" fill="#0F4C5C" fontWeight="700">
-            Open →
-          </text>
-        </g>
-      ))}
+      <rect x="496" y="286" width="200" height="238" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
+      <text x="512" y="312" fontSize="11" fill="#0B1418" fontWeight="800">Collected</text>
+      <circle cx="596" cy="412" r="48" fill="none" stroke="#EEF2F1" strokeWidth="14" />
+      <circle cx="596" cy="412" r="48" fill="none" stroke="#0F4C5C" strokeWidth="14" strokeLinecap="round" strokeDasharray="45.2 256.4" transform="rotate(-90 596 412)" />
+      <text x="596" y="408" fontSize="20" fill="#0B1418" fontWeight="800" textAnchor="middle">15%</text>
+      <text x="596" y="426" fontSize="8" fill="#5F7480" textAnchor="middle">of contracted</text>
+      <text x="596" y="502" fontSize="8" fill="#5F7480" textAnchor="middle">£128,250 of £870,830</text>
     </svg>
   );
 }

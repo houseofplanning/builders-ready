@@ -13,10 +13,10 @@ export function CashChart({
 }) {
   const max = Math.max(contracted, invoiced, paid, outstanding, 1);
   const rows = [
-    { label: 'Contracted', value: contracted, color: '#0F6E56' },
-    { label: 'Invoiced', value: invoiced, color: '#5DCAA5' },
-    { label: 'Paid', value: paid, color: '#639922' },
-    { label: 'Outstanding', value: outstanding, color: '#EF9F27' },
+    { label: 'Contracted', value: contracted, color: '#0F4C5C' },
+    { label: 'Invoiced', value: invoiced, color: '#3E7C77' },
+    { label: 'Paid', value: paid, color: '#6FA49C' },
+    { label: 'Outstanding', value: outstanding, color: '#E07A5F' },
   ];
   return (
     <div className="h-full rounded-card border border-hairline bg-white p-5 shadow-card">
@@ -50,22 +50,22 @@ export function CompletionRing({ paid, contracted }: { paid: number; contracted:
       <h2 className="mb-2 w-full text-sm font-bold">Collected</h2>
       <div className="flex flex-1 items-center">
         <svg viewBox="0 0 120 120" width="118" height="118" role="img" aria-label={`${pct}% collected`}>
-          <circle cx="60" cy="60" r="50" fill="none" stroke="#E1F5EE" strokeWidth="12" />
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#EEF2F1" strokeWidth="12" />
           <circle
             cx="60"
             cy="60"
             r="50"
             fill="none"
-            stroke="#0F6E56"
+            stroke="#0F4C5C"
             strokeWidth="12"
             strokeLinecap="round"
             strokeDasharray={`${dash} ${circ}`}
             transform="rotate(-90 60 60)"
           />
-          <text x="60" y="58" textAnchor="middle" fontSize="26" fontWeight="800" fill="#04342C">
+          <text x="60" y="58" textAnchor="middle" fontSize="26" fontWeight="800" fill="#0B1418">
             {pct}%
           </text>
-          <text x="60" y="76" textAnchor="middle" fontSize="11" fill="#0F6E56">
+          <text x="60" y="76" textAnchor="middle" fontSize="11" fill="#5F7480">
             of contracted
           </text>
         </svg>
