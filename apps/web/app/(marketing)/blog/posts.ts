@@ -16,6 +16,74 @@ export interface BlogPost {
 
 export const POSTS: BlogPost[] = [
   {
+    slug: 'getting-started-with-a-client-portal',
+    title: 'Getting started with a client portal: what changes on your next job',
+    description:
+      'Signing your building business up to a client portal takes minutes — but the change it makes to how you run a job is bigger than most builders expect. Here is what getting started actually involves, and the benefits that show up from day one.',
+    publishedAt: '2026-08-03',
+    readingTime: '7 min read',
+    category: 'Getting Started',
+    contentHtml: `
+<p>There is a particular kind of procrastination that costs builders more than any other: knowing you should get more organised, and never quite starting. You mean to sort out a proper system for updates, decisions and invoices. Then a job kicks off, the phone starts going, and another six months disappear into a group chat.</p>
+
+<p>The good news is that the gap between "I should do this" and "this is done" is much smaller than it looks. Getting set up on a client portal takes about the length of a tea break, and — unusually for business software — the benefits start on the very first job you use it for. This is a plain walk-through of what getting started actually involves, and what changes as a result.</p>
+
+<h2>What "getting started" actually involves</h2>
+
+<p>People imagine onboarding software is a project in itself. For a client portal built for builders, it isn't. Start to finish, it is four short steps:</p>
+
+<ul>
+  <li><strong>Sign up and start a free trial.</strong> A couple of minutes. With Builders Ready you get 14 days free to try it on a real job before you commit to anything.</li>
+  <li><strong>Add your branding.</strong> Upload your logo and pick your colours. This matters more than it sounds: the app your client uses carries <em>your</em> name, not ours.</li>
+  <li><strong>Create your first project.</strong> Name, address, the quoted figure and a rough set of stages. Two minutes.</li>
+  <li><strong>Invite your client.</strong> They get a link, install the app from the App Store or Google Play, and they are in — looking at a project with your logo on it.</li>
+</ul>
+
+<p>That is the whole thing. You can be live on your next job in the time it takes to write a couple of quotes.</p>
+
+<h2>Benefit one: you look established from the first tap</h2>
+
+<p>The moment your client opens an app with your name and colours on it, something shifts. Most builders they have ever hired ran the job out of a WhatsApp group. You have handed them a branded app for their project. Before you have laid a brick, you look like the more organised, more established option — and in a market where homeowners are quietly terrified of picking the wrong builder, looking like a safe pair of hands is often what wins the job.</p>
+
+<h2>Benefit two: decisions stop evaporating</h2>
+
+<p>Every job is hundreds of small choices — tap finishes, tile options, paint colours — and the verbal ones evaporate the moment there is a disagreement. On a portal, you raise a decision with options and prices, the client taps to choose on their phone, and the choice is logged with their name, the time and the cost. Three months later there is nothing to argue about, because there is a record. (We wrote about why this is the cheapest insurance a builder can buy <a href="/blog/the-decision-log-cheapest-insurance-in-construction">here</a>.)</p>
+
+<h2>Benefit three: variations get signed, not argued</h2>
+
+<p>The single most expensive admin mistake in construction is the casually-agreed variation that turns into a dispute at invoice stage. A portal makes the variation a signed object: title, description, cost, time impact, and the client's signature on their phone <em>before</em> the work happens. The "I never agreed to that" conversation simply stops happening. (The full legal anatomy of a robust variation is <a href="/blog/legal-anatomy-of-a-construction-variation">here</a>.)</p>
+
+<h2>Benefit four: the client stops chasing you</h2>
+
+<p>A surprising amount of a builder's week goes on answering "any update?" — by call, by text, by the client's partner. When the client can open an app and see the live timeline, the last update and the next stage, those interruptions largely disappear. You post one update from the van and everyone who needs to know, knows. Your evenings stop being spent scrolling back through messages to work out where each job stands.</p>
+
+<h2>Benefit five: the handover writes itself</h2>
+
+<p>Because every decision, variation, update and invoice is captured the moment it happens, the end-of-project handover pack is already assembled by the time you get there. Instead of losing two days piecing a document together under pressure, you generate it in one click — a professional record the client keeps, that quietly earns you the next referral. (What belongs in a proper handover is covered <a href="/blog/how-to-write-a-project-handover-document">here</a>.)</p>
+
+<h2>"But will my clients actually use it?"</h2>
+
+<p>This is the first objection every builder raises, and it was a fair one in 2018. It is not now. Your clients already bank on an app, book their gym on an app, and split dinner bills on an app. A homeowner spending five figures with you will install your app the same way. If one genuinely won't, that reluctance tells you something useful about the relationship early — while it is still cheap to know.</p>
+
+<h2>Is it worth it for a smaller builder?</h2>
+
+<p>Arguably more than for a large one. A single disputed £500 variation on a £20k bathroom that you cannot prove was agreed hurts far more, proportionally, than the same dispute on a £400k extension. At £29 a month, one avoided dispute a year pays for the tool several times over. The point of getting started is not the software — it is removing the admin friction that was quietly costing you money and evenings.</p>
+
+<h2>Getting the most out of your first week</h2>
+
+<ul>
+  <li><strong>Mention it when you quote.</strong> "You will get your own app to follow the whole job" is a genuine differentiator at the exact moment a homeowner is comparing you to two other builders.</li>
+  <li><strong>Invite the client at the start,</strong> not halfway through — the earlier they are in, the more the record is worth.</li>
+  <li><strong>Post one update in the first few days</strong> so the client sees it working and gets the habit of checking the app.</li>
+  <li><strong>Raise your first decision through it,</strong> even a small one, to set the pattern for the rest of the job.</li>
+</ul>
+
+<h2>The bottom line</h2>
+
+<p>Getting started is not the hard part. It takes minutes, Builders Ready is free for 14 days, and it is live on both the App Store and Google Play. The hard part was always the admin you were doing by hand — the lost decisions, the argued variations, the handover that never quite got finished — and that is exactly the part getting set up removes. Start it on your next job, invite your first client, and let the first handover pack write itself. You can <a href="/signup">start your free trial here</a>.</p>
+`,
+  },
+  {
     slug: 'the-decision-log-cheapest-insurance-in-construction',
     title: 'The decision log: the cheapest insurance a builder can buy',
     description:
