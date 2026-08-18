@@ -84,6 +84,282 @@ export const POSTS: BlogPost[] = [
 `,
   },
   {
+    slug: 'turning-finished-jobs-into-a-portfolio',
+    title: 'Turning finished jobs into your best sales tool: building a portfolio',
+    description:
+      'Every job you complete is proof of what you can do — but most builders let that proof disappear the moment they hand over the keys. Here is how to turn finished projects into a portfolio that wins the next one.',
+    publishedAt: '2026-07-27',
+    readingTime: '6 min read',
+    category: 'Growth',
+    contentHtml: `
+<p>Ask most builders how they win work and they will say "word of mouth" — which is true, and also a polite way of saying "I hope the phone rings." Referrals are the best source of work in construction, but they are passive. You cannot control when a past client happens to mention you at a dinner party.</p>
+
+<p>What you <em>can</em> control is the evidence you keep of your own work. Every job you finish is proof — of your quality, your organisation, your reliability. Yet most of that proof evaporates the moment you hand over the keys: the photos stay buried on a phone, the paperwork gets scattered, and the story of how well the project ran is never told to anyone but the client who already knows it.</p>
+
+<h2>Why a portfolio matters more than you think</h2>
+
+<p>When a homeowner is choosing a builder, they are making a high-stakes decision with very little to go on. They cannot inspect the quality of a job you did last year. They cannot see how you handled the variations or whether you finished on time. All they have is your quote, your manner, and whatever proof you put in front of them. The builder with the strongest, most tangible proof reduces the homeowner's fear — and fear is the main thing standing between you and the job.</p>
+
+<h2>What actually belongs in a builder's portfolio</h2>
+
+<ul>
+  <li><strong>Before, during and after photos.</strong> The "during" shots matter most — steels, first fix, concealed work — because they prove competence a finished photo never can.</li>
+  <li><strong>The story of the project,</strong> not just the look of it: the timeline, the stages, how changes were handled.</li>
+  <li><strong>Evidence of organisation</strong> — a clean handover pack, signed variations, a clear finance record. This is what proves you are not a cowboy, which is precisely the fear you are fighting.</li>
+  <li><strong>The outcome</strong> — a finished space, a happy client, ideally a line in their own words.</li>
+</ul>
+
+<h2>Capture it as you go, not at the end</h2>
+
+<p>The reason most builders have no portfolio is that they try to build it retrospectively — trawling back through a year of photos when they finally need one. It never happens. The trick is to let the portfolio assemble itself while the job runs: photograph each stage as you post updates, keep the decisions and variations logged, and let the finished handover pack become the portfolio entry. By the time the job is done, the material is already there.</p>
+
+<h2>Turn one job into months of marketing</h2>
+
+<p>A single well-documented project can become a case study on your website, a before-and-after post on Instagram, a set of progress clips for TikTok, and a document you show the next prospect on your phone in their kitchen. You did the work once; the proof should work for you many times over.</p>
+
+<h2>The compounding effect</h2>
+
+<p>A portfolio, unlike a one-off advert, compounds. Every finished job adds another piece of proof, and the more proof you have, the easier the next job is to win — which produces another piece of proof. Builders who document consistently find that after a year or two they barely need to sell; the evidence does it for them.</p>
+
+<p>This is the quiet second benefit of running jobs through a client portal. Because Builders Ready logs every update, photo, decision and variation as the job runs and rolls them into a branded <a href="/blog/how-to-write-a-project-handover-document">handover pack</a> at the end, each finished project leaves you with a ready-made portfolio entry — not a pile of screenshots to sort out later. Whatever tool you use, the rule is the same: capture the proof while you have it, because a finished job you cannot show is a sale you cannot make twice.</p>
+`,
+  },
+  {
+    slug: 'how-to-handle-a-difficult-client',
+    title: 'How to handle a difficult client without losing the job',
+    description:
+      'Every builder gets one eventually — the client who queries everything, changes their mind, or goes quiet at payment time. Here is how to manage a difficult client professionally, protect your margin, and often turn them around.',
+    publishedAt: '2026-07-20',
+    readingTime: '6 min read',
+    category: 'Operations',
+    contentHtml: `
+<p>Every builder gets one eventually: the client who questions every line, changes their mind twice a week, adds their opinionated brother-in-law to every conversation, or goes suspiciously quiet the moment an invoice lands. A difficult client can turn a profitable job into a stressful, margin-eroding slog — and how you handle them often decides whether you finish with a payment and a reference, or a dispute.</p>
+
+<p>The instinct is to either cave to keep the peace or dig in and fight. Both usually make it worse. Here is a calmer approach.</p>
+
+<h2>Most "difficult" clients are actually anxious</h2>
+
+<p>Start from the right diagnosis. The majority of difficult behaviour on domestic jobs is not malice — it is anxiety. The client is spending a frightening amount of money on something they do not fully understand, in their own home, with someone who was a stranger a few weeks ago. Querying everything, hovering and second-guessing are what anxiety looks like. Once you see it that way, the remedy becomes obvious: reduce the anxiety, and most of the difficulty goes with it.</p>
+
+<h2>Transparency defuses more than reassurance</h2>
+
+<p>Telling an anxious client "don't worry, it's all in hand" rarely works — it asks them to trust a feeling. Showing them works far better. A client who can see the timeline, the decisions they have made, the agreed costs and the running total has far less to be anxious about, because uncertainty is the fuel. Visibility is a management tool, not just a courtesy.</p>
+
+<h2>Get everything in writing — kindly</h2>
+
+<p>The difficult client is precisely the one with whom verbal agreements will come back to bite you. Every decision, every change and every cost needs to be recorded and confirmed by them — not as an act of hostility, but as normal practice you apply to everyone. "I'll pop that change in the system and you can approve it on your phone" is not confrontational; it is professional, and it quietly builds the record that protects you if the relationship sours.</p>
+
+<h2>Separate genuine issues from moving goalposts</h2>
+
+<p>Some complaints are real defects you should fix promptly and without fuss. Others are changes of mind dressed up as problems — a <a href="/blog/legal-anatomy-of-a-construction-variation">variation</a> in disguise. Learning to tell them apart, and to price the changes of mind kindly but clearly at the moment they arise, is most of the battle. A client who is used to every change being logged and costed stops treating "while you're here, can you just…" as free.</p>
+
+<h2>Hold the line on payment</h2>
+
+<p>Invoice against visible progress, and a client who has watched the work unfold has far less room to stall. Chase politely but immediately — the longer an invoice ages, the harder it is to collect, and a difficult client will read hesitation as an opening.</p>
+
+<h2>When to walk away</h2>
+
+<p>Occasionally a client is not anxious but genuinely unreasonable, and no amount of communication will fix it. This is rare, but real. A clear, documented paper trail is also what lets you exit cleanly if you have to — protecting your reputation and your right to be paid for work done.</p>
+
+<p>The common thread: difficult clients are managed with visibility and documentation, not charm or confrontation. The timeline, decisions, variations and finance a client can see in Builders Ready are the very same records that protect you if things go wrong. Whatever you use, show them everything, and write everything down.</p>
+`,
+  },
+  {
+    slug: 'the-8-stages-of-a-build',
+    title: 'The 8 standard stages of a build — a simple timeline any builder can use',
+    description:
+      'A clear, staged timeline is the simplest way to keep a project on track and a client calm. Here are the 8 stages most residential builds follow, and how to use them to manage the job and the client.',
+    publishedAt: '2026-07-13',
+    readingTime: '6 min read',
+    category: 'Operations',
+    contentHtml: `
+<p>To a builder, the order of a job is obvious — it lives in your head and your hands. To a client, a build looks like chaos: skips, dust, trades coming and going, and long stretches where nothing visibly changes. Most of the anxiety a client feels comes from not being able to tell whether things are on track. A simple, staged timeline fixes that, and it makes the job easier to run at the same time.</p>
+
+<p>Here are the eight stages most residential projects follow, and how to use them.</p>
+
+<h2>Why stages matter beyond project management</h2>
+
+<p>Breaking a job into named stages does three jobs at once. It gives you natural milestones to tie stage payments to (far easier to justify than dates). It gives the client a map, so they can see where they are and what comes next. And it gives you an early-warning system: if a stage runs long, you know before it becomes a crisis.</p>
+
+<h2>The eight stages</h2>
+
+<h3>1. Mobilisation</h3>
+<p>Setting up: permits confirmed, skips and welfare on site, materials ordered, programme agreed. Boring, but the stage where good jobs are quietly won.</p>
+
+<h3>2. Strip-out and demolition</h3>
+<p>Removing what is coming out. Fast and visible — a good moment for the client to see obvious progress early and build confidence.</p>
+
+<h3>3. Structure</h3>
+<p>The bones: foundations, steels, walls, roof structure. This is where concealed work happens, so photograph everything before it is covered — it protects you and it is gold for a future surveyor.</p>
+
+<h3>4. First fix</h3>
+<p>Everything that goes in before plaster: electrical and plumbing rough-in, carcassing, insulation. Pressure-test and certificate as you go.</p>
+
+<h3>5. Plastering</h3>
+<p>Walls and ceilings skimmed, then a drying-out period. A stage clients often underestimate — worth flagging the wait so it does not read as a delay.</p>
+
+<h3>6. Second fix</h3>
+<p>The visible trades return: sockets and switches, sanitaryware, kitchen, doors, skirting. The job starts to look finished, and client excitement (and opinions) tend to spike here.</p>
+
+<h3>7. Decoration and finishes</h3>
+<p>Paint, tiling, flooring, the details. The stage where a good finish earns the referral and a rushed one loses it.</p>
+
+<h3>8. Handover and completion</h3>
+<p>Snagging, sign-off, certificates and the handover pack. The most important stage for your business, and the one most builders treat as an afterthought.</p>
+
+<h2>Using stages to manage the client</h2>
+
+<p>Once the job is staged, communication almost writes itself. "We have finished first fix and move to plastering next week" tells the client more, and reassures them more, than any amount of "it's all going well." Tie your invoices to stage completion, post an update as each stage closes, and the client always knows where they stand — which means they stop asking.</p>
+
+<p>These are the exact eight stages the Builders Ready timeline is built around, so your client sees each one tick from "not started" to "complete" on their phone. But the stages are not ours — they are the industry's. Adopt them in whatever form you like; a job the client can follow stage by stage is a job that runs calmer for everyone.</p>
+`,
+  },
+  {
+    slug: 'why-homeowners-choose-one-builder-over-another',
+    title: 'Why homeowners choose one builder over another: it is not just price',
+    description:
+      'Builders assume they win or lose on price. Homeowners rarely decide that way. Here is what actually drives the decision — and how to be the builder who gets picked.',
+    publishedAt: '2026-07-06',
+    readingTime: '6 min read',
+    category: 'Industry',
+    contentHtml: `
+<p>Most builders believe they win and lose jobs on price. It is a comforting theory, because it means losing is out of your hands. It is also mostly wrong. When two builders quote within a sensible range of each other, homeowners very rarely pick the cheaper one. They pick the one they trust more — and trust is something you can actually influence.</p>
+
+<h2>What the homeowner is really deciding</h2>
+
+<p>Put yourself in their position. They are about to hand a large sum of money to someone to do work they cannot judge, in the home they live in, over several months. They have all heard a horror story — the job that overran, the builder who went quiet, the bill that doubled. So underneath "who is cheapest" is a much bigger question: <em>who is least likely to do that to me?</em> The quote is just one clue they use to answer it.</p>
+
+<h2>The signals that actually move the decision</h2>
+
+<ul>
+  <li><strong>Responsiveness.</strong> The builder who replies promptly and clearly during the quoting stage is assumed to behave the same way during the job. Slow, vague replies now read as a warning.</li>
+  <li><strong>Organisation.</strong> A tidy quote, a clear breakdown, a sense that you have a system — all of it signals that the job itself will be run properly.</li>
+  <li><strong>Proof.</strong> Photos, references, a portfolio, a documented past job. Tangible evidence beats claims every time.</li>
+  <li><strong>Transparency.</strong> A builder who volunteers how changes and costs will be handled feels safe. One who is vague about money feels risky.</li>
+</ul>
+
+<h2>Price is often a proxy for trust</h2>
+
+<p>Here is the counter-intuitive part: when a homeowner does choose on price, it is frequently because nothing else gave them a reason not to. If two builders feel equally uncertain, price is the only tie-breaker left. Give them a stronger reason — visible organisation, proof, a clear picture of how you work — and price quietly stops being the deciding factor.</p>
+
+<h2>How to be the builder who gets picked</h2>
+
+<p>You do not need to be the cheapest or the biggest. You need to be the one who most obviously reduces the homeowner's fear. Reply quickly. Show them a past job in detail. Explain, before they ask, exactly how you will keep them updated, how decisions get made, and how any extra costs will be agreed. If you can show them that their project will run on a proper system — where they can see progress and sign off changes — you have answered the only question that really mattered.</p>
+
+<p>This is the whole idea behind giving each client their own branded app: it turns "trust me" into "look." A homeowner who can see how organised the job will be, before they have committed a penny, is a homeowner who has already half-decided. Whatever tools you use, compete on trust, not just on price — because trust is the thing they are actually buying.</p>
+`,
+  },
+  {
+    slug: 'how-much-to-charge-for-variations',
+    title: 'How much should a builder charge for variations and extras?',
+    description:
+      'Underpricing extras quietly kills margin; overpricing sparks disputes. Here is a sensible way to price variations on domestic work — and how to present them so they get agreed without a row.',
+    publishedAt: '2026-06-29',
+    readingTime: '6 min read',
+    category: 'Finance',
+    contentHtml: `
+<p>Variations are where a lot of builders quietly lose money. Not through one big mistake, but through a hundred small extras that were underpriced, done as favours, or never charged for at all. "While you're here, can you just…" is one of the most expensive sentences in construction — because the honest, obliging builder absorbs it, and the margin disappears a favour at a time.</p>
+
+<p>The fix is a simple, consistent way to price extras, and a professional way to present them.</p>
+
+<h2>Price the whole cost, not just the materials</h2>
+
+<p>The most common underpricing mistake is charging for the extra tap or the extra socket but not for the time, disruption and knock-on work it creates. A "quick" change on site rarely is. Price a variation as: the materials, the labour to fit it, any consequential work it triggers, and a fair margin — the same margin you would apply to the original job. An extra is not a charity; it is work, and it should carry your normal markup.</p>
+
+<h2>Do not do extras for free to "keep them sweet"</h2>
+
+<p>Builders often waive small extras hoping to bank goodwill. It rarely works the way you hope. Free extras teach the client that changes cost nothing, which invites more of them, and they set an expectation that becomes awkward to reverse when a bigger one comes along. Charging fairly and consistently is not mean — it is what a professional does, and clients respect it more than they resent it.</p>
+
+<h2>Always include the time impact</h2>
+
+<p>Cost is only half of a variation. A change that adds two days to the programme needs to say so at the point of agreement, not at the end. The omission of a timeline impact is one of the most common sources of dispute, because clients assume extras are cost-only and feel misled when a job overruns. State "+£X, +Y days" every time.</p>
+
+<h2>Present the price before the work, not after</h2>
+
+<p>This is the single biggest lever, and it is about psychology as much as numbers. The same £300 extra that causes a row when it appears on the final invoice is accepted without a murmur when the client agrees it in advance. Show the cost, get them to approve it, then do the work. A client who chose the upgrade knowing the price owns the decision; a client who discovers it later feels ambushed. The money did not change — the framing did. (The legal side of getting this right is covered in <a href="/blog/legal-anatomy-of-a-construction-variation">the anatomy of a variation</a>.)</p>
+
+<h2>Keep a running total the client can see</h2>
+
+<p>Individual variations rarely cause "final account shock" — the cumulative effect does. Fifteen small extras totalling several thousand pounds the client never tracked will feel like an ambush at the end, even when each was agreed. A visible running total — original quote plus variations to date — removes the shock entirely, because the number was never hidden.</p>
+
+<p>Builders Ready is built around exactly this: you propose a variation with a title, cost and time impact, the client signs it off on their phone before the work, and it flows into a live finance summary both of you can see. But the principle stands whatever you use — price the whole cost, include the time, get it agreed up front, and never let the total be a surprise.</p>
+`,
+  },
+  {
+    slug: 'deposits-and-stage-payments-domestic-building-work',
+    title: 'Deposits and stage payments on domestic building work: how to structure them',
+    description:
+      'Get your payment structure right and cash flow takes care of itself; get it wrong and you end up funding the job out of your own pocket. Here is how to structure deposits and stage payments on domestic jobs.',
+    publishedAt: '2026-06-22',
+    readingTime: '7 min read',
+    category: 'Finance',
+    contentHtml: `
+<p>On domestic building work, how you structure payments matters as much as how much you charge. Get it right and cash flow largely looks after itself. Get it wrong and you end up funding the client's project out of your own pocket — buying materials and paying wages weeks before the money to cover them arrives. That gap is where otherwise healthy firms get into trouble.</p>
+
+<p>Here is a sensible way to structure deposits and stage payments on domestic jobs.</p>
+
+<h2>The deposit: proportionate, not punitive</h2>
+
+<p>A deposit does two things: it confirms the client is committed, and it funds the initial materials so you are not out of pocket from day one. Keep it proportionate. A modest deposit against confirmed material orders is reasonable and normal. An excessive up-front demand frightens good clients and can fall foul of consumer protection rules, which look unfavourably on large payments taken far ahead of work. As a rule of thumb, the deposit should cover what you genuinely need to commit before starting, not sit as a large cushion in your account.</p>
+
+<h2>Stage payments: tie them to milestones, not dates</h2>
+
+<p>The biggest single improvement most builders can make is to bill against verifiable milestones rather than the calendar. "On completion of first fix" is something both parties can look at and agree has happened. "Week four" is not, because weeks slip, and a date-based schedule invites an argument every time the programme moves. Milestones remove that friction because the trigger is visible.</p>
+
+<h2>Keep the stages small</h2>
+
+<p>Frequent, smaller invoices beat a few large ones for two reasons. They smooth your cash flow, so you are never far ahead of your costs. And they shrink the size of any single dispute — a client querying a £3,000 stage payment is a much smaller problem than one querying a £30,000 final bill. Small and often keeps everyone calmer.</p>
+
+<h2>Put the schedule in writing before you start</h2>
+
+<p>On domestic jobs this matters more than most builders realise. The statutory payment protections in the Construction Act specifically exclude work for a "residential occupier" — a homeowner having work done on their own home. So on a typical domestic job, your right to be paid, and when, comes almost entirely from the contract you agreed, not from statute. A clear, written payment schedule the client has seen and accepted is therefore your main protection, not a formality. (We go deeper on the legal side in <a href="/blog/getting-paid-on-time-uk-builders">getting paid on time</a>.)</p>
+
+<h2>Retention: usually not worth it on domestic work</h2>
+
+<p>On larger and commercial jobs, clients sometimes hold a small percentage of each payment as "retention," released after a defects period. It is far less common on domestic work, and usually not worth introducing — it parks your money and a meaningful share of retained sums are never released without chasing. If a domestic client asks for it, make sure the release terms and date are written down and diarised.</p>
+
+<h2>Make the money visible as you go</h2>
+
+<p>Clients pay faster when they can see what they are paying for. An invoice that lands cold, with a number the client cannot reconcile, gets queried. An invoice that arrives against a backdrop of visible progress and agreed costs gets paid, because it is the expected conclusion of a story the client already believes.</p>
+
+<p>This is why Builders Ready keeps a live finance summary — quoted, invoiced, paid, outstanding — visible to both you and the client, with invoices tied to the project they have been watching. But the structure comes first: proportionate deposit, small milestone-based stages, and a written schedule agreed before a brick is laid. Get that right and you stop being your client's bank.</p>
+`,
+  },
+  {
+    slug: 'keeping-clients-updated-without-whatsapp',
+    title: 'How to keep clients updated without living on WhatsApp',
+    description:
+      'Clients want to feel informed; builders do not want to spend their evenings answering messages. Here is how to keep clients well updated without the group chat taking over your life.',
+    publishedAt: '2026-06-15',
+    readingTime: '5 min read',
+    category: 'Operations',
+    contentHtml: `
+<p>Every builder feels the same tension. Clients who are kept in the loop are happier, pay faster and recommend you more. But keeping them in the loop usually means WhatsApp, and WhatsApp means your evenings, your weekends and your headspace being colonised by "any update?" and photo requests. Good communication should not cost you your personal life. Here is how to get the first without the second.</p>
+
+<h2>Update proactively so they never have to chase</h2>
+
+<p>Almost all the interrupting messages a client sends come from one root cause: they do not know what is happening, so they ask. Flip it. A short, proactive update at the end of each stage — a line of text and a photo — pre-empts the questions before they are asked. Counter-intuitively, telling clients <em>more</em>, on your schedule, means they contact you <em>less</em>, on theirs.</p>
+
+<h2>Pick one channel and hold the line</h2>
+
+<p>The chaos multiplies when updates are scattered across WhatsApp, email, text and the odd phone call. Something is always agreed on the channel you are not looking at. Choose a single place where project communication lives, and gently steer everything there. "I post all the updates in one place so nothing gets lost" is a reasonable, professional thing to say — and it stops you being on call across five apps.</p>
+
+<h2>Let photos do the talking</h2>
+
+<p>A photo of the finished plastering says more, and reassures more, than three paragraphs of explanation — and it takes ten seconds to send from the van. Progress photos are the highest-value, lowest-effort update you can give, and they double as a record of concealed work you will be glad of later.</p>
+
+<h2>Set the rhythm early</h2>
+
+<p>Tell the client at the start how updates will work: "I'll post an update at the end of each stage, and you can see the timeline any time." Once the rhythm is set, the client relaxes into it. It is the absence of a rhythm — silence, then a flurry — that makes clients anxious and pushy.</p>
+
+<h2>Keep the group chat off your phone at 9pm</h2>
+
+<p>The real cost of WhatsApp is not the messages; it is that they arrive on the same phone, in the same app, as your family and your friends, at all hours. Moving project communication into a dedicated space is partly about organisation and partly about giving yourself a boundary — a place work lives that you can choose to close.</p>
+
+<p>This is a large part of why builders move to a client portal: the client gets a live timeline and updates they can check themselves, so they stop chasing, and you get your evenings back. We wrote about that shift in more detail in <a href="/blog/why-builders-are-abandoning-whatsapp">why builders are leaving WhatsApp</a>. Whatever you use, the principles are the same — update proactively, keep it to one channel, and let the client see for themselves.</p>
+`,
+  },
+  {
     slug: 'the-decision-log-cheapest-insurance-in-construction',
     title: 'The decision log: the cheapest insurance a builder can buy',
     description:
