@@ -149,7 +149,7 @@ export async function revokeInvitation(invitationId: string): Promise<Invitation
 const acceptSchema = z.object({
   token: z.string().min(8).max(128),
   full_name: z.string().min(2).max(120),
-  password: z.string().min(12).max(72),
+  password: z.string().min(8).max(72),
 });
 
 export interface AcceptResult {
@@ -165,7 +165,7 @@ export async function acceptInvitation(
   if (!parsed.success) {
     return {
       ok: false,
-      error: 'Check your name and password (12+ characters).',
+      error: 'Check your name and password (8+ characters).',
     };
   }
   const { token, full_name, password } = parsed.data;

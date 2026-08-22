@@ -32,7 +32,7 @@ export const ukPostcode = z
 export const tenantSignup = z.object({
   business_name: z.string().min(2).max(200),
   email,
-  password: z.string().min(12).max(72),
+  password: z.string().min(8).max(72),
   tier: z.enum(['starter', 'pro', 'unlimited']),
 });
 export type TenantSignupInput = z.infer<typeof tenantSignup>;
@@ -69,7 +69,7 @@ export type InvitationCreateInput = z.infer<typeof invitationCreate>;
 export const invitationAccept = z.object({
   token: z.string().min(32).max(128),
   full_name: z.string().min(2).max(120),
-  password: z.string().min(12).max(72),
+  password: z.string().min(8).max(72),
 });
 export type InvitationAcceptInput = z.infer<typeof invitationAccept>;
 

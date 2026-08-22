@@ -79,7 +79,7 @@ export default function SignupPage() {
               label="Password"
               name="password"
               type="password"
-              placeholder="At least 12 characters"
+              placeholder="At least 8 characters"
               required
             />
 
