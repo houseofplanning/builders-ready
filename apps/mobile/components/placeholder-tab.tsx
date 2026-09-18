@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { spacing, typography, radius } from '@br/shared';
+import { spacing, typography } from '@br/shared';
 import { useTenant } from '../lib/tenant-provider';
 
 /**

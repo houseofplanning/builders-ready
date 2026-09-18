@@ -41,7 +41,7 @@ export async function compressImage(uri: string): Promise<CompressedAsset> {
   );
 
   // Get the compressed file size.
-  const info = await FileSystem.getInfoAsync(result.uri, { size: true });
+  const info = await FileSystem.getInfoAsync(result.uri);
   const byteSize = info.exists && 'size' in info ? (info.size as number) : 0;
 
   return {

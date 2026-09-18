@@ -23,7 +23,7 @@ const MAX_BYTES = 40 * 1024 * 1024; // 40 MiB — matches storage bucket limit
 
 export async function uploadReportPdf(p: UploadPdfParams): Promise<string> {
   // Validate the file size up front so we don't waste a base64 read.
-  const info = await FileSystem.getInfoAsync(p.uri, { size: true });
+  const info = await FileSystem.getInfoAsync(p.uri);
   if (info.exists && 'size' in info) {
     const size = info.size as number;
     if (size > MAX_BYTES) {

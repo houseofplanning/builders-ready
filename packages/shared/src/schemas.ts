@@ -126,3 +126,65 @@ export const variationCreate = z.object({
   delta_days: z.number().int().default(0),
 });
 export type VariationCreateInput = z.infer<typeof variationCreate>;
+
+// --- estimates / quotes ---------------------------------------------------
+
+// NB: the `EstimateLineKind` and `VatMode` string-union types live in
+// types.ts (the canonical row types). These zod enums validate the same
+// values for IO; we deliberately don't re-export types of the same name here,
+// to avoid an ambiguous double-export through the package barrel.
+export const estimateLineKind = z.enum([
+  'material',
+  'labour_day_rate',
+  'labour_hourly',
+  'fixed',
+  'other',
+]);
+
+export const vatMode = z.enum(['none', 'standard', 'reverse_charge']);
+
+/** A single cost build-up line. A saved rate only prefills these values;
+ *  every field stays editable, and a line can be free-typed with no rate. */
+export const estimateLineInput = z.object({
+  kind: estimateLineKind.default('material'),
+  saved_rate_id: uuid.nullable().optional(),
+  description: z.string().min(1).max(300),
+  quantity: z.number().nonnegative().default(1),
+  unit: z.string().min(1).max(20).default('each'),
+  /** Builder's cost per unit, integer pence. */
+  unit_cost_pence: z.number().int().nonnegative().default(0),
+  /** Markup on cost, percent. 20 => client price is cost x 1.20. */
+  markup_percent: z.number().nonnegative().max(1000).default(0),
+});
+export type EstimateLineInput = z.infer<typeof estimateLineInput>;
+
+export const estimateCreate = z.object({
+  title: z.string().min(2).max(200),
+  client_name: z.string().min(1).max(200),
+  client_email: email.nullable().optional(),
+  client_phone: z.string().max(40).nullable().optional(),
+  site_address_line1: z.string().max(200).nullable().optional(),
+  site_address_line2: z.string().max(200).nullable().optional(),
+  city: z.string().max(80).nullable().optional(),
+  // Lenient on purpose: the site address is optional on a quote, so a partial
+  // or blank postcode must never block saving. Strict validation happens later,
+  // at project conversion, where the address becomes authoritative.
+  postcode: z.string().max(12).nullable().optional(),
+  vat_mode: vatMode.default('none'),
+  /** Basis points; 2000 = 20.00%. Only applied when vat_mode is 'standard'. */
+  vat_rate_bp: z.number().int().min(0).max(10000).default(2000),
+  valid_until: isoDate.nullable().optional(),
+  notes: z.string().max(4000).nullable().optional(),
+  terms: z.string().max(4000).nullable().optional(),
+  lines: z.array(estimateLineInput).min(1).max(200),
+});
+export type EstimateCreateInput = z.infer<typeof estimateCreate>;
+
+export const savedRateInput = z.object({
+  kind: estimateLineKind.default('material'),
+  description: z.string().min(1).max(300),
+  unit: z.string().min(1).max(20).default('each'),
+  default_unit_cost_pence: z.number().int().nonnegative().default(0),
+  default_markup_percent: z.number().nonnegative().max(1000).default(0),
+});
+export type SavedRateInput = z.infer<typeof savedRateInput>;

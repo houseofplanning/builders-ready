@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { Message, Profile, UUID } from '@br/shared';
+import type { Message, UUID } from '@br/shared';
 
 /**
  * One message thread per project. RLS gates by project access; both

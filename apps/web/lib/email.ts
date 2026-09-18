@@ -518,3 +518,170 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+// -------------------------------------------------------------------------
+// Estimate / quote email — sent to the prospect when a builder sends a quote.
+// Carries the branded PDF as an attachment and a link to the shareable page.
+// -------------------------------------------------------------------------
+export interface EstimateEmailParams {
+  to: string;
+  businessName: string;
+  clientName: string;
+  quoteTitle: string;
+  quoteNumber: string;
+  totalLabel: string; // pre-formatted, e.g. "£12,340.00"
+  viewUrl: string;
+  validUntilLabel: string | null;
+  /** Rendered PDF bytes to attach. */
+  pdf: Buffer;
+}
+
+export async function sendEstimateEmail(p: EstimateEmailParams): Promise<void> {
+  const firstName = (p.clientName ?? '').trim().split(/\s+/)[0] || 'there';
+  const subject = `Your quote from ${p.businessName} — ${p.quoteTitle}`;
+
+  const text = [
+    `Hi ${firstName},`,
+    ``,
+    `Thanks for the opportunity to quote for ${p.quoteTitle}.`,
+    ``,
+    `Quote ${p.quoteNumber}: ${p.totalLabel}${p.validUntilLabel ? ` (valid until ${p.validUntilLabel})` : ''}.`,
+    ``,
+    `You can view the full quote here: ${p.viewUrl}`,
+    `The PDF is also attached to this email.`,
+    ``,
+    `If you have any questions, just reply to this email.`,
+    ``,
+    `Best regards,`,
+    p.businessName,
+  ].join('\n');
+
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:24px 28px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;font-size:15px;color:${INK};">${escapeHtml(p.businessName)}</div>
+          </td></tr>
+          <tr><td style="padding:26px 28px;">
+            <div style="font-size:11px;font-weight:600;color:${PRIMARY};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Your quote</div>
+            <h1 style="margin:0 0 14px;font-size:22px;line-height:1.25;font-weight:800;color:${INK};">${escapeHtml(p.quoteTitle)}</h1>
+            <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:${INK};">Hi ${escapeHtml(firstName)}, thanks for the opportunity to quote. Here's the detail:</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px;border:1px solid ${HAIRLINE};border-radius:10px;">
+              <tr><td style="padding:14px 16px;">
+                <div style="font-size:11px;color:${MUTED};text-transform:uppercase;letter-spacing:1px;">${escapeHtml(p.quoteNumber)}</div>
+                <div style="font-size:26px;font-weight:800;color:${INK};margin-top:4px;">${escapeHtml(p.totalLabel)}</div>
+                ${p.validUntilLabel ? `<div style="font-size:12px;color:${MUTED};margin-top:4px;">Valid until ${escapeHtml(p.validUntilLabel)}</div>` : ''}
+              </td></tr>
+            </table>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-radius:10px;background:${PRIMARY};">
+              <a href="${p.viewUrl}" style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">View your quote &rarr;</a>
+            </td></tr></table>
+            <p style="margin:20px 0 0;font-size:13px;line-height:1.6;color:${MUTED};">The full quote is attached as a PDF. Any questions, just reply to this email.</p>
+          </td></tr>
+          <tr><td style="padding:16px 28px;border-top:1px solid ${HAIRLINE};font-size:11px;color:${MUTED};">
+            Sent by ${escapeHtml(p.businessName)}
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const { error } = await getResend().emails.send({
+    from: fromAddress(),
+    to: p.to,
+    subject,
+    html,
+    text,
+    attachments: [
+      {
+        filename: `${p.quoteNumber}.pdf`,
+        content: p.pdf,
+      },
+    ],
+  });
+  if (error) {
+    throw new Error(`Resend rejected the quote email: ${error.message ?? 'unknown'}`);
+  }
+}
+
+// -------------------------------------------------------------------------
+// Quote accepted — notifies the builder that a prospect signed their quote.
+// -------------------------------------------------------------------------
+export interface EstimateAcceptedEmailParams {
+  to: string;
+  businessName: string;
+  quoteNumber: string;
+  quoteTitle: string;
+  clientName: string;
+  totalLabel: string;
+  signedBy: string;
+}
+
+export async function sendEstimateAcceptedEmail(
+  p: EstimateAcceptedEmailParams,
+): Promise<void> {
+  const subject = `Quote accepted — ${p.quoteTitle} (${p.totalLabel})`;
+  const text = [
+    `Good news — ${p.clientName} has accepted your quote.`,
+    ``,
+    `${p.quoteNumber}: ${p.quoteTitle}`,
+    `Total: ${p.totalLabel}`,
+    `Signed by: ${p.signedBy}`,
+    ``,
+    `Next step: convert it into a project in Builders Ready to get started.`,
+  ].join('\n');
+
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:26px 28px;">
+            <div style="font-size:11px;font-weight:600;color:#0F6E56;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Quote accepted</div>
+            <h1 style="margin:0 0 14px;font-size:22px;line-height:1.25;font-weight:800;color:${INK};">${escapeHtml(p.clientName)} accepted your quote</h1>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px;border:1px solid ${HAIRLINE};border-radius:10px;">
+              <tr><td style="padding:14px 16px;">
+                <div style="font-size:11px;color:${MUTED};text-transform:uppercase;letter-spacing:1px;">${escapeHtml(p.quoteNumber)} · ${escapeHtml(p.quoteTitle)}</div>
+                <div style="font-size:26px;font-weight:800;color:${INK};margin-top:4px;">${escapeHtml(p.totalLabel)}</div>
+                <div style="font-size:12px;color:${MUTED};margin-top:4px;">Signed by ${escapeHtml(p.signedBy)}</div>
+              </td></tr>
+            </table>
+            <p style="margin:0;font-size:14px;line-height:1.6;color:${INK};">Next step: convert it into a project in Builders Ready to get the job moving.</p>
+          </td></tr>
+          <tr><td style="padding:16px 28px;border-top:1px solid ${HAIRLINE};font-size:11px;color:${MUTED};">
+            Builders Ready · <a href="https://buildersready.uk" style="color:${PRIMARY};">buildersready.uk</a>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const { error } = await getResend().emails.send({
+    from: fromAddress(),
+    to: p.to,
+    subject,
+    html,
+    text,
+  });
+  if (error) {
+    console.error('[estimate-accepted-email] resend rejected', error);
+  }
+}

@@ -12,7 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   spacing,
   typography,
-  radius,
   palette as defaultPalette,
 } from '@br/shared';
 import { useCurrentProject } from '../lib/current-project';

@@ -276,6 +276,95 @@ export interface Variation {
   created_at: ISODateTime;
 }
 
+// --- estimates / quotes ---------------------------------------------------
+
+export type EstimateStatus =
+  | 'draft'
+  | 'sent'
+  | 'accepted'
+  | 'declined'
+  | 'expired';
+
+export type EstimateLineKind =
+  | 'material'
+  | 'labour_day_rate'
+  | 'labour_hourly'
+  | 'fixed'
+  | 'other';
+
+export type VatMode = 'none' | 'standard' | 'reverse_charge';
+
+export interface Estimate {
+  id: UUID;
+  tenant_id: UUID;
+  created_by: UUID;
+  number: string;
+  title: string;
+  /** Prospect details, captured inline — they are not app users yet. */
+  client_name: string;
+  client_email: string | null;
+  client_phone: string | null;
+  site_address_line1: string | null;
+  site_address_line2: string | null;
+  city: string | null;
+  postcode: string | null;
+  /** NULL until the estimate is won and converted into a project. */
+  project_id: UUID | null;
+  status: EstimateStatus;
+  vat_mode: VatMode;
+  /** Basis points; 2000 = 20.00%. Applied only when vat_mode === 'standard'. */
+  vat_rate_bp: number;
+  cost_subtotal_pence: number;
+  subtotal_pence: number;
+  vat_pence: number;
+  total_pence: number;
+  valid_until: ISODate | null;
+  notes: string | null;
+  terms: string | null;
+  sent_at: ISODateTime | null;
+  accepted_at: ISODateTime | null;
+  accepted_by: UUID | null;
+  client_signature: string | null;
+  accept_token: string | null;
+  pdf_storage_path: string | null;
+  created_at: ISODateTime;
+  updated_at: ISODateTime;
+}
+
+export interface EstimateLineItem {
+  id: UUID;
+  estimate_id: UUID;
+  tenant_id: UUID;
+  saved_rate_id: UUID | null;
+  position: number;
+  kind: EstimateLineKind;
+  description: string;
+  quantity: number;
+  unit: string;
+  /** Builder's cost per unit, integer pence. */
+  unit_cost_pence: number;
+  markup_percent: number;
+  /** DB-generated: round(quantity * unit_cost_pence). */
+  line_cost_pence: number;
+  /** DB-generated: round(quantity * unit_cost_pence * (1 + markup_percent/100)). */
+  line_price_pence: number;
+  created_at: ISODateTime;
+}
+
+export interface SavedRate {
+  id: UUID;
+  tenant_id: UUID;
+  kind: EstimateLineKind;
+  description: string;
+  unit: string;
+  default_unit_cost_pence: number;
+  default_markup_percent: number;
+  position: number;
+  active: boolean;
+  created_at: ISODateTime;
+  updated_at: ISODateTime;
+}
+
 // --- composite types used in UI -------------------------------------------
 
 export interface ProjectFinance {

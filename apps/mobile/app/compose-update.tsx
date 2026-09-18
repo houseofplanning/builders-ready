@@ -22,7 +22,6 @@ import {
   spacing,
   typography,
   radius,
-  type ProjectStage,
   type StageStatus,
 } from '@br/shared';
 import { useTenant } from '../lib/tenant-provider';

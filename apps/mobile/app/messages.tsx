@@ -14,7 +14,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { spacing, typography, radius, relativeTime } from '@br/shared';
+import { spacing, typography, relativeTime } from '@br/shared';
 import { useTenant } from '../lib/tenant-provider';
 import { useCurrentProject } from '../lib/current-project';
 import {

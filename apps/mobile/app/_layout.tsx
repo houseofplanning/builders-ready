@@ -147,6 +147,22 @@ function AuthGate() {
         options={{ presentation: 'modal', headerShown: false }}
       />
       <Stack.Screen
+        name="estimates"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="estimate/[id]"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="create-estimate"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
+        name="estimate-rates"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
         name="reports"
         options={{ headerShown: false }}
       />

@@ -7,13 +7,80 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing, typography, radius } from '@br/shared';
 import { useTenant } from '../lib/tenant-provider';
 import { useCurrentProject } from '../lib/current-project';
 import { ProjectStatusPill } from './stage-pill';
 import { ProgressBar } from './progress-bar';
+
+/**
+ * Quotes entry point. Estimates live BEFORE any project exists, so builders
+ * need to reach them from the pre-project grid — including when they have no
+ * projects at all (a brand-new builder quoting their first prospect). Only
+ * owners and PMs quote; clients never see this.
+ */
+function QuotesEntry() {
+  const { palette } = useTenant();
+  const router = useRouter();
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => router.push('/estimates')}
+      style={[
+        gridStyles.quotesCard,
+        { backgroundColor: palette.primarySoft, borderColor: palette.primary },
+      ]}
+    >
+      <View
+        style={[
+          gridStyles.quotesIcon,
+          { backgroundColor: palette.card, borderColor: palette.primary },
+        ]}
+      >
+        <Ionicons name="calculator-outline" size={22} color={palette.primary} />
+      </View>
+      <View style={{ flex: 1, marginLeft: spacing.md }}>
+        <Text style={[gridStyles.quotesTitle, { color: palette.ink }]}>
+          Quotes &amp; estimates
+        </Text>
+        <Text style={[gridStyles.quotesSub, { color: palette.inkMuted }]}>
+          Build a quote on site — win it and it becomes a project
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={palette.primary} />
+    </TouchableOpacity>
+  );
+}
+
+const gridStyles = StyleSheet.create({
+  quotesCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  quotesIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  quotesTitle: {
+    fontSize: typography.size.body,
+    fontWeight: typography.weightExtraBold as '800',
+  },
+  quotesSub: {
+    fontSize: typography.size.xs,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+});
 
 /**
  * Project picker grid. Shown as the Home tab when no project is selected
@@ -38,21 +105,30 @@ export function ProjectGrid() {
 
   if (projects.length === 0 && !loading) {
     return (
-      <View style={[styles.empty, { backgroundColor: palette.canvas }]}>
-        <Ionicons
-          name="folder-open-outline"
-          size={56}
-          color={palette.inkMuted}
-        />
-        <Text style={[styles.emptyTitle, { color: palette.ink }]}>
-          No projects yet
-        </Text>
-        <Text style={[styles.emptyBody, { color: palette.inkMuted }]}>
-          {role === 'client'
-            ? "Your builder hasn't set up a project for you yet."
-            : 'Create your first project from the web admin at app.buildersready.uk.'}
-        </Text>
-      </View>
+      <ScrollView
+        style={{ backgroundColor: palette.canvas }}
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={refresh} />
+        }
+      >
+        {role !== 'client' && <QuotesEntry />}
+        <View style={styles.emptyInline}>
+          <Ionicons
+            name="folder-open-outline"
+            size={56}
+            color={palette.inkMuted}
+          />
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>
+            No projects yet
+          </Text>
+          <Text style={[styles.emptyBody, { color: palette.inkMuted }]}>
+            {role === 'client'
+              ? "Your builder hasn't set up a project for you yet."
+              : 'Win a quote above to start your first project, or create one from the web admin at app.buildersready.uk.'}
+          </Text>
+        </View>
+      </ScrollView>
     );
   }
 
@@ -70,6 +146,8 @@ export function ProjectGrid() {
       <Text style={[styles.sub, { color: palette.inkMuted }]}>
         Tap a project to open it. Tabs will appear once you&apos;re inside.
       </Text>
+
+      {role !== 'client' && <QuotesEntry />}
 
       {projects.map((p) => (
         <TouchableOpacity
@@ -136,7 +214,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   card: {
-    borderRadius: radius.card,
+    borderRadius: radius.lg,
     borderWidth: 1,
     padding: spacing.lg,
     marginBottom: spacing.md,
@@ -179,6 +257,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.xl,
+  },
+  emptyInline: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xl * 2,
+    paddingHorizontal: spacing.lg,
   },
   emptyTitle: {
     fontSize: typography.size.xl,
