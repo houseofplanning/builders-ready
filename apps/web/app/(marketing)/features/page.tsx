@@ -10,7 +10,7 @@ import {
 export const metadata: Metadata = {
   title: 'Features — Builders Ready',
   description:
-    'Every feature of Builders Ready: project timeline, decisions inbox, variations with client signature, live finance summary, project handover PDF, push notifications, web admin. Built for UK builders of every size.',
+    'Every feature of Builders Ready: on-site quotes & estimates, project timeline, decisions inbox, variations with client signature, live finance summary, project handover PDF, push notifications, web admin. Built for UK builders of every size.',
   alternates: { canonical: 'https://buildersready.uk/features' },
   openGraph: {
     title: 'Features — Builders Ready',
@@ -41,6 +41,21 @@ export default function FeaturesPage() {
           </p>
         </div>
       </section>
+
+      {/* QUOTES & ESTIMATES */}
+      <FeatureRow
+        eyebrow="New · On-site quotes & estimates"
+        title="Quote the job before you leave the driveway."
+        body="Stood in the client&rsquo;s kitchen, build the whole quote on your phone — materials, labour, day rates, your margin. Enter your cost and a markup, and the client price is worked out for you. Send it as a branded PDF or a link they accept and sign on the spot. Win it, and it becomes a project in one tap."
+        bullets={[
+          'Line-by-line cost build-up: materials, day rates, hourly, fixed price',
+          'Save your regular rates and pull them in with a tap — every figure still editable',
+          'VAT handled: not registered, standard 20%, or CIS domestic reverse charge',
+          'Client accepts and signs on a shareable link — no app or account needed',
+          'A won quote converts straight into a project, carrying the total across',
+        ]}
+        mockup={<QuoteMockup />}
+      />
 
       {/* DECISIONS */}
       <FeatureRow
@@ -277,6 +292,48 @@ function SmallFeature({ title, body }: { title: string; body: string }) {
         className="text-xs text-ink-muted"
         dangerouslySetInnerHTML={{ __html: body }}
       />
+    </div>
+  );
+}
+
+function QuoteMockup() {
+  return (
+    <div className="mx-auto w-full max-w-sm rounded-lg bg-white p-8 shadow-2xl ring-1 ring-hairline">
+      <div className="flex items-center justify-between border-b border-hairline pb-3">
+        <p className="text-[9px] font-bold uppercase tracking-widest text-ink-muted">
+          EST-2026-014
+        </p>
+        <span className="rounded-full bg-[#E1F5EE] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0F6E56]">
+          Accepted
+        </span>
+      </div>
+      <h3 className="mt-4 text-lg font-extrabold leading-tight">
+        Loft conversion &amp; rear extension
+      </h3>
+      <p className="text-[10px] text-ink-muted">
+        3-bed end of terrace · start in 3 weeks
+      </p>
+      <div className="mt-4 space-y-2 text-[11px]">
+        <QuoteLine label="Labour · 24 days" value="£7,200" />
+        <QuoteLine label="Materials" value="£9,450" />
+        <QuoteLine label="Steels &amp; plant" value="£2,180" />
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t-2 border-primary pt-3">
+        <span className="text-sm font-extrabold">Total</span>
+        <span className="text-xl font-extrabold">£18,830</span>
+      </div>
+      <div className="mt-4 text-[8px] text-ink-muted">
+        Built on site · accepted and signed on the client&rsquo;s phone
+      </div>
+    </div>
+  );
+}
+
+function QuoteLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between border-t border-hairline pt-2">
+      <span className="text-ink-muted">{label}</span>
+      <span className="font-bold text-ink">{value}</span>
     </div>
   );
 }

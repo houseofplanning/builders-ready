@@ -16,6 +16,65 @@ export interface BlogPost {
 
 export const POSTS: BlogPost[] = [
   {
+    slug: 'how-to-quote-a-building-job-on-site',
+    title: 'How to quote a building job on site — and win more of them',
+    description:
+      'The builder who quotes first, and looks the most organised doing it, usually gets the job. Here is how to build an accurate quote on site in minutes, send it like a professional, and turn a yes straight into a project.',
+    publishedAt: '2026-09-18',
+    readingTime: '6 min read',
+    category: 'Running Your Business',
+    contentHtml: `
+<p>Ask a homeowner how they chose their builder and they will rarely say "the cheapest". They say the one who turned up, seemed organised, and got back to them properly. Quoting is the first real test of all three — and it is where a surprising number of jobs are quietly lost before a price is even agreed.</p>
+
+<p>Here is the pattern that costs builders work: you visit, you measure up, you say "I'll get a quote over to you." Then the day fills up, the quote gets written from the van three evenings later, and by the time it lands the homeowner has already had a tidy PDF from someone else and half made their mind up. You were never beaten on price. You were beaten on pace and polish.</p>
+
+<h2>Why the builder who quotes first tends to win</h2>
+
+<p>When two or three builders quote the same job at a broadly similar price — which is usually what happens — the deciding factor is trust, not pennies. A homeowner spending five figures in their own home is nervous, and they are reading every signal for "will this person overrun, go quiet, or spring surprise costs on me?" The builder who can build the quote in front of them, explain it, and send a professional-looking document the same day answers that question before anyone else gets a look in.</p>
+
+<p>Speed and professionalism are not the same as rushing. The goal is to be accurate <em>and</em> fast — and that is entirely possible once quoting lives on your phone instead of on a pad in the van.</p>
+
+<h2>Build the number properly: cost, then margin</h2>
+
+<p>A good quote is built up, not plucked out of the air. The reliable way is to price every part of the job at what it actually costs you, then apply your margin on top — rather than eyeballing a round number and hoping it covers you.</p>
+
+<ul>
+  <li><strong>Labour.</strong> Price it in the units you actually work in — day rates for your team, hourly where it makes sense. Be honest about how many days the job really takes, not the optimistic version.</li>
+  <li><strong>Materials.</strong> Use your real merchant prices. This is where "guessed" quotes quietly bleed margin.</li>
+  <li><strong>Plant, skips, steels, specialists.</strong> The bits that are easy to forget standing in a kitchen are the bits that turn a profit into a break-even.</li>
+  <li><strong>Your margin.</strong> Add it as a clear percentage on top of cost, so you always know what you are actually making — not just what you are charging.</li>
+</ul>
+
+<p>Pricing this way has a second benefit: because you have captured your cost as well as the sell price, you know your margin on the job before you have lifted a tool. That is the difference between a business and a busy fool.</p>
+
+<h2>Quote on site, not from the van</h2>
+
+<p>The whole point is to do this while you are still standing in front of the client. With a phone and an app built for it, you add each line — a day rate here, a run of materials there — and the client price is worked out for you as you go. You can talk the homeowner through it as the total builds, which is far more reassuring than a mystery figure emailed over days later.</p>
+
+<p>Save your regular rates once — your labourer's day rate, the materials you use on every job — and they become one-tap lines on the next quote. Over a few jobs your quoting goes from an evening's chore to a five-minute conversation on the doorstep.</p>
+
+<h2>Send it like a professional</h2>
+
+<p>A quote scribbled on a duplicate pad and a quote that arrives as a clean, branded PDF with your logo on it are selling two very different builders — even at the same price. Sending a proper document, there and then, does more for your credibility than almost anything else you can do for free.</p>
+
+<p>Better still is a quote the client can open on their phone and accept with a tap, signing their name to the scope and the price. That gives you a clear yes on the record — no "I thought that included the tiling" six weeks later — and it gets the job moving while their enthusiasm is still high.</p>
+
+<h2>Turn a yes into a job — without re-typing anything</h2>
+
+<p>The moment a quote is accepted, the admin usually starts: setting up the job, re-entering the address, the client, the figure. It shouldn't. A won quote already contains all of that, so it should become a live project in one step — carrying the agreed total across as your baseline, ready for updates, decisions and invoices. (If you are new to running jobs this way, our <a href="/blog/getting-started-with-a-client-portal">getting-started guide</a> walks through what changes on your next job.)</p>
+
+<p>From there, the same discipline that made your quote trustworthy carries through the whole job: every change <a href="/blog/legal-anatomy-of-a-construction-variation">signed off as a variation</a> before the work happens, so the final invoice never comes as a shock.</p>
+
+<h2>The quiet advantage: you look established</h2>
+
+<p>Most builders a homeowner has ever dealt with quoted on a scrap of paper and ran the job out of a group chat. Turn up able to build the quote in front of them, send it as a branded document before you have left the drive, and let them accept it on their phone, and you have set yourself apart before the first brick. In a market where homeowners are mostly frightened of picking the wrong builder, looking like the safe, organised choice is often the whole game.</p>
+
+<h2>Getting started</h2>
+
+<p>On-site quoting is part of Builders Ready — the same app your clients use to follow the job. You can try it free for 14 days on a real quote before committing to anything: build a quote on site, send it, and see the difference in how quickly clients say yes. Standing in a kitchen with your phone, you can now do the one thing that wins the job — quote it there and then.</p>
+`,
+  },
+  {
     slug: 'getting-started-with-a-client-portal',
     title: 'Getting started with a client portal: what changes on your next job',
     description:

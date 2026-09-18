@@ -11,7 +11,7 @@ import { FaqJsonLd } from '@/components/marketing/faq-jsonld';
 export const metadata: Metadata = {
   title: 'Builders Ready — the client portal for UK builders',
   description:
-    'From £20k bathrooms to £400k extensions — Builders Ready gives every UK builder a branded mobile and web client portal. Timeline, decisions, variations with signature, finance summary and project handover PDF — in one place.',
+    'From £20k bathrooms to £400k extensions — Builders Ready gives every UK builder a branded mobile and web client portal. Quote jobs on site, then run them: timeline, decisions, variations with signature, finance summary and project handover PDF — in one place.',
   alternates: { canonical: 'https://buildersready.uk' },
   openGraph: {
     title: 'Builders Ready — the client portal for UK builders',
@@ -47,8 +47,9 @@ export default function LandingPage() {
             </h1>
             <p className="max-w-xl text-base text-ink-muted md:text-lg">
               Replace WhatsApp chaos, email chains and scattered spreadsheets
-              with one branded app. Live progress, signed decisions, audit-trailed
-              variations, real-time finance — for you and your client.
+              with one branded app. Quote jobs on site, then run them — live
+              progress, signed decisions, audit-trailed variations and real-time
+              finance, for you and your client.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
@@ -135,15 +136,21 @@ export default function LandingPage() {
               One app. Your branding. Everything signed off.
             </h2>
             <p className="mx-auto max-w-2xl text-base text-ink-muted">
-              Builders Ready replaces the patchwork. Your clients install one
-              branded app, watch their project progress in real time, and sign
-              off decisions and variations with their finger. You ship a full
-              project record PDF at handover — quote vs final, every change,
+              Builders Ready replaces the patchwork. It starts with the quote —
+              built on site and accepted on the client&rsquo;s phone — then your
+              clients install one branded app, watch progress in real time, and
+              sign off decisions and variations with their finger. You ship a
+              full project record PDF at handover — quote vs final, every change,
               every approval.
             </p>
           </div>
 
           <div className="mt-12 grid gap-8 md:grid-cols-3">
+            <FeatureCard
+              badge="New"
+              title="On-site quotes & estimates"
+              body="Build a quote on site from your costs and margin, send a branded PDF or a link the client accepts and signs, then turn a won quote into a project in one tap."
+            />
             <FeatureCard
               title="Decisions inbox"
               body="Tile choice? Pendant lights? Send your client a few options with photos. They tap. Signed and logged."
@@ -287,6 +294,10 @@ export default function LandingPage() {
           <FaqJsonLd
             items={[
               {
+                q: 'Can I build and send quotes from Builders Ready?',
+                a: 'Yes. You can build a full quote on site from your own costs and margin, save your regular rates to reuse, and send it as a branded PDF or a link the client accepts and signs on their phone. When a quote is won, it turns straight into a project.',
+              },
+              {
                 q: 'I only do small jobs — is this overkill?',
                 a: 'No. The £29 Starter tier exists precisely for sole traders and small builders running a handful of projects a year. The same app that runs a £400k extension will run your £18k bathroom refresh.',
               },
@@ -316,6 +327,10 @@ export default function LandingPage() {
             Common questions
           </h2>
           <div className="space-y-6">
+            <Faq
+              q="Can I build and send quotes from Builders Ready?"
+              a="Yes. Build a full quote on site from your own costs and margin, save your regular rates to reuse, and send it as a branded PDF or a link the client accepts and signs on their phone. Win it, and it becomes a project in one tap."
+            />
             <Faq
               q="I only do small jobs — is this overkill?"
               a="No. The £29 Starter tier exists precisely for sole traders and small builders running a handful of projects a year. The same app that runs a £400k extension will run your £18k bathroom refresh — and your client will notice the polish straight away."
@@ -394,10 +409,25 @@ function BulletGood({ text }: { text: string }) {
   );
 }
 
-function FeatureCard({ title, body }: { title: string; body: string }) {
+function FeatureCard({
+  title,
+  body,
+  badge,
+}: {
+  title: string;
+  body: string;
+  badge?: string;
+}) {
   return (
     <div className="rounded-card border border-hairline bg-white p-7 shadow-card transition hover:-translate-y-0.5 hover:shadow-lg">
-      <h3 className="mb-2 text-base font-extrabold">{title}</h3>
+      <div className="mb-2 flex items-center gap-2">
+        <h3 className="text-base font-extrabold">{title}</h3>
+        {badge && (
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+            {badge}
+          </span>
+        )}
+      </div>
       <p className="text-sm text-ink-muted">{body}</p>
     </div>
   );
