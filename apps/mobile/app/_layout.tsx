@@ -163,6 +163,14 @@ function AuthGate() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="project-costs"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="add-cost"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
         name="reports"
         options={{ headerShown: false }}
       />

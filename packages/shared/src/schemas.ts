@@ -188,3 +188,26 @@ export const savedRateInput = z.object({
   default_markup_percent: z.number().nonnegative().max(1000).default(0),
 });
 export type SavedRateInput = z.infer<typeof savedRateInput>;
+
+// --- project costs (margin tracking) --------------------------------------
+// The `CostCategory` string-union type lives in types.ts; this zod enum
+// validates the same values (no same-named type re-export, to avoid an
+// ambiguous double-export through the barrel).
+export const costCategory = z.enum([
+  'materials',
+  'labour',
+  'plant_hire',
+  'subcontractor',
+  'other',
+]);
+
+export const projectCostCreate = z.object({
+  project_id: uuid,
+  category: costCategory.default('materials'),
+  description: z.string().min(1).max(300),
+  amount_pence: z.number().int().positive(),
+  supplier: z.string().max(120).nullable().optional(),
+  incurred_on: isoDate,
+  receipt_storage_path: z.string().nullable().optional(),
+});
+export type ProjectCostCreateInput = z.infer<typeof projectCostCreate>;

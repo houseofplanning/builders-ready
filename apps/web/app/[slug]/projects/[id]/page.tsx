@@ -2,7 +2,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireTenantBySlug } from '@/lib/tenant-resolver';
 import { createSupabaseServer } from '@/lib/supabase-server';
-import { formatDate, relativeTime } from '@br/shared';
+import {
+  formatDate,
+  relativeTime,
+  computeMargin,
+  summariseCosts,
+} from '@br/shared';
+import type { CostCategory } from '@br/shared';
 import { ProjectStatusPill } from '@/components/status-pill';
 import { HandoverCard } from '@/components/handover-card';
 import { StageRow } from './stage-row';
@@ -14,6 +20,7 @@ import { ReportsSection, type ReportRow } from './reports-section';
 import { DocumentsSection, type DocumentRow } from './documents-section';
 import { ProjectActions } from './project-actions';
 import { CashChart, CompletionRing } from '@/components/finance-visuals';
+import { CostsSection, type CostRow, type MarginData } from './costs-section';
 
 interface Props {
   params: Promise<{ slug: string; id: string }>;
@@ -102,6 +109,47 @@ export default async function ProjectDetail({ params }: Props) {
   ]);
 
   if (!project) notFound();
+
+  // Costs & margin — owner/PM only (RLS returns nothing to clients anyway).
+  let marginData: MarginData | null = null;
+  let costList: CostRow[] = [];
+  if (canWrite) {
+    const [{ data: costRows }, { data: estCost }] = await Promise.all([
+      supabase
+        .from('project_costs')
+        .select(
+          'id, category, description, supplier, incurred_on, amount_pence, receipt_storage_path',
+        )
+        .eq('project_id', id)
+        .order('incurred_on', { ascending: false }),
+      supabase
+        .from('estimates')
+        .select('cost_subtotal_pence')
+        .eq('project_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    costList = (costRows ?? []).map((c) => ({
+      id: c.id,
+      category: c.category as CostCategory,
+      description: c.description,
+      supplier: c.supplier,
+      incurred_on: c.incurred_on,
+      amount_pence: Number(c.amount_pence),
+      has_receipt: !!c.receipt_storage_path,
+    }));
+    const contractValue =
+      Number(project.quoted_amount_pence ?? 0) +
+      Number(finance?.variations_pence ?? 0);
+    const summary = summariseCosts(costList);
+    const budgeted =
+      estCost && estCost.cost_subtotal_pence != null
+        ? Number(estCost.cost_subtotal_pence)
+        : null;
+    const m = computeMargin(contractValue, summary.total_pence, budgeted);
+    marginData = { ...m, by_category: summary.by_category };
+  }
 
   // Resolve profile names for the new sections (raised_by, decided_by, etc.)
   const profileIds = new Set<string>();
@@ -409,6 +457,16 @@ export default async function ProjectDetail({ params }: Props) {
         canWrite={canWrite}
         suggestedNextNumber={nextInvoiceNumber}
       />
+
+      {/* COSTS & MARGIN — owner/PM only */}
+      {canWrite && marginData && (
+        <CostsSection
+          projectId={project.id}
+          costs={costList}
+          margin={marginData}
+          canWrite={canWrite}
+        />
+      )}
 
       {/* REPORTS */}
       <ReportsSection

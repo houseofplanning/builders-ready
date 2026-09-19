@@ -9,7 +9,7 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   spacing,
   typography,
@@ -27,6 +27,7 @@ import { ProgressBar } from '../../components/progress-bar';
 
 export default function HomeScreen() {
   const { tenant, role, palette } = useTenant();
+  const router = useRouter();
   const {
     current,
     projects,
@@ -237,6 +238,58 @@ export default function HomeScreen() {
           highlight
         />
       </View>
+
+      {/* COSTS & MARGIN — owner/PM only */}
+      {role !== 'client' && (
+        <TouchableOpacity
+          onPress={() => router.push('/project-costs')}
+          activeOpacity={0.7}
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.card,
+              borderColor: palette.primary,
+              borderWidth: 1.5,
+              flexDirection: 'row',
+              alignItems: 'center',
+            },
+          ]}
+        >
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: palette.primarySoft,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="trending-up" size={22} color={palette.primary} />
+          </View>
+          <View style={{ flex: 1, marginLeft: spacing.md }}>
+            <Text
+              style={{
+                fontSize: typography.size.body,
+                fontWeight: typography.weightExtraBold as '800',
+                color: palette.ink,
+              }}
+            >
+              Costs &amp; margin
+            </Text>
+            <Text
+              style={{
+                fontSize: typography.size.xs,
+                color: palette.inkMuted,
+                marginTop: 2,
+              }}
+            >
+              Log spend and see your live margin — only your team can see this
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={palette.inkMuted} />
+        </TouchableOpacity>
+      )}
 
       {/* PM CONTACT */}
       <Text style={[styles.sectionTitle, { color: palette.ink }]}>

@@ -367,6 +367,30 @@ export interface SavedRate {
 
 // --- composite types used in UI -------------------------------------------
 
+// --- costs & margin -------------------------------------------------------
+
+export type CostCategory =
+  | 'materials'
+  | 'labour'
+  | 'plant_hire'
+  | 'subcontractor'
+  | 'other';
+
+export interface ProjectCost {
+  id: UUID;
+  tenant_id: UUID;
+  project_id: UUID;
+  created_by: UUID;
+  category: CostCategory;
+  description: string;
+  amount_pence: number;
+  supplier: string | null;
+  incurred_on: ISODate;
+  receipt_storage_path: string | null;
+  created_at: ISODateTime;
+  updated_at: ISODateTime;
+}
+
 export interface ProjectFinance {
   project_id: UUID;
   tenant_id: UUID;

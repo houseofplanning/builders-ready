@@ -126,6 +126,20 @@ export default async function Dashboard({ params }: Props) {
   const totalContracted = totalQuoted + totalVariations;
   const totalOutstanding = totalInvoiced - totalPaid;
 
+  // Portfolio margin (owner/PM): contract value − costs logged on active jobs.
+  // RLS scopes project_costs to the viewer, matching the project set above.
+  const { data: costRollupRows } = await supabase
+    .from('project_costs')
+    .select('project_id, amount_pence');
+  let totalCosts = 0;
+  for (const c of costRollupRows ?? []) {
+    if (!activeProjectIds.has(c.project_id)) continue;
+    totalCosts += Number(c.amount_pence ?? 0);
+  }
+  const totalMargin = totalContracted - totalCosts;
+  const marginPct =
+    totalContracted > 0 ? Math.round((totalMargin / totalContracted) * 100) : 0;
+
   let paidThisMonth = 0;
   for (const r of paidThisMonthRows ?? []) paidThisMonth += Number(r.amount_gbp_pence ?? 0);
   let paidLastMonth = 0;
@@ -285,6 +299,28 @@ export default async function Dashboard({ params }: Props) {
           label="Received this month"
           chip={trendChip}
         />
+      </div>
+
+      {/* Portfolio margin (est.) — owner/PM only view */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-card border border-hairline bg-white px-5 py-4 shadow-card">
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+            Margin so far (est.)
+          </div>
+          <div
+            className={`text-2xl font-extrabold tracking-tight ${
+              totalMargin >= 0 ? 'text-[#0F6E56]' : 'text-error'
+            }`}
+          >
+            {compactGbp(totalMargin)}
+          </div>
+        </div>
+        <MarginStat label="Margin %" value={`${marginPct}%`} />
+        <MarginStat label="Contract value" value={compactGbp(totalContracted)} />
+        <MarginStat label="Costs to date" value={compactGbp(totalCosts)} />
+        <span className="ml-auto text-[11px] text-ink-muted">
+          Across active projects · your team only
+        </span>
       </div>
 
       {/* Cash position + completion ring */}
@@ -464,6 +500,17 @@ interface OutstandingItem {
   secondary: string;
   meta: string | null;
   warn?: boolean;
+}
+
+function MarginStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+        {label}
+      </div>
+      <div className="text-lg font-bold text-ink">{value}</div>
+    </div>
+  );
 }
 
 function ActivityFeed({
