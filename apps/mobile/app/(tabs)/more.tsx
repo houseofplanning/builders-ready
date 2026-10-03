@@ -15,6 +15,8 @@ import { useTenant } from '../../lib/tenant-provider';
 import { supabase } from '../../lib/supabase';
 
 type MoreRoute =
+  | '/find-work'
+  | '/mkt-messages'
   | '/variations'
   | '/invoices'
   | '/reports'
@@ -27,9 +29,24 @@ interface MoreItem {
   hint: string;
   route?: MoreRoute;
   comingSoon?: boolean;
+  requiresTrade?: boolean;
 }
 
 const ITEMS: MoreItem[] = [
+  {
+    label: 'Find Work',
+    icon: 'briefcase-outline',
+    hint: 'Browse and bid on new jobs from customers',
+    route: '/find-work',
+    requiresTrade: true,
+  },
+  {
+    label: 'Marketplace messages',
+    icon: 'chatbubble-ellipses-outline',
+    hint: 'Chat with customers about posted jobs',
+    route: '/mkt-messages',
+    requiresTrade: true,
+  },
   {
     label: 'Variations',
     icon: 'document-text-outline',
@@ -64,8 +81,11 @@ const ITEMS: MoreItem[] = [
 
 export default function MoreTab() {
   const router = useRouter();
-  const { tenant, palette } = useTenant();
+  const { tenant, role, palette } = useTenant();
   const [signingOut, setSigningOut] = useState(false);
+  const items = ITEMS.filter(
+    (i) => !i.requiresTrade || role === 'owner' || role === 'pm',
+  );
 
   async function onSignOut() {
     Alert.alert('Sign out', 'Are you sure?', [
@@ -100,7 +120,7 @@ export default function MoreTab() {
           { backgroundColor: palette.card, borderColor: palette.hairline },
         ]}
       >
-        {ITEMS.map((item, i) => {
+        {items.map((item, i) => {
           const Wrapper = item.route ? TouchableOpacity : View;
           return (
             <Wrapper
@@ -109,7 +129,7 @@ export default function MoreTab() {
               activeOpacity={item.route ? 0.6 : 1}
               style={[
                 styles.row,
-                i < ITEMS.length - 1 && {
+                i < items.length - 1 && {
                   borderBottomColor: palette.hairline,
                   borderBottomWidth: 1,
                 },

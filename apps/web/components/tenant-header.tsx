@@ -53,6 +53,12 @@ export function TenantHeader({
             <NavItem href={`/${tenant.slug}/estimates`}>Quotes</NavItem>
           )}
           {(role === 'owner' || role === 'pm') && (
+            <NavItem href={`/${tenant.slug}/find-work`}>Find Work</NavItem>
+          )}
+          {(role === 'owner' || role === 'pm') && (
+            <NavItem href={`/${tenant.slug}/messages`}>Messages</NavItem>
+          )}
+          {(role === 'owner' || role === 'pm') && (
             <NavItem href={`/${tenant.slug}/team`}>Team</NavItem>
           )}
         </nav>

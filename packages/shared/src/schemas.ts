@@ -93,6 +93,9 @@ export const projectCreate = z.object({
     .positive()
     .nullable()
     .optional(),
+  /** Stage-template key (see PROJECT_TEMPLATES). Seeds the timeline; null =
+   *  the default full-renovation template. */
+  project_type: z.string().max(40).nullable().optional(),
 });
 export type ProjectCreateInput = z.infer<typeof projectCreate>;
 
@@ -160,6 +163,8 @@ export type EstimateLineInput = z.infer<typeof estimateLineInput>;
 
 export const estimateCreate = z.object({
   title: z.string().min(2).max(200),
+  /** Stage-template key seeded onto the project when this quote converts. */
+  project_type: z.string().max(40).nullable().optional(),
   client_name: z.string().min(1).max(200),
   client_email: email.nullable().optional(),
   client_phone: z.string().max(40).nullable().optional(),
@@ -211,3 +216,29 @@ export const projectCostCreate = z.object({
   receipt_storage_path: z.string().nullable().optional(),
 });
 export type ProjectCostCreateInput = z.infer<typeof projectCostCreate>;
+
+// --- contracts & payment schedule -----------------------------------------
+// `ContractStatus` string-union lives in types.ts; this zod enum validates
+// the same values (no same-named type re-export, to keep the barrel clean).
+export const contractStatus = z.enum(['draft', 'sent', 'signed']);
+
+export const milestoneInput = z
+  .object({
+    name: z.string().min(1).max(120),
+    percent: z.number().min(0).max(100).nullable().optional(),
+    amount_pence: z.number().int().positive().nullable().optional(),
+    is_retention: z.boolean().default(false),
+  })
+  .refine((m) => m.percent != null || m.amount_pence != null, {
+    message: 'Set a % or a £ amount for each milestone',
+  });
+export type MilestoneInput = z.infer<typeof milestoneInput>;
+
+export const contractCreate = z.object({
+  project_id: uuid,
+  contract_sum_pence: z.number().int().positive(),
+  terms: z.string().max(8000).nullable().optional(),
+  retention_percent: z.number().min(0).max(100).default(0),
+  milestones: z.array(milestoneInput).min(1).max(30),
+});
+export type ContractCreateInput = z.infer<typeof contractCreate>;

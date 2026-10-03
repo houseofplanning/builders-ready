@@ -27,9 +27,10 @@ export default function AboutPage() {
             Built for every UK builder who deals with clients.
           </h1>
           <p className="mx-auto max-w-2xl text-base text-ink-muted md:text-lg">
-            Whether you&rsquo;re a sole trader doing kitchen refurbs or a
-            multi-PM firm running £400k extensions, the daily admin around
-            clients is the same. Builders Ready exists to remove it.
+            Whether you&rsquo;re a decorator doing two rooms or a multi-PM firm
+            running £400k extensions, the daily admin around clients is the
+            same. Builders Ready exists to remove it — the whole job, quote to
+            final payment.
           </p>
         </div>
       </section>
@@ -56,11 +57,12 @@ export default function AboutPage() {
           administrator. Some just accept the chaos.
         </Para>
         <Para>
-          Builders Ready replaces the patchwork. Every decision is logged.
-          Every variation is signed. Every invoice is tracked. Every photo
-          update lives in one timeline. At the end, you generate a single
-          PDF that proves you delivered what you promised — and you keep
-          your margin intact along the way.
+          Builders Ready replaces the patchwork — the whole client-facing job
+          in one place. You quote on site and the client signs. Every decision
+          is logged, every variation is signed, every photo update lives in one
+          timeline. Clients pay by card or bank straight to your account, and at
+          the end you generate a single handover PDF that proves you delivered
+          what you promised — with your margin tracked the whole way.
         </Para>
 
         <Heading text="How this started" />
@@ -92,8 +94,8 @@ export default function AboutPage() {
             body="All features at every tier. Tier scales with active projects, not unlock keys. No surprise fees. Cancel any time inside the app."
           />
           <Belief
-            title="Honest about what we don't do."
-            body="We're not a CRM. We're not a quoting tool. We're not a payroll system. We do the live-project layer — between contract signing and handover. That's the layer that's currently a mess."
+            title="Honest about what we do — and what we don't."
+            body="We run the whole client-facing job now: on-site quotes, contracts and staged payments, the live build with signed decisions and variations, get-paid-to-your-bank, and a one-tap handover. What we're not — your accountant, your payroll, or takeoff/estimating software. We sit alongside those, not on top of them."
           />
         </ul>
 

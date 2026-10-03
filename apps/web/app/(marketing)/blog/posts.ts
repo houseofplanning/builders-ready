@@ -75,6 +75,215 @@ export const POSTS: BlogPost[] = [
 `,
   },
   {
+    slug: 'know-your-margin-before-the-job-is-done',
+    title: 'Know your margin before the job is done: costing a build as you go',
+    description:
+      'Most builders find out whether a job made money at the end, when it is too late to do anything about it. Here is how to track cost against your contract value while the job is still live — and catch a job going over before it eats your profit.',
+    publishedAt: '2026-09-14',
+    readingTime: '6 min read',
+    category: 'Finance',
+    contentHtml: `
+<p>Ask a lot of builders how a finished job did and you will get a shrug and a rough guess. The invoices went out, money came in, the merchant got paid — and somewhere in the middle is a margin nobody actually measured. On a good job that is a missed lesson. On a bad one it is a nasty surprise you only spot when the numbers finally settle, weeks after the last person left site.</p>
+
+<p>The problem is not effort. It is timing. If you only add up costs at the end, the margin is already whatever it is — you cannot un-spend on that skip you forgot to price, or the extra two days of labour nobody flagged. The builders who protect their profit do the same sums <em>while the job is still running</em>, when there is still time to react.</p>
+
+<h2>Cost is not the same as price</h2>
+
+<p>A quote captures your <strong>price</strong> — what the client pays. Your <strong>margin</strong> is the gap between that price and what the job actually <strong>costs</strong> you. Two builders can win the same job at the same price and one makes money while the other barely breaks even, purely because one tracked cost and the other didn't.</p>
+
+<p>So the number that matters day to day isn't the invoice total. It's cost-to-date against your contract value — labour, materials, plant, and subbies as they land, set against the price you agreed. That single comparison tells you whether the job is where it should be.</p>
+
+<h2>Log costs as they happen, not at the end</h2>
+
+<p>The habit that changes everything is capturing each cost when it occurs, not reconstructing it later from a carrier bag of receipts. A materials run, a subbie's invoice, a day of plant hire — logged the moment it happens, ideally with a photo of the receipt so nothing gets lost. It takes seconds on site and saves an evening of guesswork at the end.</p>
+
+<p>Do that and your margin stops being a mystery. At any point in the job you can see what you've spent, what you've got left against the contract, and whether the trend is healthy or heading the wrong way.</p>
+
+<h2>Catch the drift early</h2>
+
+<p>Jobs rarely blow up in one go. They drift — a bit more labour here, a materials price that crept up there, a variation that was done as a favour and never charged. Watched weekly, that drift is obvious and fixable: you have the conversation about the extra socket run <a href="/blog/how-much-to-charge-for-variations">as a variation</a> before you have paid for the cable, not after. Watched only at the end, the same drift is just a smaller number in your pocket.</p>
+
+<h2>Keep it to yourself</h2>
+
+<p>Your cost and margin are your business, not the client's. The price you agreed is what they see; what it costs you to deliver it stays firmly on your side of the table. Good tools keep that separation automatic, so you can be completely open with a client about progress and payments while your margin stays private to you and your team.</p>
+
+<h2>Getting started</h2>
+
+<p>Cost and margin tracking is built into Builders Ready — you log costs against the job as you go, and it works out your live margin against the contract value, visible only to you and your team. It sits right next to the same timeline your client follows, so the job stays transparent to them and profitable for you. You can try it free for 14 days on your next job and finally know your margin before the last brick is laid.</p>
+`,
+  },
+  {
+    slug: 'the-building-contract-every-domestic-job-should-have',
+    title: 'The building contract every domestic job should have — and why clients sign it',
+    description:
+      'A handshake and a quote is not a contract. For domestic building work, a short, clear contract protects your payment and ends disputes before they start. Here is what to put in one, and how to get a homeowner to sign it without friction.',
+    publishedAt: '2026-09-07',
+    readingTime: '7 min read',
+    category: 'Legal',
+    contentHtml: `
+<p>Plenty of domestic building work still runs on a quote, a handshake and good intentions. It works right up until it doesn't — a client queries a stage payment, a scope disagreement turns into a standoff, or a job goes quiet with money owed and nothing on paper to point to. A short, clear contract is the cheapest protection a builder can put in place, and it does far more for the client relationship than most builders expect.</p>
+
+<h2>Why a contract helps you win, not just protect you</h2>
+
+<p>Builders sometimes avoid contracts because they worry it looks heavy-handed or slows the job down. In practice the opposite is true. A homeowner spending tens of thousands of pounds in their own home is nervous, and a builder who offers a clear written agreement reads as professional and safe — the same instinct that <a href="/blog/why-homeowners-choose-one-builder-over-another">makes them choose one builder over another</a>. The contract is reassurance for both sides, not a threat.</p>
+
+<h2>What a domestic building contract needs to cover</h2>
+
+<ul>
+  <li><strong>The scope.</strong> What is included, and — just as important — what isn't. Most disputes are really scope disputes in disguise.</li>
+  <li><strong>The price.</strong> The agreed contract sum, and how it is broken down.</li>
+  <li><strong>The payment schedule.</strong> Deposit, stage payments and completion, each tied to a clear point in the job. (More on <a href="/blog/deposits-and-stage-payments-domestic-building-work">structuring stage payments here</a>.)</li>
+  <li><strong>Retention, if any.</strong> A percentage held back and released after snagging — fair for both sides.</li>
+  <li><strong>How changes are handled.</strong> That variations are agreed and signed before the work happens, so the final figure never comes as a shock.</li>
+</ul>
+
+<p>It does not need to be twenty pages of legalese. For most domestic work a plain-English document that covers those points, that both parties can actually read and understand, is worth more than a dense template nobody looks at.</p>
+
+<h2>The friction is in the signing — remove it</h2>
+
+<p>The reason contracts get skipped is rarely the document. It is the faff: printing, posting, chasing a signature, scanning it back. By the time that has happened the job has often already started on trust. Take the friction out and the contract actually gets used.</p>
+
+<p>That means letting the client review and sign on their phone, wherever they are, before work begins. A contract e-signed in a couple of taps is a contract that exists — with the scope, the sum and the payment schedule all agreed up front, on the record, before the first stage payment falls due.</p>
+
+<h2>Getting started</h2>
+
+<p>Builders Ready turns your agreed quote into a signable contract — your terms plus a clear payment schedule with a deposit, stages, completion and optional retention — that the client reviews and e-signs in the app before work starts. No printing, no posting. You can try it free for 14 days and put your next job on a proper footing from day one.</p>
+`,
+  },
+  {
+    slug: 'stop-chasing-invoices-get-paid-card-or-bank',
+    title: 'Stop chasing invoices: get paid by card or bank the day a stage is signed off',
+    description:
+      'Chasing payment is the worst part of the job, and the slowest. Here is how to make it easy for a client to pay the moment a stage is done — by card or bank, straight to your account — so you stop being your own debt collector.',
+    publishedAt: '2026-08-31',
+    readingTime: '5 min read',
+    category: 'Finance',
+    contentHtml: `
+<p>Ask any builder for the least enjoyable part of the job and "chasing money" is near the top every time. You have done the work, the stage is complete, and now you are sending the third polite reminder and wondering whether to sound annoyed yet. It is slow, it is awkward, and it is unpaid admin at the end of a day you have already worked.</p>
+
+<p>A lot of that friction is not the client being difficult. It is that paying you is mildly inconvenient — they have to remember the sort code, log into their banking, type in the reference — and mild inconvenience is enough to push it to "later". Remove the inconvenience and most people pay straight away.</p>
+
+<h2>Make paying a tap, not a task</h2>
+
+<p>The single biggest thing you can do to get paid faster is let the client pay the moment they are looking at the invoice — by card or bank, there and then, without leaving the conversation. When paying is a tap on their phone rather than a job for later, "later" stops happening.</p>
+
+<p>Tie that to the work being visibly done — the stage marked complete, the update posted, the client happy — and the payment lands while the goodwill is high, instead of a fortnight later once the memory of a job well done has faded.</p>
+
+<h2>Straight to your account</h2>
+
+<p>Getting paid in the app does not mean money sitting in some middle-man's pot. Done properly, the client pays and the funds go to your own bank account — you are not waiting on a payout cycle to see your own money. The invoice marks itself paid, both sides get a receipt, and there is nothing to reconcile by hand.</p>
+
+<h2>It still comes down to structure</h2>
+
+<p>Fast payment is easiest when the job is set up for it from the start: a clear <a href="/blog/deposits-and-stage-payments-domestic-building-work">schedule of stage payments</a> the client agreed up front, so each request is expected rather than a surprise. Nobody likes an invoice they weren't ready for. When the client already knew the second-fix payment was coming, paying it is a formality — especially when it takes ten seconds.</p>
+
+<h2>Getting started</h2>
+
+<p>Builders Ready lets your clients pay invoices by card or bank straight from their project, with the money going to your own account and the invoice reconciling itself to paid. It is optional — you can still just mark invoices paid by bank transfer if you prefer — but for most builders, making payment a tap is the difference between getting paid on the day and chasing it for a fortnight. Free to try for 14 days on your next job.</p>
+`,
+  },
+  {
+    slug: 'staged-payments-and-retention-so-you-always-get-paid',
+    title: 'Staged payments and retention: structuring a domestic build so you always get paid',
+    description:
+      'Cash flow kills more building businesses than bad work does. A sensible schedule of stage payments — with a fair retention — keeps you funded through the job and protects you at the end. Here is how to structure one.',
+    publishedAt: '2026-08-24',
+    readingTime: '6 min read',
+    category: 'Finance',
+    contentHtml: `
+<p>More building businesses come unstuck on cash flow than on craftsmanship. You can be the best trade in the area and still get into trouble if you are funding weeks of materials and labour out of your own pocket while you wait to be paid. The fix is not being tougher on clients — it is structuring the money properly before the job starts, so payment keeps pace with the work.</p>
+
+<h2>Why stage payments, not one bill at the end</h2>
+
+<p>On anything beyond a small job, being paid only at completion means you are effectively lending the client the cost of the work for the length of the build. That is a lot of exposure, and it is why a schedule of stage payments is standard on domestic work. Each payment is tied to a visible milestone — deposit to secure the slot and cover initial materials, then payments as first fix, second fix and completion are reached.</p>
+
+<p>Structured well, the money coming in roughly tracks the money going out, so you are never carrying the whole job on your own balance sheet.</p>
+
+<h2>A sensible shape for a domestic schedule</h2>
+
+<ul>
+  <li><strong>Deposit</strong> — enough to secure your time and cover the first materials, taken before you start.</li>
+  <li><strong>Stage payments</strong> — tied to clear points in the build the client can see, so each request is expected.</li>
+  <li><strong>Completion payment</strong> — the balance, due when the work is finished.</li>
+  <li><strong>Retention</strong> — a small percentage held back and released after snagging is signed off.</li>
+</ul>
+
+<p>The exact split depends on the job, but the principle holds: never let the amount of work done get too far ahead of the amount you have been paid.</p>
+
+<h2>Retention: fair both ways</h2>
+
+<p>Retention — commonly a small percentage held back until any snags are sorted — makes builders nervous because it sounds like the client keeping your money. Handled openly it is the opposite: it is what lets a client relax and pay the earlier stages promptly, because they know there is a bit held back as reassurance. Agree it up front, put a clear trigger on its release (snagging signed off), and it protects the relationship rather than straining it. Our guide to <a href="/blog/how-to-run-a-snagging-list">running a snagging list</a> covers getting to that release cleanly.</p>
+
+<h2>Agree it before you start</h2>
+
+<p>The one rule that ties this together: the schedule is agreed and on the record before the first day on site, not negotiated mid-job. A payment the client signed up to in advance is a payment they expect. A payment sprung on them halfway through is a dispute waiting to happen.</p>
+
+<h2>Getting started</h2>
+
+<p>Builders Ready lets you turn your quote into a contract with exactly this kind of schedule — deposit, stages, completion and an optional retention held back until snagging — that the client e-signs before work starts. Then you raise each stage invoice in a tap when it falls due, and the client can pay it on the spot. Free to try for 14 days.</p>
+`,
+  },
+  {
+    slug: 'not-just-for-big-builders',
+    title: "It is not just for big builders: why small trades benefit most from running jobs properly",
+    description:
+      'Slick project tools have a reputation for being for big firms doing extensions. In reality a decorator, a tiler or a landscaper has just as much to gain — often more — from looking organised and getting paid on time. Here is why.',
+    publishedAt: '2026-08-17',
+    readingTime: '5 min read',
+    category: 'Running Your Business',
+    contentHtml: `
+<p>There is a myth that project software is for the big outfits — the firms running £400k extensions with a project manager and a site office. If you are a decorator doing a couple of rooms, a tiler, a paver or a one-van landscaper, the assumption is that all that structure is overkill and you should just get on with the job.</p>
+
+<p>It is exactly backwards. The big firm already has systems, an office and someone doing the admin. The sole trader doing smaller jobs <em>is</em> the office — quoting from the van, chasing payment between jobs, fielding "any update?" texts while up a ladder. The tools that make you look organised and get you paid faster help the small operator most, because you have the least slack to absorb the chaos.</p>
+
+<h2>You are judged on the same signals</h2>
+
+<p>A homeowner deciding between two decorators is reading the same signals as one choosing between two extension firms: who quoted fastest, who looked most professional, who seems least likely to go quiet or spring a surprise cost. Turning up able to <a href="/blog/how-to-quote-a-building-job-on-site">quote on the spot</a> and send a branded document does as much for a two-room job as it does for a loft conversion — arguably more, because your competition on the small job is still quoting on a scrap of paper.</p>
+
+<h2>Small jobs, same money problems</h2>
+
+<p>The admin that hurts is not proportional to job size. A £2,000 job that pays late hurts a sole trader's cash flow as much as a £200,000 job hurts a firm's. Getting a clear yes on the price, and making it easy for the client to pay the moment the work is done, matters whatever the ticket size. If anything, the smaller and more frequent your jobs, the more that little bit of friction — chasing each payment, re-explaining each price — adds up across a year.</p>
+
+<h2>The right amount of structure</h2>
+
+<p>The key is that the structure should fit the job. A decorator does not need an eight-stage construction timeline; they need a two-step one, or none at all. Setting a job up should take a moment and reflect the actual work — a small job stays light, a full build gets the full treatment. Done right, running a two-room job "properly" costs you nothing in time and makes you look like the most organised trade the client has ever hired.</p>
+
+<h2>Getting started</h2>
+
+<p>Builders Ready is built for every trade, not just big builders. You pick the type of work and it sets up a timeline that fits — one step for a small job, the full set for a build — and the same quoting, contracts and get-paid tools work whether the job is £2k or £400k. Free to try for 14 days on your next one, whatever its size.</p>
+`,
+  },
+  {
+    slug: 'match-your-timeline-to-the-trade',
+    title: 'One timeline does not fit every job: matching your stages to the work',
+    description:
+      'A full-build timeline on a two-day paint job is noise, not structure. Here is how to set up a project timeline that actually fits the trade — so every job, big or small, looks organised without drowning in stages.',
+    publishedAt: '2026-08-10',
+    readingTime: '5 min read',
+    category: 'Operations',
+    contentHtml: `
+<p>A clear timeline is one of the simplest ways to keep a client calm and a job on track — everyone can see where things are and what comes next. But a timeline only helps if it fits the work. Put an eight-stage construction programme on a two-day decorating job and you have not added structure, you have added noise: seven stages that will never apply and a client wondering why their spare-room repaint has a "second fix" phase.</p>
+
+<h2>The stages should match the job</h2>
+
+<p>Different trades have genuinely different shapes. A full renovation runs through mobilisation, strip-out, structure, first fix, plastering, second fix, finishes and snagging. A bathroom is more like strip-out, first fix and tanking, tiling, second fix, snagging. A decorator is prep, paint, sign off. A driveway is excavation, sub-base, laying, pointing. Forcing all of those into one template does none of them justice.</p>
+
+<p>The right approach is to start from the <em>type</em> of job and let the timeline follow — so the stages you see are the stages that actually apply, and nothing else.</p>
+
+<h2>Fewer, clearer stages beat more</h2>
+
+<p>It is tempting to think more stages looks more thorough. On the client's side, the opposite is true. Three well-named stages they understand are more reassuring than ten they have to decode. The point of the timeline is that a non-builder can glance at it and know where their job is. Every stage that does not apply to their job works against that.</p>
+
+<h2>Keep it editable</h2>
+
+<p>No template survives contact with a real job perfectly, so whatever you start from should be yours to change — rename a stage to your own words, drop one that does not apply, add one that does, adjust the dates. A good starting template saves you setting up from scratch every time; it should never lock you into stages that do not fit how you actually work.</p>
+
+<h2>Getting started</h2>
+
+<p>Builders Ready lets you pick the type of work when you set up a job — painter, tiler, driveway, kitchen, full build and dozens more — and it seeds the right timeline, from a single step to a full build. Every stage stays yours to rename, re-time, add or remove. So a small job stays light and a big build gets the full treatment, and both look organised to the client. Free to try for 14 days.</p>
+`,
+  },
+  {
     slug: 'getting-started-with-a-client-portal',
     title: 'Getting started with a client portal: what changes on your next job',
     description:

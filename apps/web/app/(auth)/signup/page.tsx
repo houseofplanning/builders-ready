@@ -92,8 +92,8 @@ export default function SignupPage() {
                 className="block w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm"
                 defaultValue="starter"
               >
-                <option value="starter">Starter — £29/mo · up to 10 projects</option>
-                <option value="pro">Pro — £69/mo · up to 50 projects</option>
+                <option value="starter">Starter — £29/mo · up to 5 projects</option>
+                <option value="pro">Pro — £69/mo · up to 15 projects</option>
                 <option value="unlimited">Unlimited — £149/mo · unlimited projects</option>
               </select>
             </label>

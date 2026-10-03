@@ -291,6 +291,58 @@ export default function HomeScreen() {
         </TouchableOpacity>
       )}
 
+      {/* CONTRACT & PAYMENTS — visible to all */}
+      <TouchableOpacity
+        onPress={() => router.push('/contract')}
+        activeOpacity={0.7}
+        style={[
+          styles.card,
+          {
+            backgroundColor: palette.card,
+            borderColor: palette.hairline,
+            borderWidth: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+          },
+        ]}
+      >
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: palette.primarySoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="document-text-outline" size={22} color={palette.primary} />
+        </View>
+        <View style={{ flex: 1, marginLeft: spacing.md }}>
+          <Text
+            style={{
+              fontSize: typography.size.body,
+              fontWeight: typography.weightExtraBold as '800',
+              color: palette.ink,
+            }}
+          >
+            Contract &amp; payments
+          </Text>
+          <Text
+            style={{
+              fontSize: typography.size.xs,
+              color: palette.inkMuted,
+              marginTop: 2,
+            }}
+          >
+            {role === 'client'
+              ? 'Review the payment schedule and sign your contract'
+              : 'Payment schedule, retention and e-signature'}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={palette.inkMuted} />
+      </TouchableOpacity>
+
       {/* PM CONTACT */}
       <Text style={[styles.sectionTitle, { color: palette.ink }]}>
         Your project manager

@@ -36,19 +36,32 @@ function AuthGate() {
   const router = useRouter();
   const segments = useSegments();
   const { session, loading: sessionLoading } = useSession();
-  const { loading: tenantLoading } = useTenant();
+  const { tenant, loading: tenantLoading } = useTenant();
 
   useEffect(() => {
     if (sessionLoading) return;
-    const inAuthGroup = segments[0] === '(auth)';
-    // Route groups like (auth) and (tabs) are transparent in URLs.
-    // Navigate to the clean paths: '/' = home tab, '/login' = login screen.
-    if (!session && !inAuthGroup) {
-      router.replace('/login');
-    } else if (session && inAuthGroup) {
+    if (session && tenantLoading) return; // wait until we know trade vs customer
+    const group = segments[0];
+    const inAuthGroup = group === '(auth)';
+
+    if (!session) {
+      if (!inAuthGroup) router.replace('/login');
+      return;
+    }
+    // Signed in. A user with NO tenant membership is a marketplace customer
+    // and lives under /customer; everyone else (trade owner/PM or project
+    // client) uses the project-centric (tabs) shell.
+    const isCustomer = !tenant;
+    if (inAuthGroup) {
+      router.replace(isCustomer ? '/customer' : '/');
+      return;
+    }
+    if (isCustomer && group !== 'customer') {
+      router.replace('/customer');
+    } else if (!isCustomer && group === 'customer') {
       router.replace('/');
     }
-  }, [session, sessionLoading, segments, router]);
+  }, [session, sessionLoading, tenant, tenantLoading, segments, router]);
 
   // Notification tap → deep-link routing.
   // Notification data payload (set by send_push in the DB) contains a
@@ -110,6 +123,7 @@ function AuthGate() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="customer" options={{ headerShown: false }} />
       <Stack.Screen
         name="compose-update"
         options={{ presentation: 'modal', headerShown: false }}
@@ -171,6 +185,10 @@ function AuthGate() {
         options={{ presentation: 'modal', headerShown: false }}
       />
       <Stack.Screen
+        name="contract"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
         name="reports"
         options={{ headerShown: false }}
       />
@@ -186,6 +204,10 @@ function AuthGate() {
         name="messages"
         options={{ headerShown: false }}
       />
+      <Stack.Screen name="find-work" options={{ headerShown: false }} />
+      <Stack.Screen name="find-work/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="mkt-messages" options={{ headerShown: false }} />
+      <Stack.Screen name="mkt-thread/[id]" options={{ headerShown: false }} />
       <Stack.Screen
         name="settings"
         options={{ headerShown: false }}

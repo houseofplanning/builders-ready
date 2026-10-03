@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { projectCreate, distributeStages } from '@br/shared';
+import { projectCreate, distributeStages, stagesForTemplate } from '@br/shared';
 import { createSupabaseServer } from '../supabase-server';
 import { getSupabaseAdmin } from '../supabase-admin';
 import { resolveCurrentTenant } from '../tenant-resolver';
@@ -15,7 +15,8 @@ export interface ProjectActionResult {
 }
 
 // -------------------------------------------------------------------------
-// createProject — auto-seeds 8 default stages, returns the new project id.
+// createProject — seeds stages from the chosen project-type template,
+// returns the new project id.
 // -------------------------------------------------------------------------
 export async function createProject(
   raw: Record<string, unknown>,
@@ -51,6 +52,7 @@ export async function createProject(
       start_date: parsed.data.start_date,
       estimated_end_date: parsed.data.estimated_end_date,
       quoted_amount_pence: parsed.data.quoted_amount_pence ?? null,
+      project_type: parsed.data.project_type ?? null,
     })
     .select('id')
     .single();
@@ -65,10 +67,12 @@ export async function createProject(
     return { ok: false, error: projErr.message };
   }
 
-  // Seed 8 default stages.
+  // Seed the timeline from the chosen template (default = full renovation).
+  // The "custom" template has no stages — the builder adds their own.
   const stageRows = distributeStages(
     parsed.data.start_date,
     parsed.data.estimated_end_date,
+    stagesForTemplate(parsed.data.project_type),
   ).map((s) => ({
     tenant_id: tenant.tenant.id,
     project_id: project.id,
@@ -79,13 +83,15 @@ export async function createProject(
     status: 'not_started' as const,
   }));
 
-  const { error: stagesErr } = await supabase
-    .from('project_stages')
-    .insert(stageRows);
-  if (stagesErr) {
-    // Best-effort cleanup; the project trigger should also recompute.
-    await supabase.from('projects').delete().eq('id', project.id);
-    return { ok: false, error: stagesErr.message };
+  if (stageRows.length > 0) {
+    const { error: stagesErr } = await supabase
+      .from('project_stages')
+      .insert(stageRows);
+    if (stagesErr) {
+      // Best-effort cleanup; the project trigger should also recompute.
+      await supabase.from('projects').delete().eq('id', project.id);
+      return { ok: false, error: stagesErr.message };
+    }
   }
 
   revalidatePath(`/${tenant.tenant.slug}/projects`);

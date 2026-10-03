@@ -6,11 +6,12 @@ import {
   MockupVariation,
   MockupDashboard,
 } from '@/components/marketing/mockups';
+import { TradesBand } from '@/components/marketing/trades-band';
 
 export const metadata: Metadata = {
   title: 'Features — Builders Ready',
   description:
-    'Every feature of Builders Ready: on-site quotes & estimates, project timeline, decisions inbox, variations with client signature, live finance summary, project handover PDF, push notifications, web admin. Built for UK builders of every size.',
+    'Every feature of Builders Ready: on-site quotes, project timeline, decisions, variations with signature, contracts & staged payments, get paid by card or bank, cost & margin tracking, handover PDF and web admin. Built for UK builders of every size.',
   alternates: { canonical: 'https://buildersready.uk/features' },
   openGraph: {
     title: 'Features — Builders Ready',
@@ -34,13 +35,16 @@ export default function FeaturesPage() {
             Every feature, on every plan.
           </h1>
           <p className="mx-auto max-w-2xl text-base text-ink-muted md:text-lg">
-            Builders Ready isn&rsquo;t feature-gated. Whether you&rsquo;re a
-            sole trader on Starter at £29 or a multi-PM firm on Unlimited at
-            £149, you get the entire product. Tier price scales with active
-            project count, never functionality.
+            Builders Ready isn&rsquo;t feature-gated. Painter, plumber, roofer or
+            full-build firm — whether you&rsquo;re a sole trader on Starter at £29
+            or a multi-PM firm on Unlimited at £149, you get the entire product.
+            Price scales with how many jobs you run, never functionality.
           </p>
         </div>
       </section>
+
+      {/* EVERY TRADE */}
+      <TradesBand />
 
       {/* QUOTES & ESTIMATES */}
       <FeatureRow
@@ -101,6 +105,53 @@ export default function FeaturesPage() {
         mockup={<MockupDashboard className="h-auto w-full rounded-xl shadow-2xl ring-1 ring-hairline" />}
       />
 
+      {/* CONTRACTS & STAGED PAYMENTS */}
+      <FeatureRow
+        eyebrow="New · Contracts & staged payments"
+        title="A contract they sign, and a schedule that gets you paid."
+        body="Turn the accepted quote into a signable contract — your terms plus a clear payment schedule. Split the job into a deposit, stage payments and completion, each a £ amount or a % of the contract, with a retention held back until snagging. The client reviews and e-signs it in the app before work starts."
+        bullets={[
+          'Milestones as a fixed £ amount or a % of the contract sum',
+          'Optional retention, held back and released after snagging sign-off',
+          'Client e-signs the contract on their phone — scope, sum and schedule agreed up front',
+          'Raise the invoice for any milestone in one tap when it falls due',
+          'The live schedule shows what&rsquo;s invoiced, paid and still to come',
+        ]}
+        mockup={<ContractMockup />}
+        reverse
+      />
+
+      {/* GET PAID */}
+      <FeatureRow
+        eyebrow="New · Get paid in the app"
+        title="Clients pay by card or bank — straight to your account."
+        body="Once you&rsquo;re set up, every invoice gets a &ldquo;Pay now&rdquo; button. Clients pay by card or bank on a secure Stripe page and the money lands in your own bank account — the day a milestone is signed off, not 30 days later. The invoice flips to Paid automatically, and everyone gets a receipt."
+        bullets={[
+          'Card and Pay-by-Bank, on web and in the client&rsquo;s app',
+          'Money goes to your account — Builders Ready never holds your funds',
+          'A flat £3 per payment (free on Unlimited) — never a percentage',
+          'Invoices reconcile to Paid automatically; receipts sent to both sides',
+          'Entirely optional — stick with manual invoices any time you like',
+        ]}
+        mockup={<PaymentMockup />}
+      />
+
+      {/* COST & MARGIN */}
+      <FeatureRow
+        eyebrow="Cost & margin tracking"
+        title="Know your real margin while the job&rsquo;s still live."
+        body="Log materials, labour, plant and subbie invoices as you go — snap the receipt on site. Builders Ready works out your live margin against the contract value, so you spot a job going over before it&rsquo;s too late. It&rsquo;s the one thing your client never sees."
+        bullets={[
+          'Cost categories: materials, labour, plant hire, subcontractor, other',
+          'Snap and attach a receipt photo to every cost',
+          'Live margin vs contract value, plus budget-vs-actual against the quote',
+          'Portfolio margin rolled up across every active job on the dashboard',
+          'Team-only — never visible to the client',
+        ]}
+        mockup={<MarginMockup />}
+        reverse
+      />
+
       {/* HANDOVER */}
       <FeatureRow
         eyebrow="Project handover PDF"
@@ -120,9 +171,9 @@ export default function FeaturesPage() {
       <FeatureRow
         eyebrow="Timeline & photo updates"
         title="Post progress from the van."
-        body="Built-in 8-stage construction timeline auto-generated from your project dates. Drag stages to in-progress / complete. Post updates with site photos straight from your phone&rsquo;s camera roll — your client sees them within seconds."
+        body="Pick the type of work — painter, driveway, kitchen, full build, or any of 40+ templates — and the timeline seeds itself, from a single step to eight, auto-dated from your project dates. Drag stages to in-progress / complete. Post updates with site photos straight from your phone&rsquo;s camera roll — your client sees them within seconds."
         bullets={[
-          'Default 8 stages, fully renamable and re-timeable per project',
+          '40+ trade templates (or start blank) — every stage renamable and re-timeable',
           'Photos compressed and uploaded in the background — works on site over LTE',
           'Each update can flag a decision the client needs to make',
           'Updates roll into the handover PDF chronologically',
@@ -169,8 +220,8 @@ export default function FeaturesPage() {
           </p>
           <div className="grid gap-5 md:grid-cols-3">
             <SmallFeature
-              title="Invoicing"
-              body="Auto-numbered invoices, status tracking, mark-paid with bank reference."
+              title="Invoicing & payments"
+              body="Auto-numbered invoices — pay by card or bank in the app, or mark paid with a bank reference. Refunds handled too."
             />
             <SmallFeature
               title="Reports"
@@ -334,6 +385,138 @@ function QuoteLine({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between border-t border-hairline pt-2">
       <span className="text-ink-muted">{label}</span>
       <span className="font-bold text-ink">{value}</span>
+    </div>
+  );
+}
+
+function ContractMockup() {
+  return (
+    <div className="mx-auto w-full max-w-sm rounded-lg bg-white p-8 shadow-2xl ring-1 ring-hairline">
+      <div className="flex items-center justify-between border-b border-hairline pb-3">
+        <p className="text-[9px] font-bold uppercase tracking-widest text-primary">
+          Contract &amp; payments
+        </p>
+        <span className="rounded-full bg-[#E1F5EE] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0F6E56]">
+          Signed
+        </span>
+      </div>
+      <div className="mt-4 flex items-baseline justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">
+          Contract sum
+        </span>
+        <span className="text-xl font-extrabold">£18,830</span>
+      </div>
+      <div className="mt-4 overflow-hidden rounded-lg border border-hairline">
+        <ScheduleRow label="Deposit · 25%" value="£4,708" />
+        <ScheduleRow label="First fix · 25%" value="£4,708" paid />
+        <ScheduleRow label="Second fix · 25%" value="£4,708" />
+        <ScheduleRow label="Completion · 20%" value="£3,766" />
+        <ScheduleRow label="Retention · 5%" value="£940" retention />
+      </div>
+      <div className="mt-4 text-[8px] text-ink-muted">
+        E-signed by the client · retention released after snagging
+      </div>
+    </div>
+  );
+}
+
+function ScheduleRow({
+  label,
+  value,
+  paid,
+  retention,
+}: {
+  label: string;
+  value: string;
+  paid?: boolean;
+  retention?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-hairline px-3 py-2 text-[11px] last:border-b-0">
+      <span className="text-ink-muted">
+        {label}
+        {retention && (
+          <span className="ml-2 rounded-full bg-canvas px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-ink-muted">
+            retention
+          </span>
+        )}
+      </span>
+      <span className="flex items-center gap-2">
+        <span className="font-bold text-ink">{value}</span>
+        {paid && (
+          <span className="rounded-full bg-[#E6F0FA] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#2563A8]">
+            paid
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+function PaymentMockup() {
+  return (
+    <div className="mx-auto w-full max-w-xs rounded-[2rem] bg-white p-5 shadow-2xl ring-1 ring-hairline">
+      <div className="rounded-t-2xl bg-primary px-4 py-3">
+        <p className="text-xs font-bold text-white">Pay invoice</p>
+      </div>
+      <div className="px-1 py-4">
+        <div className="rounded-lg bg-canvas px-4 py-3">
+          <div className="text-[9px] font-bold uppercase tracking-widest text-ink-muted">
+            Amount due
+          </div>
+          <div className="text-2xl font-extrabold text-ink">£4,708</div>
+        </div>
+        <div className="mt-3 rounded-lg bg-primary px-4 py-3 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1">
+              <span className="h-2 w-6 rounded-sm bg-white/80" />
+              <span className="h-2 w-6 rounded-sm bg-white/50" />
+              <span className="h-2 w-6 rounded-sm bg-white/50" />
+            </div>
+            <span className="text-[10px] font-bold">VISA</span>
+          </div>
+        </div>
+        <button className="mt-3 w-full rounded-lg bg-primary py-3 text-center text-sm font-bold text-white">
+          Pay now
+        </button>
+        <p className="mt-3 text-center text-[9px] text-ink-muted">
+          Card or bank · goes straight to your account
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MarginMockup() {
+  return (
+    <div className="mx-auto w-full max-w-sm rounded-lg bg-white p-8 shadow-2xl ring-1 ring-hairline">
+      <div className="flex items-center justify-between border-b border-hairline pb-3">
+        <p className="text-[9px] font-bold uppercase tracking-widest text-ink-muted">
+          Costs &amp; margin
+        </p>
+        <span className="rounded-full bg-canvas px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-ink-muted">
+          Team only
+        </span>
+      </div>
+      <div className="mt-4 flex items-baseline justify-between">
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">
+            Margin so far
+          </div>
+          <div className="text-2xl font-extrabold text-[#0F6E56]">£5,980</div>
+        </div>
+        <div className="text-sm font-bold text-ink-muted">32%</div>
+      </div>
+      <div className="mt-4 space-y-2 text-[11px]">
+        <QuoteLine label="Contract value" value="£18,830" />
+        <QuoteLine label="Cost to date" value="£12,850" />
+        <QuoteLine label="Materials" value="£7,180" />
+        <QuoteLine label="Labour" value="£4,200" />
+        <QuoteLine label="Plant &amp; subbies" value="£1,470" />
+      </div>
+      <div className="mt-4 text-[8px] text-ink-muted">
+        Live margin against the contract — never shown to the client
+      </div>
     </div>
   );
 }

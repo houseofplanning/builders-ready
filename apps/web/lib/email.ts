@@ -520,6 +520,161 @@ function escapeHtml(s: string): string {
 }
 
 // -------------------------------------------------------------------------
+// Payment receipt — sent to the client after they pay an invoice online.
+// -------------------------------------------------------------------------
+export interface PaymentReceiptEmailParams {
+  to: string;
+  clientName: string;
+  businessName: string;
+  invoiceNumber: string;
+  invoiceTitle: string;
+  amountLabel: string; // pre-formatted, e.g. "£12,340.00"
+  paidVia: 'card' | 'bank' | 'manual' | null;
+}
+
+export async function sendPaymentReceiptEmail(
+  p: PaymentReceiptEmailParams,
+): Promise<void> {
+  const firstName = (p.clientName ?? '').trim().split(/\s+/)[0] || 'there';
+  const subject = `Payment received — ${p.invoiceNumber} (${p.amountLabel})`;
+  const method =
+    p.paidVia === 'bank' ? 'bank' : p.paidVia === 'card' ? 'card' : null;
+
+  const text = [
+    `Hi ${firstName},`,
+    ``,
+    `Thanks — we've received your payment of ${p.amountLabel} for ${p.invoiceNumber} (${p.invoiceTitle})${method ? `, paid by ${method}` : ''}.`,
+    ``,
+    `This email is your receipt. No action is needed.`,
+    ``,
+    `Best regards,`,
+    p.businessName,
+  ].join('\n');
+
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+  const SUCCESS = '#0F6E56';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:24px 28px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;font-size:15px;color:${INK};">${escapeHtml(p.businessName)}</div>
+          </td></tr>
+          <tr><td style="padding:26px 28px;">
+            <div style="font-size:11px;font-weight:600;color:${SUCCESS};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Payment received</div>
+            <h1 style="margin:0 0 14px;font-size:22px;line-height:1.25;font-weight:800;color:${INK};">Thanks, ${escapeHtml(firstName)} — that's paid</h1>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px;border:1px solid ${HAIRLINE};border-radius:10px;">
+              <tr><td style="padding:14px 16px;">
+                <div style="font-size:11px;color:${MUTED};text-transform:uppercase;letter-spacing:1px;">${escapeHtml(p.invoiceNumber)} · ${escapeHtml(p.invoiceTitle)}</div>
+                <div style="font-size:26px;font-weight:800;color:${INK};margin-top:4px;">${escapeHtml(p.amountLabel)}</div>
+                ${method ? `<div style="font-size:12px;color:${MUTED};margin-top:4px;">Paid by ${escapeHtml(method)}</div>` : ''}
+              </td></tr>
+            </table>
+            <p style="margin:0;font-size:13px;line-height:1.6;color:${MUTED};">This email is your receipt — no action is needed. Any questions, just reply.</p>
+          </td></tr>
+          <tr><td style="padding:16px 28px;border-top:1px solid ${HAIRLINE};font-size:11px;color:${MUTED};">
+            Sent by ${escapeHtml(p.businessName)} via Builders Ready
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const { error } = await getResend().emails.send({
+    from: fromAddress(),
+    to: p.to,
+    subject,
+    html,
+    text,
+  });
+  if (error) {
+    console.error('[payment-receipt-email] resend rejected', error);
+  }
+}
+
+// -------------------------------------------------------------------------
+// Payment received — notifies the builder that a client paid an invoice.
+// -------------------------------------------------------------------------
+export interface PaymentReceivedNotificationParams {
+  to: string;
+  businessName: string;
+  clientName: string;
+  invoiceNumber: string;
+  invoiceTitle: string;
+  amountLabel: string;
+  feeLabel: string; // pre-formatted platform fee, e.g. "£3.00"
+}
+
+export async function sendPaymentReceivedNotification(
+  p: PaymentReceivedNotificationParams,
+): Promise<void> {
+  const subject = `You've been paid — ${p.invoiceNumber} (${p.amountLabel})`;
+  const text = [
+    `${p.clientName} has paid ${p.invoiceNumber} (${p.invoiceTitle}).`,
+    ``,
+    `Amount: ${p.amountLabel}`,
+    `Platform fee: ${p.feeLabel}`,
+    ``,
+    `The funds are on their way to your connected bank account via Stripe.`,
+  ].join('\n');
+
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+  const SUCCESS = '#0F6E56';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:24px 28px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;letter-spacing:2px;font-size:13px;color:${INK};">BUILDERS <span style="color:${PRIMARY};">READY</span></div>
+          </td></tr>
+          <tr><td style="padding:26px 28px;">
+            <div style="font-size:11px;font-weight:600;color:${SUCCESS};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">You've been paid</div>
+            <h1 style="margin:0 0 14px;font-size:22px;line-height:1.25;font-weight:800;color:${INK};">${escapeHtml(p.clientName)} paid ${escapeHtml(p.invoiceNumber)}</h1>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px;border:1px solid ${HAIRLINE};border-radius:10px;font-size:13px;line-height:20px;color:${INK};">
+              <tr><td style="padding:14px 16px;">
+                <div style="font-size:11px;color:${MUTED};text-transform:uppercase;letter-spacing:1px;">${escapeHtml(p.invoiceTitle)}</div>
+                <div style="font-size:26px;font-weight:800;color:${INK};margin-top:4px;">${escapeHtml(p.amountLabel)}</div>
+                <div style="font-size:12px;color:${MUTED};margin-top:4px;">Platform fee ${escapeHtml(p.feeLabel)}</div>
+              </td></tr>
+            </table>
+            <p style="margin:0;font-size:13px;line-height:1.6;color:${MUTED};">The funds are on their way to your connected bank account via Stripe.</p>
+          </td></tr>
+          <tr><td style="padding:16px 28px;border-top:1px solid ${HAIRLINE};font-size:11px;color:${MUTED};">
+            Builders Ready · <a href="https://buildersready.uk" style="color:${PRIMARY};">buildersready.uk</a>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const { error } = await getResend().emails.send({
+    from: fromAddress(),
+    to: p.to,
+    subject,
+    html,
+    text,
+  });
+  if (error) {
+    console.error('[payment-received-notification] resend rejected', error);
+  }
+}
+
+// -------------------------------------------------------------------------
 // Estimate / quote email — sent to the prospect when a builder sends a quote.
 // Carries the branded PDF as an attachment and a link to the shareable page.
 // -------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { TemplatePicker } from '../components/template-picker';
 import {
   View,
   Text,
@@ -110,6 +111,7 @@ export default function CreateEstimateScreen() {
   const [keepValidUntil, setKeepValidUntil] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
+  const [projectType, setProjectType] = useState('full_renovation');
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhone, setClientPhone] = useState('');
@@ -147,6 +149,7 @@ export default function CreateEstimateScreen() {
         return;
       }
       setTitle(est.title);
+      setProjectType(est.project_type ?? 'full_renovation');
       setClientName(est.client_name);
       setClientEmail(est.client_email ?? '');
       setClientPhone(est.client_phone ?? '');
@@ -279,6 +282,7 @@ export default function CreateEstimateScreen() {
       tenant_id: tenant.id,
       created_by: user_id,
       title: title.trim(),
+      project_type: projectType,
       client_name: clientName.trim(),
       client_email: clientEmail.trim() || null,
       client_phone: clientPhone.trim() || null,
@@ -371,6 +375,8 @@ export default function CreateEstimateScreen() {
             placeholderTextColor={palette.inkMuted}
             style={field(palette)}
           />
+
+          <TemplatePicker value={projectType} onChange={setProjectType} />
 
           {/* CLIENT / SITE */}
           <Text style={[styles.sectionTitle, { color: palette.ink }]}>

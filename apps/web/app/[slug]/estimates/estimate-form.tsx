@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { TemplatePicker } from '@/components/template-picker';
 import { useRouter } from 'next/navigation';
 import {
   gbp,
@@ -40,6 +41,7 @@ interface LineRow {
 export interface EstimateFormInitial {
   id: string;
   title: string;
+  project_type: string | null;
   client_name: string;
   client_email: string | null;
   client_phone: string | null;
@@ -102,6 +104,9 @@ export function EstimateForm({
   const editing = !!initial;
 
   const [title, setTitle] = useState(initial?.title ?? '');
+  const [projectType, setProjectType] = useState(
+    initial?.project_type ?? 'full_renovation',
+  );
   const [clientName, setClientName] = useState(initial?.client_name ?? '');
   const [clientEmail, setClientEmail] = useState(initial?.client_email ?? '');
   const [clientPhone, setClientPhone] = useState(initial?.client_phone ?? '');
@@ -196,6 +201,7 @@ export function EstimateForm({
     setSubmitting(true);
     const payload = {
       title: title.trim(),
+      project_type: projectType,
       client_name: clientName.trim(),
       client_email: clientEmail.trim() || null,
       client_phone: clientPhone.trim() || null,
@@ -252,6 +258,14 @@ export function EstimateForm({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Loft conversion & rear extension"
           />
+          <div className="mt-4">
+            <TemplatePicker
+              value={projectType}
+              onChange={setProjectType}
+              label="Type of work"
+              hint="Sets the project timeline if this quote is accepted — a decorator gets a short one, a full build gets eight stages. Editable later."
+            />
+          </div>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className={miniLabel}>Client / prospect name</label>

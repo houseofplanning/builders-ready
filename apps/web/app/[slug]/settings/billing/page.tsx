@@ -1,8 +1,11 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { requireTenantBySlug, isTenantInGoodStanding } from '@/lib/tenant-resolver';
 import { TIERS, gbp, formatDate } from '@br/shared';
 import { OpenPortalButton } from './portal-button';
+import { PaymentsSection } from './payments-section';
+import { getConnectState } from '@/lib/server-actions/connect';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -46,6 +49,8 @@ export default async function BillingSettingsPage({ params }: Props) {
           : status === 'cancelled' || status === 'suspended'
             ? { label: 'Cancelled', bg: 'bg-canvas', fg: 'text-ink-muted' }
             : { label: status, bg: 'bg-canvas', fg: 'text-ink-muted' };
+
+  const connectState = await getConnectState();
 
   const trialMs = tenant.trial_ends_at
     ? new Date(tenant.trial_ends_at).getTime() - Date.now()
@@ -172,6 +177,14 @@ export default async function BillingSettingsPage({ params }: Props) {
         Tax (UK VAT) is added at checkout based on your business address. Receipts
         are emailed automatically by Stripe.
       </p>
+
+      {/* Client payments (Stripe Connect) */}
+      <Suspense fallback={null}>
+        <PaymentsSection
+          initial={connectState}
+          isUnlimited={tierId === 'unlimited'}
+        />
+      </Suspense>
     </div>
   );
 }

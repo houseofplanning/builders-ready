@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
+import { gbp } from '@br/shared';
 import { getStripe, tierForPriceId } from '@/lib/stripe';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
-import { sendCancellationEmail, sendCancellationNotification } from '@/lib/email';
+import {
+  sendCancellationEmail,
+  sendCancellationNotification,
+  sendPaymentReceiptEmail,
+  sendPaymentReceivedNotification,
+} from '@/lib/email';
 
 /**
  * Stripe webhook receiver for Builders Ready subscriptions.
@@ -12,12 +18,15 @@ import { sendCancellationEmail, sendCancellationNotification } from '@/lib/email
  * STRIPE_WEBHOOK_SECRET.
  *
  * Events handled:
- *   - customer.subscription.created
- *   - customer.subscription.updated
- *   - customer.subscription.deleted
- *   - invoice.payment_succeeded
- *   - invoice.payment_failed
+ *   Subscriptions:
+ *   - customer.subscription.created / updated / deleted
+ *   - invoice.payment_succeeded / payment_failed
  *   - customer.subscription.trial_will_end
+ *   Connect (client payments):
+ *   - account.updated                        (builder payout status)
+ *   - checkout.session.completed             (invoice paid — card)
+ *   - checkout.session.async_payment_succeeded (invoice paid — Pay by Bank)
+ *   - charge.refunded                        (invoice refunded)
  */
 export async function POST(req: Request) {
   const signature = req.headers.get('stripe-signature');
@@ -84,6 +93,33 @@ export async function POST(req: Request) {
       case 'customer.subscription.trial_will_end':
         // No DB update — Resend "your trial ends in 3 days" email can fire
         // here in a polish session.
+        break;
+      case 'account.updated':
+        // Connect: a builder's connected account changed (finished onboarding,
+        // capabilities enabled/disabled). Mirror the flags onto the tenant.
+        tenantId = await handleConnectAccountUpdated(
+          event.data.object as Stripe.Account,
+        );
+        break;
+      case 'checkout.session.completed': {
+        // A client paid an invoice. For synchronous methods (card) the payment
+        // is already settled; for async methods (Pay by Bank) it may still be
+        // processing — only mark paid once payment_status is 'paid'.
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.payment_status === 'paid') {
+          tenantId = await handleInvoicePaid(session);
+        }
+        break;
+      }
+      case 'checkout.session.async_payment_succeeded':
+        tenantId = await handleInvoicePaid(
+          event.data.object as Stripe.Checkout.Session,
+        );
+        break;
+      case 'charge.refunded':
+        // A milestone/invoice payment was refunded (by the builder or in the
+        // Stripe dashboard). Flip the invoice to 'refunded'.
+        tenantId = await handleChargeRefunded(event.data.object as Stripe.Charge);
         break;
       default:
         // Stripe sends many events we don't care about; just ack.
@@ -262,6 +298,180 @@ async function handlePaymentFailed(
     .eq('stripe_customer_id', customerId)
     .select('id')
     .maybeSingle();
+  return data?.id ?? null;
+}
+
+function paidViaFromSession(
+  session: Stripe.Checkout.Session,
+): 'card' | 'bank' | 'manual' | null {
+  // Best-effort only: with automatic payment methods, payment_method_types
+  // lists everything eligible, so we can only be confident when exactly one
+  // method applies. Precise per-charge detection is a Phase 4 refinement.
+  // Cast to string[] so comparing against method names Stripe's union may not
+  // include (e.g. 'pay_by_bank') isn't a compile error.
+  const types = (session.payment_method_types ?? []) as string[];
+  if (types.length === 1) {
+    if (types[0] === 'card') return 'card';
+    if (types[0] === 'pay_by_bank' || types[0] === 'bacs_debit') return 'bank';
+  }
+  return null;
+}
+
+async function handleInvoicePaid(
+  session: Stripe.Checkout.Session,
+): Promise<string | null> {
+  const invoiceId =
+    session.metadata?.invoice_id ?? session.client_reference_id ?? null;
+  const metaTenantId = session.metadata?.tenant_id ?? null;
+  const admin = getSupabaseAdmin();
+
+  const paymentIntentId =
+    typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : (session.payment_intent?.id ?? null);
+
+  const patch = {
+    status: 'paid' as const,
+    paid_at: new Date().toISOString(),
+    stripe_payment_intent_id: paymentIntentId,
+    paid_reference: paymentIntentId,
+    paid_via: paidViaFromSession(session),
+  };
+
+  const cols =
+    'id, tenant_id, project_id, number, title, amount_gbp_pence, platform_fee_pence, paid_via';
+  // Locate the invoice by its id (preferred) or by the stored session id.
+  // .neq('status','paid') keeps it idempotent — a retried event is a no-op,
+  // so the receipt emails below only fire once.
+  const query = admin.from('invoices').update(patch).neq('status', 'paid');
+  const { data } = invoiceId
+    ? await query.eq('id', invoiceId).select(cols).maybeSingle()
+    : await query
+        .eq('stripe_checkout_session_id', session.id)
+        .select(cols)
+        .maybeSingle();
+
+  if (data) {
+    await sendPaymentEmails(admin, data).catch((e) =>
+      console.error('[payment emails] failed', e),
+    );
+  }
+  return (data?.tenant_id as string | null) ?? metaTenantId;
+}
+
+/** Best-effort receipt to the client + "you've been paid" to the builder. */
+async function sendPaymentEmails(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  invoice: {
+    tenant_id: string;
+    project_id: string;
+    number: string;
+    title: string;
+    amount_gbp_pence: number | string;
+    platform_fee_pence: number | string | null;
+    paid_via: 'card' | 'bank' | 'manual' | null;
+  },
+): Promise<void> {
+  const [{ data: tenant }, { data: project }] = await Promise.all([
+    admin
+      .from('tenants')
+      .select('name, business_email')
+      .eq('id', invoice.tenant_id)
+      .maybeSingle(),
+    admin
+      .from('projects')
+      .select('client:profiles!projects_client_id_fkey(full_name, email)')
+      .eq('id', invoice.project_id)
+      .maybeSingle(),
+  ]);
+
+  const businessName = tenant?.name ?? 'Your builder';
+  const amountLabel = gbp(Number(invoice.amount_gbp_pence));
+  const feeLabel = gbp(Number(invoice.platform_fee_pence ?? 0));
+
+  const clientRel = project?.client as
+    | { full_name: string | null; email: string | null }
+    | { full_name: string | null; email: string | null }[]
+    | null;
+  const client = Array.isArray(clientRel) ? clientRel[0] : clientRel;
+
+  const tasks: Promise<void>[] = [];
+  if (client?.email) {
+    tasks.push(
+      sendPaymentReceiptEmail({
+        to: client.email,
+        clientName: client.full_name ?? 'there',
+        businessName,
+        invoiceNumber: invoice.number,
+        invoiceTitle: invoice.title,
+        amountLabel,
+        paidVia: invoice.paid_via,
+      }),
+    );
+  }
+  if (tenant?.business_email) {
+    tasks.push(
+      sendPaymentReceivedNotification({
+        to: tenant.business_email,
+        businessName,
+        clientName: client?.full_name ?? 'Your client',
+        invoiceNumber: invoice.number,
+        invoiceTitle: invoice.title,
+        amountLabel,
+        feeLabel,
+      }),
+    );
+  }
+  await Promise.all(tasks);
+}
+
+async function handleChargeRefunded(
+  charge: Stripe.Charge,
+): Promise<string | null> {
+  const paymentIntentId =
+    typeof charge.payment_intent === 'string'
+      ? charge.payment_intent
+      : (charge.payment_intent?.id ?? null);
+  if (!paymentIntentId) return null;
+
+  const admin = getSupabaseAdmin();
+  const { data } = await admin
+    .from('invoices')
+    .update({
+      status: 'refunded',
+      refunded_at: new Date().toISOString(),
+      refunded_amount_pence: charge.amount_refunded,
+    })
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .neq('status', 'refunded')
+    .select('tenant_id')
+    .maybeSingle();
+  return (data?.tenant_id as string | null) ?? null;
+}
+
+async function handleConnectAccountUpdated(
+  account: Stripe.Account,
+): Promise<string | null> {
+  const admin = getSupabaseAdmin();
+  // Prefer the tenant_id we stamped at account creation; fall back to the
+  // account id we stored on the tenant.
+  const tenantId = account.metadata?.tenant_id ?? null;
+  // Note: connect_onboarded_at is set once by refreshConnectStatus on the
+  // owner's return from onboarding (it coalesces), so we don't touch it here —
+  // that avoids the timestamp drifting on every later account.updated event.
+  const query = admin
+    .from('tenants')
+    .update({
+      connect_charges_enabled: !!account.charges_enabled,
+      connect_payouts_enabled: !!account.payouts_enabled,
+      connect_details_submitted: !!account.details_submitted,
+    });
+  const { data } = tenantId
+    ? await query.eq('id', tenantId).select('id').maybeSingle()
+    : await query
+        .eq('stripe_connect_account_id', account.id)
+        .select('id')
+        .maybeSingle();
   return data?.id ?? null;
 }
 

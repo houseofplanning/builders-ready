@@ -5,7 +5,7 @@ import { FaqJsonLd } from '@/components/marketing/faq-jsonld';
 export const metadata: Metadata = {
   title: 'Pricing — Builders Ready',
   description:
-    'Builders Ready pricing: Starter £29/mo (up to 10 active projects), Pro £69/mo (up to 50), Unlimited £149/mo. All features on every tier. 14-day free trial. Annual billing saves 2 months.',
+    'Builders Ready pricing: Starter £29/mo (up to 5 active projects), Pro £69/mo (up to 15), Unlimited £149/mo. All features on every tier — quoting, contracts, staged payments and get-paid. 14-day free trial. Annual billing saves 2 months.',
   alternates: { canonical: 'https://buildersready.uk/pricing' },
   openGraph: {
     title: 'Pricing — Builders Ready',
@@ -21,17 +21,17 @@ const TIERS = [
     name: 'Starter',
     price: '29',
     yearly: '290',
-    cap: 'up to 10 active projects',
+    cap: 'up to 5 active projects',
     bestFor:
-      'Sole traders and small builders. Bathrooms, kitchens, refurbs — turn every job into a professional client experience.',
+      'Sole traders and small trades — decorators, tilers, bathroom fitters, small builders. Turn every job into a professional client experience.',
   },
   {
     name: 'Pro',
     price: '69',
     yearly: '690',
-    cap: 'up to 50 active projects',
+    cap: 'up to 15 active projects',
     bestFor:
-      'Established builders running multiple concurrent projects. Extensions, lofts, full-house refurbs.',
+      'Established builders and small firms running several jobs at once. Extensions, lofts, full-house refurbs.',
     highlight: true,
   },
   {
@@ -45,9 +45,13 @@ const TIERS = [
 ];
 
 const FEATURES = [
-  'Branded mobile app (iOS) for your clients',
+  'Branded mobile app (iOS + Android) for your clients',
   'Web admin for owners and project managers',
-  'Project timeline with 8 default stages, fully customisable',
+  'On-site quotes & estimates — build from cost + margin, client e-signs',
+  'Contracts & staged payments with retention',
+  'Get paid by card or bank, straight to your account',
+  'Cost & margin tracking (team-only)',
+  'Project-type timeline templates — one step to a full build, fully editable',
   'Photo updates straight from your phone',
   'Decisions inbox with multiple options + photos',
   'Variations with finger-signature audit trail',
@@ -192,7 +196,7 @@ export default function PricingPage() {
             },
             {
               q: "What's the free trial really like?",
-              a: '14 days of the full Pro tier (50 active projects). Card required to start, but you will not be charged until day 14 — and you can cancel any time before then.',
+              a: '14 days of the full Pro tier (15 active projects). Card required to start, but you will not be charged until day 14 — and you can cancel any time before then.',
             },
             {
               q: 'Refunds?',
@@ -230,7 +234,7 @@ export default function PricingPage() {
           />
           <Faq
             q="What's the free trial really like?"
-            a="14 days of the full Pro tier (50 active projects). Card required to start, but you won't be charged until day 14 — and you can cancel any time before then."
+            a="14 days of the full Pro tier (15 active projects). Card required to start, but you won't be charged until day 14 — and you can cancel any time before then."
           />
           <Faq
             q="Refunds?"

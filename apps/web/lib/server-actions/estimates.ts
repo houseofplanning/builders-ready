@@ -5,6 +5,7 @@ import {
   estimateCreate,
   computeEstimateTotals,
   distributeStages,
+  stagesForTemplate,
   gbp,
   formatDate,
 } from '@br/shared';
@@ -83,6 +84,7 @@ export async function createEstimateOnWeb(
         created_by: tenant.user_id,
         number,
         title: d.title,
+        project_type: d.project_type ?? null,
         client_name: d.client_name,
         client_email: d.client_email ?? null,
         client_phone: d.client_phone ?? null,
@@ -175,6 +177,7 @@ export async function updateEstimateOnWeb(
     .from('estimates')
     .update({
       title: d.title,
+      project_type: d.project_type ?? null,
       client_name: d.client_name,
       client_email: d.client_email ?? null,
       client_phone: d.client_phone ?? null,
@@ -285,6 +288,7 @@ export async function duplicateEstimateOnWeb(
         created_by: tenant.user_id,
         number,
         title: `${source.title} (copy)`,
+        project_type: source.project_type,
         client_name: source.client_name,
         client_email: source.client_email,
         client_phone: source.client_phone,
@@ -597,7 +601,7 @@ export async function convertEstimateToProject(
 
   const { data: estRow } = await supabase
     .from('estimates')
-    .select('id, tenant_id, title, total_pence, project_id')
+    .select('id, tenant_id, title, total_pence, project_id, project_type')
     .eq('id', estimateId)
     .maybeSingle();
   if (!estRow) return { ok: false, error: 'Quote not found.' };
@@ -624,6 +628,7 @@ export async function convertEstimateToProject(
       // Column CHECK is strictly > 0; a £0 quote stores null rather than 0.
       quoted_amount_pence:
         Number(estRow.total_pence) > 0 ? Number(estRow.total_pence) : null,
+      project_type: estRow.project_type ?? null,
     })
     .select('id')
     .single();
@@ -642,7 +647,11 @@ export async function convertEstimateToProject(
     return { ok: false, error: projErr.message };
   }
 
-  const stageRows = distributeStages(start, end).map((s) => ({
+  const stageRows = distributeStages(
+    start,
+    end,
+    stagesForTemplate(estRow.project_type as string | null),
+  ).map((s) => ({
     tenant_id: tenant.tenant.id,
     project_id: project.id,
     position: s.position,
@@ -651,12 +660,14 @@ export async function convertEstimateToProject(
     target_end_date: s.target_end_date,
     status: 'not_started' as const,
   }));
-  const { error: stagesErr } = await supabase
-    .from('project_stages')
-    .insert(stageRows);
-  if (stagesErr) {
-    await supabase.from('projects').delete().eq('id', project.id);
-    return { ok: false, error: stagesErr.message };
+  if (stageRows.length > 0) {
+    const { error: stagesErr } = await supabase
+      .from('project_stages')
+      .insert(stageRows);
+    if (stagesErr) {
+      await supabase.from('projects').delete().eq('id', project.id);
+      return { ok: false, error: stagesErr.message };
+    }
   }
 
   const { error: linkErr } = await supabase

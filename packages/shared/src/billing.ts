@@ -21,7 +21,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
   starter: {
     id: 'starter',
     label: 'Starter',
-    activeProjectLimit: 10,
+    activeProjectLimit: 5,
     monthlyPence: 2900,             // £29.00
     annualPence: 27600,             // £276.00 (£23/mo equiv. at 20% off)
     stripeMonthlyPriceEnv: 'STRIPE_PRICE_STARTER_MONTHLY',
@@ -30,7 +30,7 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
   pro: {
     id: 'pro',
     label: 'Pro',
-    activeProjectLimit: 50,
+    activeProjectLimit: 15,
     monthlyPence: 6900,             // £69.00
     annualPence: 66000,             // £660.00 (£55/mo equiv.)
     stripeMonthlyPriceEnv: 'STRIPE_PRICE_PRO_MONTHLY',
@@ -50,6 +50,20 @@ export const TIERS: Record<SubscriptionTier, TierConfig> = {
 export const TRIAL_DAYS = 14;
 export const SUSPEND_GRACE_DAYS = 7;
 export const ARCHIVE_AFTER_DAYS = 30;
+
+/**
+ * Flat platform fee taken as a Stripe Connect application fee on each client
+ * payment collected through the portal, in integer pence. Deliberately flat
+ * (not a percentage) because construction payments are large — a % would be
+ * punishing on a five-figure milestone. Free on the unlimited tier as an
+ * upgrade lever. The builder absorbs it (UK PSRs 2017 ban surcharging
+ * consumer cards, so it can't be passed to the client).
+ */
+export const PLATFORM_PAYMENT_FEE_PENCE = 300; // £3.00
+
+export function platformFeePence(tier: SubscriptionTier): number {
+  return tier === 'unlimited' ? 0 : PLATFORM_PAYMENT_FEE_PENCE;
+}
 
 export function tierForActiveProjectCount(
   count: number,

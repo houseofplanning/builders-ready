@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createProject } from '@/lib/server-actions/projects';
+import { TemplatePicker } from '@/components/template-picker';
 
 interface Member {
   user_id: string;
@@ -32,6 +33,7 @@ export function ProjectForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [projectType, setProjectType] = useState('full_renovation');
 
   const pmCandidates = members.filter(
     (m) => m.role === 'pm' || m.role === 'owner',
@@ -73,6 +75,7 @@ export function ProjectForm({
         quotePence !== null && Number.isFinite(quotePence) && quotePence > 0
           ? quotePence
           : null,
+      project_type: projectType,
     };
     startTransition(async () => {
       const res = await createProject(payload);
@@ -97,6 +100,12 @@ export function ProjectForm({
       )}
 
       <Field label="Project name" name="name" placeholder="e.g. Hammersmith Townhouse" required />
+
+      <TemplatePicker
+        value={projectType}
+        onChange={setProjectType}
+        hint="Sets the starting timeline — from a single step for a small job to eight for a full build. You can rename, add or remove stages after."
+      />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <Field

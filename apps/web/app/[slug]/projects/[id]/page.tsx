@@ -21,6 +21,12 @@ import { DocumentsSection, type DocumentRow } from './documents-section';
 import { ProjectActions } from './project-actions';
 import { CashChart, CompletionRing } from '@/components/finance-visuals';
 import { CostsSection, type CostRow, type MarginData } from './costs-section';
+import {
+  ContractSection,
+  type ContractView,
+  type MilestoneView,
+} from './contract-section';
+import { ClientReviewSection } from './client-review';
 
 interface Props {
   params: Promise<{ slug: string; id: string }>;
@@ -28,8 +34,9 @@ interface Props {
 
 export default async function ProjectDetail({ params }: Props) {
   const { slug, id } = await params;
-  const { role } = await requireTenantBySlug(slug);
+  const { tenant, role } = await requireTenantBySlug(slug);
   const canWrite = role === 'owner' || role === 'pm';
+  const paymentsEnabled = !!tenant.connect_charges_enabled;
 
   const supabase = await createSupabaseServer();
 
@@ -43,6 +50,8 @@ export default async function ProjectDetail({ params }: Props) {
     { data: invoiceRows },
     { data: reportRows },
     { data: documentRows },
+    { data: contractRow },
+    { data: milestoneRows },
   ] = await Promise.all([
     supabase
       .from('projects')
@@ -90,7 +99,7 @@ export default async function ProjectDetail({ params }: Props) {
     supabase
       .from('invoices')
       .select(
-        'id, number, title, description, amount_gbp_pence, issued_at, due_at, status, paid_at, paid_reference',
+        'id, number, title, description, amount_gbp_pence, issued_at, due_at, status, paid_at, paid_reference, stripe_payment_intent_id',
       )
       .eq('project_id', id)
       .order('issued_at', { ascending: false }),
@@ -106,9 +115,34 @@ export default async function ProjectDetail({ params }: Props) {
       .select('id, name, category, storage_path, size_bytes, created_at')
       .eq('project_id', id)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('contracts')
+      .select(
+        'id, contract_sum_pence, terms, retention_percent, status, signed_at, client_signature',
+      )
+      .eq('project_id', id)
+      .maybeSingle(),
+    supabase
+      .from('payment_milestones')
+      .select('id, name, percent, amount_pence, is_retention, invoice_id, position')
+      .eq('project_id', id)
+      .order('position'),
   ]);
 
   if (!project) notFound();
+
+  // Trade → customer review: only once the job is completed, and only if not
+  // already reviewed. Readable by any signed-in user (reviews_select).
+  let hasClientReview = false;
+  if (canWrite && project.status === 'completed') {
+    const { data: existingReview } = await supabase
+      .from('marketplace_reviews')
+      .select('id')
+      .eq('project_id', id)
+      .eq('direction', 'trade_to_customer')
+      .maybeSingle();
+    hasClientReview = !!existingReview;
+  }
 
   // Costs & margin — owner/PM only (RLS returns nothing to clients anyway).
   let marginData: MarginData | null = null;
@@ -255,6 +289,35 @@ export default async function ProjectDetail({ params }: Props) {
     String(
       (invoices.filter((i) => /^INV-\d+$/.test(i.number)).length || 0) + 1,
     ).padStart(3, '0');
+
+  // Contract & payment schedule (visible to everyone with project access).
+  const contract: ContractView | null = contractRow
+    ? {
+        id: contractRow.id,
+        contract_sum_pence: Number(contractRow.contract_sum_pence),
+        terms: contractRow.terms,
+        retention_percent: Number(contractRow.retention_percent),
+        status: contractRow.status as ContractView['status'],
+        signed_at: contractRow.signed_at,
+        client_signature: contractRow.client_signature,
+      }
+    : null;
+  const invoiceStatusById = new Map<string, string>(
+    invoices.map((i) => [i.id, i.status]),
+  );
+  const milestones: MilestoneView[] = (milestoneRows ?? []).map((m) => ({
+    id: m.id,
+    name: m.name,
+    percent: m.percent != null ? Number(m.percent) : null,
+    amount_pence: m.amount_pence != null ? Number(m.amount_pence) : null,
+    is_retention: m.is_retention,
+    invoice_id: m.invoice_id,
+    invoice_status: m.invoice_id ? invoiceStatusById.get(m.invoice_id) ?? 'sent' : null,
+  }));
+  const defaultContractSum =
+    Number(project.quoted_amount_pence ?? 0) +
+    Number(finance?.variations_pence ?? 0);
+  const canSignContract = role === 'client' && contract?.status === 'sent';
 
   const client = Array.isArray(project.client) ? project.client[0] : project.client;
   const pm = Array.isArray(project.pm) ? project.pm[0] : project.pm;
@@ -456,6 +519,17 @@ export default async function ProjectDetail({ params }: Props) {
         invoices={invoices}
         canWrite={canWrite}
         suggestedNextNumber={nextInvoiceNumber}
+        paymentsEnabled={paymentsEnabled}
+      />
+
+      {/* CONTRACT & PAYMENT SCHEDULE — visible to all with access */}
+      <ContractSection
+        projectId={project.id}
+        contract={contract}
+        milestones={milestones}
+        defaultContractSum={defaultContractSum}
+        canWrite={canWrite}
+        canSign={!!canSignContract}
       />
 
       {/* COSTS & MARGIN — owner/PM only */}
@@ -492,6 +566,15 @@ export default async function ProjectDetail({ params }: Props) {
         The handover PDF includes everything above plus variations and invoices.
         Regenerate it any time before final handover.
       </p>
+
+      {canWrite && project.status === 'completed' && client && (
+        <ClientReviewSection
+          projectId={project.id}
+          clientId={client.id}
+          clientName={client.full_name ?? 'the client'}
+          alreadyReviewed={hasClientReview}
+        />
+      )}
 
       {canWrite && (
         <ProjectActions

@@ -3,7 +3,7 @@ import { compressImage } from './upload-photo';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode as base64ToArrayBuffer } from 'base64-arraybuffer';
 import { computeMargin, type MarginSummary } from '@br/shared';
-import type { CostCategory, ProjectCost, UUID } from '@br/shared';
+import type { CostCategory, UUID } from '@br/shared';
 
 /**
  * Costs & margin data helpers. OWNER/PM ONLY — RLS blocks clients entirely,

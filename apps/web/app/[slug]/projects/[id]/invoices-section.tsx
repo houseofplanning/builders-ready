@@ -6,6 +6,8 @@ import {
   createInvoiceOnWeb,
   markInvoicePaid,
 } from '@/lib/server-actions/invoices';
+import { createInvoiceCheckout } from '@/lib/server-actions/pay';
+import { refundInvoiceOnWeb } from '@/lib/server-actions/refunds';
 
 export interface InvoiceRow {
   id: string;
@@ -15,9 +17,10 @@ export interface InvoiceRow {
   amount_gbp_pence: number;
   issued_at: string;
   due_at: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
   paid_at: string | null;
   paid_reference: string | null;
+  stripe_payment_intent_id?: string | null;
 }
 
 export function InvoicesSection({
@@ -25,11 +28,14 @@ export function InvoicesSection({
   invoices,
   canWrite,
   suggestedNextNumber,
+  paymentsEnabled = false,
 }: {
   projectId: string;
   invoices: InvoiceRow[];
   canWrite: boolean;
   suggestedNextNumber: string;
+  /** Builder's Stripe Connect account can accept payments — show "Pay now". */
+  paymentsEnabled?: boolean;
 }) {
   const [showForm, setShowForm] = useState(false);
 
@@ -86,7 +92,12 @@ export function InvoicesSection({
           </li>
         ) : (
           invoices.map((inv) => (
-            <InvoiceRowComponent key={inv.id} invoice={inv} canWrite={canWrite} />
+            <InvoiceRowComponent
+              key={inv.id}
+              invoice={inv}
+              canWrite={canWrite}
+              paymentsEnabled={paymentsEnabled}
+            />
           ))
         )}
       </ul>
@@ -97,13 +108,44 @@ export function InvoicesSection({
 function InvoiceRowComponent({
   invoice,
   canWrite,
+  paymentsEnabled,
 }: {
   invoice: InvoiceRow;
   canWrite: boolean;
+  paymentsEnabled: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const [payPending, startPay] = useTransition();
+  const [refundPending, startRefund] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showMarkPaid, setShowMarkPaid] = useState(false);
+
+  function onPay() {
+    setError(null);
+    startPay(async () => {
+      const res = await createInvoiceCheckout(invoice.id);
+      if (!res.ok || !res.url) {
+        setError(res.error ?? 'Could not start payment.');
+        return;
+      }
+      window.location.href = res.url;
+    });
+  }
+
+  function onRefund() {
+    if (!window.confirm('Refund this payment in full to the client?')) return;
+    setError(null);
+    startRefund(async () => {
+      const res = await refundInvoiceOnWeb(invoice.id);
+      if (!res.ok) setError(res.error ?? 'Refund failed.');
+    });
+  }
+
+  const payable =
+    paymentsEnabled &&
+    (invoice.status === 'sent' || invoice.status === 'overdue');
+  const refundable =
+    canWrite && invoice.status === 'paid' && !!invoice.stripe_payment_intent_id;
 
   function onMarkPaid(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -160,17 +202,39 @@ function InvoiceRowComponent({
             </p>
           )}
         </div>
-        {canWrite &&
-          (invoice.status === 'sent' || invoice.status === 'overdue') &&
-          !showMarkPaid && (
+        <div className="flex shrink-0 items-center gap-2">
+          {payable && (
             <button
               type="button"
-              onClick={() => setShowMarkPaid(true)}
-              className="rounded-lg border border-primary px-3 py-1 text-[11px] font-semibold text-primary hover:bg-primary hover:text-white"
+              onClick={onPay}
+              disabled={payPending}
+              className="rounded-lg bg-primary px-3 py-1 text-[11px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
             >
-              Mark paid
+              {payPending ? 'Opening…' : 'Pay now'}
             </button>
           )}
+          {canWrite &&
+            (invoice.status === 'sent' || invoice.status === 'overdue') &&
+            !showMarkPaid && (
+              <button
+                type="button"
+                onClick={() => setShowMarkPaid(true)}
+                className="rounded-lg border border-primary px-3 py-1 text-[11px] font-semibold text-primary hover:bg-primary hover:text-white"
+              >
+                Mark paid
+              </button>
+            )}
+          {refundable && (
+            <button
+              type="button"
+              onClick={onRefund}
+              disabled={refundPending}
+              className="rounded-lg border border-hairline px-3 py-1 text-[11px] font-semibold text-ink-muted hover:text-error disabled:opacity-50"
+            >
+              {refundPending ? 'Refunding…' : 'Refund'}
+            </button>
+          )}
+        </div>
       </div>
 
       {showMarkPaid && (
@@ -343,7 +407,7 @@ function NewInvoiceForm({
 function StatusPill({
   status,
 }: {
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
 }) {
   const cls =
     status === 'paid'
@@ -352,7 +416,9 @@ function StatusPill({
         ? 'bg-error/10 text-error'
         : status === 'sent'
           ? 'bg-accent/10 text-accent-deep'
-          : 'bg-canvas text-ink-muted';
+          : status === 'refunded'
+            ? 'bg-error/10 text-error'
+            : 'bg-canvas text-ink-muted';
   return (
     <span
       className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${cls}`}

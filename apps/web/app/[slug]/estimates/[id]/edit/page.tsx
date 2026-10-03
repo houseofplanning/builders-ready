@@ -41,6 +41,7 @@ export default async function EditEstimatePage({ params }: Props) {
   const initial: EstimateFormInitial = {
     id: estimate.id,
     title: estimate.title,
+    project_type: estimate.project_type ?? null,
     client_name: estimate.client_name,
     client_email: estimate.client_email,
     client_phone: estimate.client_phone,

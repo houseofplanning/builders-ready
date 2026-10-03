@@ -47,6 +47,12 @@ export interface Tenant {
   subscription_status: SubscriptionStatus | null;
   trial_ends_at: ISODateTime | null;
   current_period_end: ISODateTime | null;
+  // Stripe Connect (client payments) — mirrored from the connected account.
+  stripe_connect_account_id: string | null;
+  connect_charges_enabled: boolean;
+  connect_payouts_enabled: boolean;
+  connect_details_submitted: boolean;
+  connect_onboarded_at: ISODateTime | null;
   owner_user_id: UUID;
   status: 'active' | 'suspended' | 'archived';
   created_at: ISODateTime;
@@ -98,6 +104,8 @@ export interface Project {
   postcode: string;
   client_id: UUID;
   pm_id: UUID;
+  /** Stage-template key chosen at creation (PROJECT_TEMPLATES). */
+  project_type: string | null;
   status: 'active' | 'on_hold' | 'completed' | 'archived';
   start_date: ISODate;
   estimated_end_date: ISODate;
@@ -300,6 +308,8 @@ export interface Estimate {
   created_by: UUID;
   number: string;
   title: string;
+  /** Stage-template key seeded onto the project when the quote converts. */
+  project_type: string | null;
   /** Prospect details, captured inline — they are not app users yet. */
   client_name: string;
   client_email: string | null;
@@ -389,6 +399,43 @@ export interface ProjectCost {
   receipt_storage_path: string | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
+}
+
+// --- contracts & payment schedule -----------------------------------------
+
+export type ContractStatus = 'draft' | 'sent' | 'signed';
+
+export interface Contract {
+  id: UUID;
+  tenant_id: UUID;
+  project_id: UUID;
+  created_by: UUID;
+  contract_sum_pence: number;
+  terms: string | null;
+  retention_percent: number;
+  status: ContractStatus;
+  sent_at: ISODateTime | null;
+  client_signature: string | null;
+  signed_at: ISODateTime | null;
+  signed_by: UUID | null;
+  created_at: ISODateTime;
+  updated_at: ISODateTime;
+}
+
+export interface PaymentMilestone {
+  id: UUID;
+  tenant_id: UUID;
+  contract_id: UUID;
+  project_id: UUID;
+  position: number;
+  name: string;
+  /** One of percent / amount_pence carries the value. */
+  percent: number | null;
+  amount_pence: number | null;
+  is_retention: boolean;
+  /** Set once this milestone has been raised as an invoice. */
+  invoice_id: UUID | null;
+  created_at: ISODateTime;
 }
 
 export interface ProjectFinance {

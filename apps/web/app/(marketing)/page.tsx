@@ -1,22 +1,18 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import {
-  MockupProjectGrid,
-  MockupDecision,
-  MockupVariation,
-  MockupDashboard,
-} from '@/components/marketing/mockups';
+import { JourneyStrip } from '@/components/marketing/journey-strip';
+import { TradesBand } from '@/components/marketing/trades-band';
 import { FaqJsonLd } from '@/components/marketing/faq-jsonld';
 
 export const metadata: Metadata = {
   title: 'Builders Ready — the client portal for UK builders',
   description:
-    'From £20k bathrooms to £400k extensions — Builders Ready gives every UK builder a branded mobile and web client portal. Quote jobs on site, then run them: timeline, decisions, variations with signature, finance summary and project handover PDF — in one place.',
+    'One branded app that runs the whole job for UK builders — quote on site, manage the build with signed decisions and variations, hand over with a PDF, and get paid by card or bank straight to your account.',
   alternates: { canonical: 'https://buildersready.uk' },
   openGraph: {
     title: 'Builders Ready — the client portal for UK builders',
     description:
-      'The client portal UK builders use to look professional, protect margin, and end disputes about who agreed to what.',
+      'Every build, from the first quote to the final payment — the whole job in one branded app.',
     url: 'https://buildersready.uk',
     type: 'website',
     siteName: 'Builders Ready',
@@ -25,7 +21,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Builders Ready',
     description:
-      'The client portal UK builders use to look professional.',
+      'Every build, from the first quote to the final payment — one app for UK builders.',
   },
 };
 
@@ -34,49 +30,45 @@ export default function LandingPage() {
     <main>
       {/* HERO */}
       <section className="bg-gradient-to-b from-canvas to-white">
-        <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 md:grid-cols-[1.1fr_1fr] md:items-center md:py-28">
-          <div>
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.25em] text-primary">
-              For UK builders · solo trade to multi-PM firm
-            </p>
-            <h1 className="mb-5 text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">
-              Give your clients a portal they&rsquo;ll{' '}
-              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                actually open.
-              </span>
-            </h1>
-            <p className="max-w-xl text-base text-ink-muted md:text-lg">
-              Replace WhatsApp chaos, email chains and scattered spreadsheets
-              with one branded app. Quote jobs on site, then run them — live
-              progress, signed decisions, audit-trailed variations and real-time
-              finance, for you and your client.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link
-                href="/signup"
-                className="rounded-lg bg-primary px-6 py-3 text-sm font-bold text-white shadow-card hover:opacity-95"
-              >
-                Start 14-day free trial
-              </Link>
-              <Link
-                href="/features"
-                className="rounded-lg border border-hairline bg-white px-6 py-3 text-sm font-bold text-ink hover:bg-canvas"
-              >
-                See how it works →
-              </Link>
-            </div>
-            <p className="mt-3 text-xs text-ink-muted">
-              No setup fee · Cancel anytime · UK GDPR compliant
-            </p>
-            <StoreBadges className="mt-6" />
-            <p className="mt-2 text-[11px] text-ink-muted">
-              Now on iPhone and Android.
-            </p>
+        <div className="mx-auto max-w-5xl px-6 pt-16 text-center md:pt-24">
+          <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.25em] text-primary">
+            For every UK trade · decorator to multi-PM firm
+          </p>
+          <h1 className="mx-auto max-w-4xl text-4xl font-extrabold leading-[1.08] tracking-tight md:text-6xl">
+            Every build, from the first quote to{' '}
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              the final payment.
+            </span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base text-ink-muted md:text-lg">
+            The full 360 for any trade — one branded app that runs the whole job,
+            from the quote on the client&rsquo;s kitchen worktop to the money
+            landing in your bank. Two-room paint job or £400k extension, same app.
+            No WhatsApp chaos, no chasing invoices.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/signup"
+              className="rounded-lg bg-primary px-6 py-3 text-sm font-bold text-white shadow-card hover:opacity-95"
+            >
+              Start 14-day free trial
+            </Link>
+            <Link
+              href="/features"
+              className="rounded-lg border border-hairline bg-white px-6 py-3 text-sm font-bold text-ink hover:bg-canvas"
+            >
+              See how it works →
+            </Link>
           </div>
-          <div className="relative">
-            <div className="absolute -inset-6 -z-10 rounded-[40px] bg-gradient-to-br from-primary/10 to-accent/10 blur-2xl" />
-            <MockupProjectGrid className="mx-auto h-auto w-full max-w-[260px] drop-shadow-2xl" />
-          </div>
+          <p className="mt-3 text-xs text-ink-muted">
+            No setup fee · Cancel anytime · UK GDPR compliant
+          </p>
+          <StoreBadges className="mt-6 justify-center" />
+        </div>
+
+        {/* Left-to-right journey visual */}
+        <div className="mx-auto max-w-5xl px-6 pb-16 pt-12 md:pb-24">
+          <JourneyStrip />
         </div>
       </section>
 
@@ -85,277 +77,160 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-y-6 px-6 py-8 text-center text-[11px] font-semibold uppercase tracking-widest text-ink-muted md:grid-cols-4">
           <span>Built in the UK</span>
           <span>UK GDPR compliant</span>
-          <span>Stripe billing</span>
+          <span>Stripe payments</span>
           <span>iOS + Android + web</span>
         </div>
       </section>
 
-      {/* PROBLEM */}
+      {/* EVERY TRADE */}
+      <TradesBand />
+
+      {/* FEATURES */}
       <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="grid gap-12 md:grid-cols-2 md:items-center">
-          <div>
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-accent-deep">
-              The problem
-            </p>
-            <h2 className="mb-5 text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
-              Big job or small — every project deserves better than a 200-message group chat.
-            </h2>
-            <p className="text-base text-ink-muted">
-              Whether you&rsquo;re refreshing a £15k bathroom or running a
-              £400k extension, the failure modes are the same. Photo updates
-              buried in WhatsApp. Decisions agreed verbally and forgotten.
-              Variations argued about three months later. Invoices chased by
-              email. A handover folder that doesn&rsquo;t exist.
-            </p>
-            <p className="mt-4 text-base text-ink-muted">
-              The amount of money on the line scales the consequences. The
-              admin problem is identical. Clients who feel kept in the loop
-              recommend you. Clients who don&rsquo;t, query the invoice.
-            </p>
-          </div>
-          <div className="rounded-card border border-hairline bg-canvas p-7">
-            <ul className="space-y-4 text-sm">
-              <BulletProblem text="“What's happening with my project?” — three or four times a week." />
-              <BulletProblem text="“We never agreed to that variation.” — three months too late." />
-              <BulletProblem text="“Why is this invoice over the quote?” — at handover." />
-              <BulletProblem text="“Where's the certificate for the boiler?” — six months after handover." />
-              <BulletProblem text="Looking less organised than the builder quoting against you." />
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* SOLUTION */}
-      <section className="bg-canvas">
-        <div className="mx-auto max-w-7xl px-6 py-20">
-          <div className="text-center">
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-primary">
-              The solution
-            </p>
-            <h2 className="mx-auto mb-5 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
-              One app. Your branding. Everything signed off.
-            </h2>
-            <p className="mx-auto max-w-2xl text-base text-ink-muted">
-              Builders Ready replaces the patchwork. It starts with the quote —
-              built on site and accepted on the client&rsquo;s phone — then your
-              clients install one branded app, watch progress in real time, and
-              sign off decisions and variations with their finger. You ship a
-              full project record PDF at handover — quote vs final, every change,
-              every approval.
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
-            <FeatureCard
-              badge="New"
-              title="On-site quotes & estimates"
-              body="Build a quote on site from your costs and margin, send a branded PDF or a link the client accepts and signs, then turn a won quote into a project in one tap."
-            />
-            <FeatureCard
-              title="Decisions inbox"
-              body="Tile choice? Pendant lights? Send your client a few options with photos. They tap. Signed and logged."
-            />
-            <FeatureCard
-              title="Variations with signature"
-              body="Propose with title, description, cost delta and time impact. Client signs on their phone. Disputes end."
-            />
-            <FeatureCard
-              title="Project handover PDF"
-              body="One document at the end of the project — timeline, every update, every decision, every variation, every invoice."
-            />
-            <FeatureCard
-              title="Live project finance"
-              body="Quote vs final. Variations to date. Invoiced vs paid. At a glance, on your phone or your client's."
-            />
-            <FeatureCard
-              title="Timeline & photo updates"
-              body="Post site updates with photos straight from the van. Clients see progress as it happens."
-            />
-            <FeatureCard
-              title="Push notifications"
-              body="Real-time alerts for new decisions, signed variations, and updates. For you and your client."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* MOBILE SHOWCASE */}
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <div className="grid gap-12 md:grid-cols-2 md:items-center">
-          <div>
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-primary">
-              On the phone
-            </p>
-            <h2 className="mb-5 text-3xl font-extrabold leading-tight tracking-tight">
-              Mobile-first because that&rsquo;s where decisions happen.
-            </h2>
-            <p className="text-base text-ink-muted">
-              Your client&rsquo;s real life happens on their phone. Post an
-              update from the site. Raise a decision while standing next to
-              the tile sample. Sign off a variation between meetings. The
-              entire workflow fits into 30 seconds of phone time.
-            </p>
-            <ul className="mt-7 space-y-3 text-sm">
-              <BulletGood text="Push notifications the second anything changes" />
-              <BulletGood text="Open decisions inbox shows everything awaiting client action" />
-              <BulletGood text="Tap-to-accept and finger-sign with full audit trail" />
-              <BulletGood text="Live finance summary scrolls right under the timeline" />
-            </ul>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <MockupDecision className="h-auto w-full drop-shadow-xl" />
-            <MockupVariation className="h-auto w-full drop-shadow-xl" />
-          </div>
-        </div>
-      </section>
-
-      {/* WEB SHOWCASE */}
-      <section className="bg-canvas">
-        <div className="mx-auto max-w-7xl px-6 py-20">
-          <div className="grid gap-12 md:grid-cols-2 md:items-center">
-            <div className="order-2 md:order-1">
-              <MockupDashboard className="h-auto w-full rounded-2xl shadow-2xl ring-1 ring-hairline" />
-            </div>
-            <div className="order-1 md:order-2">
-              <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-primary">
-                On the desktop
-              </p>
-              <h2 className="mb-5 text-3xl font-extrabold leading-tight tracking-tight">
-                Web admin for setup, oversight and answering the phone.
-              </h2>
-              <p className="text-base text-ink-muted">
-                Spin up new projects in 60 seconds. See cross-project finance
-                across every active job. When a client phones, open the web
-                dashboard and answer with the same data they&rsquo;re looking
-                at — no scrolling through threads.
-              </p>
-              <ul className="mt-7 space-y-3 text-sm">
-                <BulletGood text="Cross-project KPI tiles: contracted, invoiced, paid, outstanding" />
-                <BulletGood text="Open-decisions / unpaid-invoices / unsigned-variations panels" />
-                <BulletGood text="Per-project: raise decisions, propose variations, create invoices, upload PDFs" />
-                <BulletGood text="One-click project handover PDF generation" />
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* PRICING SNAPSHOT */}
-      <section id="pricing" className="mx-auto max-w-7xl px-6 py-20">
         <div className="text-center">
           <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-primary">
-            Pricing
+            Everything in one place
           </p>
-          <h2 className="mb-3 text-3xl font-extrabold tracking-tight">
-            Simple. Scales with how many jobs you&rsquo;re running.
+          <h2 className="mx-auto mb-4 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
+            The whole job, one app.
           </h2>
-          <p className="mb-12 text-sm text-ink-muted">
-            All features are included at every tier. 14-day free trial, no
-            setup fee.
+          <p className="mx-auto max-w-2xl text-base text-ink-muted">
+            Replace the WhatsApp threads, email chains and scattered
+            spreadsheets. Every feature is included on every plan.
           </p>
         </div>
-        <div className="grid gap-5 md:grid-cols-3">
-          <PricingTier
-            name="Starter"
-            price="£29"
-            cap="Up to 10 active projects"
-            bestFor="Sole traders and small builders. Bathrooms, kitchens, refurbs — keep every job on one app."
+
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <FeatureCard
+            badge="New"
+            title="On-site quotes"
+            body="Build the quote on your phone from cost and margin, send a branded PDF or link the client accepts and signs, then turn a won quote into a project in one tap."
           />
-          <PricingTier
-            name="Pro"
-            price="£69"
-            cap="Up to 50 active projects"
-            bestFor="Established builders running multiple concurrent projects."
-            highlight
+          <FeatureCard
+            title="Live build updates"
+            body="A timeline that fits the job — pick your trade and it seeds the right stages, from a single step to a full build. Post site photos and updates straight from the van; your client sees them within seconds."
           />
-          <PricingTier
-            name="Unlimited"
-            price="£149"
-            cap="Unlimited active projects"
-            bestFor="Larger residential firms with a full PM team."
+          <FeatureCard
+            title="Decisions & variations"
+            body="Send options with photos and prices; the client taps to choose. Propose variations they sign with their finger. Every change audit-trailed."
+          />
+          <FeatureCard
+            badge="New"
+            title="Contracts & staged payments"
+            body="A signable contract with your terms and a clear payment schedule — deposit, stages, completion — with a retention held back until snagging."
+          />
+          <FeatureCard
+            badge="New"
+            title="Get paid in the app"
+            body="Clients pay milestone invoices by card or bank, straight to your account. Money lands the day a milestone is signed off — no chasing transfers."
+          />
+          <FeatureCard
+            title="Costs, margin & handover"
+            body="Log materials, labour and subbie invoices for a live margin only your team sees. Finish with a one-tap handover PDF of the whole job."
           />
         </div>
+
         <div className="mt-10 text-center">
-          <p className="text-xs text-ink-muted">
-            All prices exclude VAT. Annual billing saves you two months.
-          </p>
           <Link
-            href="/pricing"
-            className="mt-4 inline-block text-sm font-semibold text-primary hover:underline"
+            href="/features"
+            className="text-sm font-semibold text-primary hover:underline"
           >
-            See the full comparison →
+            See every feature in detail →
           </Link>
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* PRICING SNAPSHOT */}
       <section className="bg-canvas">
-        <div className="mx-auto max-w-3xl px-6 py-20">
-          <FaqJsonLd
-            items={[
-              {
-                q: 'Can I build and send quotes from Builders Ready?',
-                a: 'Yes. You can build a full quote on site from your own costs and margin, save your regular rates to reuse, and send it as a branded PDF or a link the client accepts and signs on their phone. When a quote is won, it turns straight into a project.',
-              },
-              {
-                q: 'I only do small jobs — is this overkill?',
-                a: 'No. The £29 Starter tier exists precisely for sole traders and small builders running a handful of projects a year. The same app that runs a £400k extension will run your £18k bathroom refresh.',
-              },
-              {
-                q: 'Do my clients have to learn another app?',
-                a: 'They install one app — Builders Ready — branded with your logo and colours. Set up takes 90 seconds. They get push notifications for decisions and updates.',
-              },
-              {
-                q: 'Can my project managers use it too?',
-                a: 'Yes. Owners and project managers can post updates, raise decisions, propose variations, mark invoices paid, and generate the handover PDF — from web or mobile.',
-              },
-              {
-                q: 'What about data security?',
-                a: 'UK GDPR compliant, hosted in the UK and EU. We do not sell your data or share it with advertisers. Every database query is row-level-secured: a client can only see their own project.',
-              },
-              {
-                q: 'What if I hit my tier limit?',
-                a: 'You can archive a finished project to free a slot, or upgrade. Either way, no data is lost.',
-              },
-              {
-                q: 'Is there a mobile app for iPhone and Android?',
-                a: 'Yes — Builders Ready is live on both the Apple App Store and Google Play, so your clients can use it whatever phone they are on. There is also a responsive web app for any device with a browser.',
-              },
-            ]}
-          />
-          <h2 className="mb-10 text-center text-3xl font-extrabold tracking-tight">
-            Common questions
-          </h2>
-          <div className="space-y-6">
-            <Faq
-              q="Can I build and send quotes from Builders Ready?"
-              a="Yes. Build a full quote on site from your own costs and margin, save your regular rates to reuse, and send it as a branded PDF or a link the client accepts and signs on their phone. Win it, and it becomes a project in one tap."
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <div className="text-center">
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-primary">
+              Pricing
+            </p>
+            <h2 className="mb-3 text-3xl font-extrabold tracking-tight">
+              Priced by how many jobs you&rsquo;re running.
+            </h2>
+            <p className="mb-12 text-sm text-ink-muted">
+              Every feature on every tier. 14-day free trial, no setup fee.
+            </p>
+          </div>
+          <div className="grid gap-5 md:grid-cols-3">
+            <PricingTier
+              name="Starter"
+              price="£29"
+              cap="Up to 5 active projects"
+              bestFor="Sole traders and small builders — bathrooms, kitchens, refurbs."
             />
-            <Faq
-              q="I only do small jobs — is this overkill?"
-              a="No. The £29 Starter tier exists precisely for sole traders and small builders running a handful of projects a year. The same app that runs a £400k extension will run your £18k bathroom refresh — and your client will notice the polish straight away."
+            <PricingTier
+              name="Pro"
+              price="£69"
+              cap="Up to 15 active projects"
+              bestFor="Established builders running multiple concurrent projects."
+              highlight
             />
-            <Faq
-              q="Do my clients have to learn another app?"
-              a="They install one app — Builders Ready — branded with your logo and colours. Set up takes 90 seconds. They get push notifications for decisions and updates, which is the only thing they need to know."
-            />
-            <Faq
-              q="Can my project managers use it too?"
-              a="Yes. Owners and project managers can post updates, raise decisions, propose variations, mark invoices paid, and generate the handover PDF — from web or mobile."
-            />
-            <Faq
-              q="What about data security?"
-              a="UK GDPR compliant, hosted in the UK and EU. We don't sell your data, and we don't share it with advertisers. Every database query is row-level-secured: a client can only see their own project, and only data for their builder."
-            />
-            <Faq
-              q="What if I hit my tier limit?"
-              a="You can archive a finished project to free a slot — projects you've handed over don't need to count against your active limit. Or upgrade. Either way, no data is lost."
-            />
-            <Faq
-              q="Is there a mobile app for iPhone and Android?"
-              a="Yes — Builders Ready is live on both the Apple App Store and Google Play, so your clients can use it whatever phone they're on. There's also a responsive web app for any device with a browser."
+            <PricingTier
+              name="Unlimited"
+              price="£149"
+              cap="Unlimited active projects"
+              bestFor="Larger residential firms with a full PM team."
             />
           </div>
+          <div className="mt-10 text-center">
+            <p className="text-xs text-ink-muted">
+              All prices exclude VAT. Annual billing saves you two months.
+            </p>
+            <Link
+              href="/pricing"
+              className="mt-4 inline-block text-sm font-semibold text-primary hover:underline"
+            >
+              See the full comparison →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="mx-auto max-w-3xl px-6 py-20">
+        <FaqJsonLd
+          items={[
+            {
+              q: 'Can I build and send quotes from Builders Ready?',
+              a: 'Yes. Build a full quote on site from your own costs and margin, save your regular rates to reuse, and send it as a branded PDF or a link the client accepts and signs on their phone. Win it, and it becomes a project in one tap.',
+            },
+            {
+              q: 'How do clients pay, and what does it cost?',
+              a: 'Clients can pay milestone invoices by card or bank straight to your own account via Stripe. Builders Ready adds a flat £3 per payment (free on the Unlimited plan) — never a percentage, so a big milestone never costs you more. It is entirely optional: you can also just use manual invoices and mark them paid yourself.',
+            },
+            {
+              q: 'I only do small jobs — is this overkill?',
+              a: 'No. The £29 Starter tier exists precisely for sole traders and small builders running a handful of projects a year. The same app that runs a £400k extension will run your £18k bathroom refresh — and your client will notice the polish straight away.',
+            },
+            {
+              q: 'What about data security?',
+              a: 'UK GDPR compliant, hosted in the UK and EU. We do not sell your data or share it with advertisers. Every database query is row-level-secured: a client can only see their own project.',
+            },
+          ]}
+        />
+        <h2 className="mb-10 text-center text-3xl font-extrabold tracking-tight">
+          Common questions
+        </h2>
+        <div className="space-y-6">
+          <Faq
+            q="Can I build and send quotes from Builders Ready?"
+            a="Yes. Build a full quote on site from your own costs and margin, save your regular rates to reuse, and send it as a branded PDF or a link the client accepts and signs on their phone. Win it, and it becomes a project in one tap."
+          />
+          <Faq
+            q="How do clients pay, and what does it cost?"
+            a="Clients can pay milestone invoices by card or bank straight to your own account via Stripe. Builders Ready adds a flat £3 per payment (free on Unlimited) — never a percentage, so a big milestone never costs you more. It's optional too: you can stick to manual invoices and mark them paid yourself."
+          />
+          <Faq
+            q="I only do small jobs — is this overkill?"
+            a="No. The £29 Starter tier exists precisely for sole traders and small builders running a handful of projects a year. The same app that runs a £400k extension will run your £18k bathroom refresh — and your client will notice the polish straight away."
+          />
+          <Faq
+            q="What about data security?"
+            a="UK GDPR compliant, hosted in the UK and EU. We don't sell your data, and we don't share it with advertisers. Every database query is row-level-secured: a client can only see their own project, and only data for their builder."
+          />
         </div>
       </section>
 
@@ -366,8 +241,8 @@ export default function LandingPage() {
             Look more professional than the builder quoting against you.
           </h2>
           <p className="mx-auto mb-8 max-w-xl text-base opacity-90">
-            From £29/mo. 14-day free trial. Works whether you do six projects
-            a year or sixty.
+            From £29/mo. 14-day free trial. Works whether you do six projects a
+            year or sixty.
           </p>
           <Link
             href="/signup"
@@ -378,34 +253,6 @@ export default function LandingPage() {
         </div>
       </section>
     </main>
-  );
-}
-
-function BulletProblem({ text }: { text: string }) {
-  return (
-    <li className="flex items-start gap-3">
-      <span className="mt-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-error" />
-      <span className="text-ink">{text}</span>
-    </li>
-  );
-}
-
-function BulletGood({ text }: { text: string }) {
-  return (
-    <li className="flex items-start gap-3">
-      <svg
-        className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary"
-        viewBox="0 0 20 20"
-        fill="currentColor"
-      >
-        <path
-          fillRule="evenodd"
-          d="M16.7 5.3a1 1 0 010 1.4l-7.4 7.4a1 1 0 01-1.4 0L3.3 9.5A1 1 0 014.7 8.1l3 3 6.7-6.7a1 1 0 011.3-.1z"
-          clipRule="evenodd"
-        />
-      </svg>
-      <span className="text-ink">{text}</span>
-    </li>
   );
 }
 

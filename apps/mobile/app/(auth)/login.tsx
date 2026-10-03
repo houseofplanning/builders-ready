@@ -11,10 +11,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { palette, spacing, radius, typography } from '@br/shared';
 import { supabase } from '../../lib/supabase';
 
 export default function LoginScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -112,8 +114,19 @@ export default function LoginScreen() {
               screen sign-in-only.
             */}
             <Text style={styles.linkText}>
-              Use the same details you signed up with on the web.
+              Tradespeople: use the details you signed up with on the web.
             </Text>
+
+            <TouchableOpacity
+              onPress={() => router.push('/signup')}
+              activeOpacity={0.7}
+              style={styles.linkRow}
+            >
+              <Text style={styles.linkText}>
+                Looking to hire a trade?{' '}
+                <Text style={styles.linkStrong}>Create a free account</Text>
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -133,6 +133,7 @@ export interface CreateEstimateInput {
   tenant_id: UUID;
   created_by: UUID;
   title: string;
+  project_type: string | null;
   client_name: string;
   client_email: string | null;
   client_phone: string | null;
@@ -164,6 +165,7 @@ export async function createEstimate(input: CreateEstimateInput): Promise<UUID> 
         created_by: input.created_by,
         number,
         title: input.title,
+        project_type: input.project_type ?? null,
         client_name: input.client_name,
         client_email: input.client_email,
         client_phone: input.client_phone,
@@ -228,6 +230,7 @@ export async function updateEstimate(input: UpdateEstimateInput): Promise<void> 
     .from('estimates')
     .update({
       title: input.title,
+      project_type: input.project_type ?? null,
       client_name: input.client_name,
       client_email: input.client_email,
       client_phone: input.client_phone,
@@ -419,6 +422,7 @@ export async function duplicateEstimate(
     tenant_id: tenantId,
     created_by: createdBy,
     title: `${src.title} (copy)`,
+    project_type: src.project_type,
     client_name: src.client_name,
     client_email: src.client_email,
     client_phone: src.client_phone,

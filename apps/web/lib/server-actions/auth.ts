@@ -202,7 +202,9 @@ export async function signInAction(
   const slug = (membership?.tenant as { slug?: string } | null)?.slug;
   return {
     ok: true,
-    redirectTo: slug ? `/${slug}/dashboard` : '/onboarding/branding',
+    // A user with a tenant membership is a trade → their dashboard.
+    // No membership → they're a customer → the marketplace area.
+    redirectTo: slug ? `/${slug}/dashboard` : '/me',
   };
 }
 
