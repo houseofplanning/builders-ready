@@ -1072,11 +1072,15 @@ export interface Invoice {
   status: string;
   due_at: string;
   cash_requested_at: string | null;
+  bank_requested_at: string | null;
+  allow_card: boolean;
+  allow_bank_transfer: boolean;
+  allow_cash: boolean;
 }
 export async function listProjectInvoices(projectId: UUID): Promise<Invoice[]> {
   const { data } = await supabase
     .from('invoices')
-    .select('id, number, title, amount_gbp_pence, status, due_at, cash_requested_at')
+    .select('id, number, title, amount_gbp_pence, status, due_at, cash_requested_at, bank_requested_at, allow_card, allow_bank_transfer, allow_cash')
     .eq('project_id', projectId)
     .order('issued_at', { ascending: false });
   return (data ?? []).map((i) => ({
@@ -1087,13 +1091,45 @@ export async function listProjectInvoices(projectId: UUID): Promise<Invoice[]> {
     status: i.status,
     due_at: i.due_at,
     cash_requested_at: (i.cash_requested_at as string | null) ?? null,
+    bank_requested_at: (i.bank_requested_at as string | null) ?? null,
+    allow_card: i.allow_card ?? true,
+    allow_bank_transfer: i.allow_bank_transfer ?? true,
+    allow_cash: i.allow_cash ?? true,
   }));
+}
+
+/** Builder payment readiness + bank details for a project the caller is the
+ *  client of. Served by a SECURITY DEFINER RPC so the client can see how to
+ *  pay without being able to read the tenants table directly. */
+export interface ProjectPaymentDetails {
+  card_ready: boolean;
+  bank_ready: boolean;
+  bank_name: string | null;
+  bank_account_name: string | null;
+  bank_sort_code: string | null;
+  bank_account_number: string | null;
+}
+export async function getProjectPaymentDetails(
+  projectId: UUID,
+): Promise<ProjectPaymentDetails | null> {
+  const { data, error } = await supabase.rpc('project_payment_details', {
+    p_project: projectId,
+  });
+  if (error || !data) return null;
+  const d = (Array.isArray(data) ? data[0] : data) as ProjectPaymentDetails | undefined;
+  return d ?? null;
 }
 
 /** Customer flags that they intend to pay this invoice in cash; the builder
  *  then confirms receipt. Builder-confirms model keeps 'paid' trustworthy. */
 export async function requestCashPayment(invoiceId: UUID): Promise<void> {
   const { error } = await supabase.rpc('request_cash_payment', { p_invoice: invoiceId });
+  if (error) throw new Error(error.message);
+}
+
+/** Customer flags that they've paid by bank transfer; the builder confirms. */
+export async function requestBankPayment(invoiceId: UUID): Promise<void> {
+  const { error } = await supabase.rpc('request_bank_payment', { p_invoice: invoiceId });
   if (error) throw new Error(error.message);
 }
 

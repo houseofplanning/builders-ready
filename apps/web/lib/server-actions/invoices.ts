@@ -21,6 +21,9 @@ const invoiceCreateSchema = z.object({
   issued_at: isoDate,
   due_at: isoDate,
   status: z.enum(['draft', 'sent']).default('sent'),
+  allow_card: z.boolean().default(true),
+  allow_bank_transfer: z.boolean().default(true),
+  allow_cash: z.boolean().default(true),
 });
 
 export async function createInvoiceOnWeb(
@@ -63,6 +66,9 @@ export async function createInvoiceOnWeb(
       issued_at: parsed.data.issued_at,
       due_at: parsed.data.due_at,
       status: parsed.data.status,
+      allow_card: parsed.data.allow_card,
+      allow_bank_transfer: parsed.data.allow_bank_transfer,
+      allow_cash: parsed.data.allow_cash,
     })
     .select('id')
     .single();

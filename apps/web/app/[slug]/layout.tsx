@@ -1,6 +1,7 @@
 import { requireTenantBySlug } from '@/lib/tenant-resolver';
 import { buildTenantPalette, paletteToCssVars } from '@br/shared';
 import { TenantHeader } from '@/components/tenant-header';
+import { StripeSetupBanner } from '@/components/stripe-setup-banner';
 
 interface Props {
   children: React.ReactNode;
@@ -26,6 +27,9 @@ export default async function TenantLayout({ children, params }: Props) {
   return (
     <div style={cssVars} className="min-h-screen bg-canvas">
       <TenantHeader tenant={tenant} role={role} />
+      {(role === 'owner' || role === 'pm') && !tenant.connect_charges_enabled && (
+        <StripeSetupBanner slug={tenant.slug} tenantId={tenant.id} />
+      )}
       <main className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">{children}</main>
     </div>
   );

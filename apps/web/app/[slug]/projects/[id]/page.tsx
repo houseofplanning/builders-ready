@@ -37,6 +37,7 @@ export default async function ProjectDetail({ params }: Props) {
   const { tenant, role } = await requireTenantBySlug(slug);
   const canWrite = role === 'owner' || role === 'pm';
   const paymentsEnabled = !!tenant.connect_charges_enabled;
+  const bankReady = !!(tenant.bank_account_number && tenant.bank_sort_code);
 
   const supabase = await createSupabaseServer();
 
@@ -99,7 +100,7 @@ export default async function ProjectDetail({ params }: Props) {
     supabase
       .from('invoices')
       .select(
-        'id, number, title, description, amount_gbp_pence, issued_at, due_at, status, paid_at, paid_reference, stripe_payment_intent_id, cash_requested_at',
+        'id, number, title, description, amount_gbp_pence, issued_at, due_at, status, paid_at, paid_reference, stripe_payment_intent_id, cash_requested_at, bank_requested_at',
       )
       .eq('project_id', id)
       .order('issued_at', { ascending: false }),
@@ -503,6 +504,7 @@ export default async function ProjectDetail({ params }: Props) {
         canWrite={canWrite}
         suggestedNextNumber={nextInvoiceNumber}
         paymentsEnabled={paymentsEnabled}
+        bankReady={bankReady}
       />
 
       {/* CONTRACT & PAYMENT SCHEDULE — visible to all with access */}

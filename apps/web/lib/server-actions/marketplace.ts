@@ -528,3 +528,15 @@ export async function requestCashPaymentAsCustomer(
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
+
+// Customer flags that they've paid this invoice by bank transfer; the builder
+// confirms once the money lands (mirrors the cash flow).
+export async function requestBankPaymentAsCustomer(
+  invoiceId: string,
+): Promise<MarketplaceResult> {
+  await requireCustomer();
+  const supabase = await createSupabaseServer();
+  const { error } = await supabase.rpc('request_bank_payment', { p_invoice: invoiceId });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

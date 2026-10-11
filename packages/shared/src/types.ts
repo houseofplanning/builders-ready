@@ -226,12 +226,40 @@ export interface Invoice {
   amount_gbp_pence: number;
   issued_at: ISODate;
   due_at: ISODate;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
   paid_at: ISODateTime | null;
   paid_reference: string | null;
   paid_marked_by: UUID | null;
+  paid_via: 'card' | 'bank' | 'bank_transfer' | 'cash' | 'manual' | null;
+  // Per-invoice payment methods the builder offers the client. The UI also
+  // hides card unless Stripe is connected and bank unless bank details exist.
+  allow_card: boolean;
+  allow_bank_transfer: boolean;
+  allow_cash: boolean;
+  // Client "I'll pay by …" flags; the builder confirms receipt.
+  cash_requested_at: ISODateTime | null;
+  bank_requested_at: ISODateTime | null;
   created_at: ISODateTime;
   updated_at: ISODateTime;
+}
+
+/** A payment method offered on an invoice. */
+export type PaymentMethod = 'card' | 'bank' | 'cash';
+
+/**
+ * Which methods to actually show the client: the builder's per-invoice
+ * toggles, minus any that aren't usable yet (card needs Stripe connected,
+ * bank needs the builder's bank details saved).
+ */
+export function offerableInvoiceMethods(
+  inv: Pick<Invoice, 'allow_card' | 'allow_bank_transfer' | 'allow_cash'>,
+  ready: { cardReady: boolean; bankReady: boolean },
+): PaymentMethod[] {
+  const methods: PaymentMethod[] = [];
+  if (inv.allow_card && ready.cardReady) methods.push('card');
+  if (inv.allow_bank_transfer && ready.bankReady) methods.push('bank');
+  if (inv.allow_cash) methods.push('cash');
+  return methods;
 }
 
 // --- decisions / variations (BR v1 differentiators) -----------------------

@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
-import { palette, spacing, typography, radius, gbp, relativeTime, formatDate } from '@br/shared';
+import { palette, spacing, typography, radius, gbp, relativeTime, formatDate, offerableInvoiceMethods, type PaymentMethod } from '@br/shared';
 import { useTenant } from '../../../lib/tenant-provider';
 import {
   getCustomerProject,
@@ -29,11 +29,14 @@ import {
   signVariation,
   payInvoice,
   requestCashPayment,
+  requestBankPayment,
+  getProjectPaymentDetails,
   getHandoverUrl,
   type ProjectHeader,
   type Stage,
   type Update,
   type Invoice,
+  type ProjectPaymentDetails,
   type OpenDecision,
   type ProposedVariation,
 } from '../../../lib/marketplace';
@@ -55,18 +58,20 @@ export default function CustomerProject() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [decisions, setDecisions] = useState<OpenDecision[]>([]);
   const [variations, setVariations] = useState<ProposedVariation[]>([]);
+  const [payInfo, setPayInfo] = useState<ProjectPaymentDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!id) return;
     try {
-      const [p, s, u, inv, d, v] = await Promise.all([
+      const [p, s, u, inv, d, v, pay] = await Promise.all([
         getCustomerProject(id),
         listProjectStages(id),
         listProjectUpdates(id),
         listProjectInvoices(id),
         listOpenDecisions(id),
         listProposedVariations(id),
+        getProjectPaymentDetails(id),
       ]);
       setProject(p);
       setStages(s);
@@ -74,6 +79,7 @@ export default function CustomerProject() {
       setInvoices(inv);
       setDecisions(d);
       setVariations(v);
+      setPayInfo(pay);
     } catch {
       // Stop the spinner on failure so the screen isn't stuck; pull-to-refresh retries.
     } finally {
@@ -124,6 +130,10 @@ export default function CustomerProject() {
   }
 
   const unpaid = invoices.filter((i) => i.status === 'sent' || i.status === 'overdue');
+  const cardReady = !!payInfo?.card_ready;
+  const bankReady = !!payInfo?.bank_ready;
+  const methodsFor = (i: Invoice): PaymentMethod[] =>
+    offerableInvoiceMethods(i, { cardReady, bankReady });
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.canvas }}>
@@ -174,7 +184,14 @@ export default function CustomerProject() {
               <VariationCard key={v.id} v={v} userId={user_id ?? ''} onDone={load} />
             ))}
             {unpaid.map((i) => (
-              <InvoiceRow key={i.id} i={i} pay onDone={load} />
+              <InvoiceRow
+                key={i.id}
+                i={i}
+                pay
+                methods={methodsFor(i)}
+                bankDetails={payInfo}
+                onDone={load}
+              />
             ))}
           </>
         )}
@@ -224,6 +241,8 @@ export default function CustomerProject() {
                 key={i.id}
                 i={i}
                 pay={i.status === 'sent' || i.status === 'overdue'}
+                methods={methodsFor(i)}
+                bankDetails={payInfo}
                 onDone={load}
               />
             ))}
@@ -335,8 +354,21 @@ function VariationCard({ v, userId, onDone }: { v: ProposedVariation; userId: st
   );
 }
 
-function InvoiceRow({ i, pay, onDone }: { i: Invoice; pay: boolean; onDone: () => void }) {
+function InvoiceRow({
+  i,
+  pay,
+  methods = [],
+  bankDetails,
+  onDone,
+}: {
+  i: Invoice;
+  pay: boolean;
+  methods?: PaymentMethod[];
+  bankDetails?: ProjectPaymentDetails | null;
+  onDone: () => void;
+}) {
   const [busy, setBusy] = useState(false);
+  const [showBank, setShowBank] = useState(false);
   async function onPay() {
     setBusy(true);
     try {
@@ -371,6 +403,17 @@ function InvoiceRow({ i, pay, onDone }: { i: Invoice; pay: boolean; onDone: () =
       ],
     );
   }
+  async function onBankConfirm() {
+    setBusy(true);
+    try {
+      await requestBankPayment(i.id);
+      onDone();
+    } catch (e) {
+      Alert.alert('Error', e instanceof Error ? e.message : 'Could not update.');
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <View style={styles.card}>
       <View style={styles.invRow}>
@@ -392,17 +435,61 @@ function InvoiceRow({ i, pay, onDone }: { i: Invoice; pay: boolean; onDone: () =
       {i.status !== 'paid' && pay && (
         i.cash_requested_at ? (
           <Text style={styles.cashNote}>
-            Cash payment flagged — waiting for your builder to confirm receipt.
+            ✓ Cash payment flagged — waiting for your builder to confirm receipt.
           </Text>
+        ) : i.bank_requested_at ? (
+          <Text style={styles.cashNote}>
+            ✓ Bank transfer flagged — waiting for your builder to confirm receipt.
+          </Text>
+        ) : methods.length === 0 ? (
+          <Text style={styles.cashNote}>Your builder will confirm payment.</Text>
         ) : (
-          <View style={styles.invActions}>
-            <TouchableOpacity disabled={busy} onPress={onPay} style={[styles.payBtn, { flex: 1 }]}>
-              <Text style={styles.payBtnText}>{busy ? '…' : 'Pay by card'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity disabled={busy} onPress={onCash} style={styles.cashBtn}>
-              <Text style={styles.cashBtnText}>I&rsquo;ll pay in cash</Text>
-            </TouchableOpacity>
-          </View>
+          <>
+            <View style={styles.invActions}>
+              {methods.includes('card') && (
+                <TouchableOpacity disabled={busy} onPress={onPay} style={[styles.payBtn, { flex: 1 }]}>
+                  <Text style={styles.payBtnText}>{busy ? '…' : 'Pay by card'}</Text>
+                </TouchableOpacity>
+              )}
+              {methods.includes('bank') && (
+                <TouchableOpacity
+                  disabled={busy}
+                  onPress={() => setShowBank((v) => !v)}
+                  style={styles.cashBtn}
+                >
+                  <Text style={styles.cashBtnText}>Bank transfer</Text>
+                </TouchableOpacity>
+              )}
+              {methods.includes('cash') && (
+                <TouchableOpacity disabled={busy} onPress={onCash} style={styles.cashBtn}>
+                  <Text style={styles.cashBtnText}>Pay in cash</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {showBank && methods.includes('bank') && (
+              <View style={styles.bankPanel}>
+                <Text style={styles.bankHead}>Transfer to</Text>
+                {!!bankDetails?.bank_account_name && (
+                  <Text style={styles.bankLine}>Name: {bankDetails.bank_account_name}</Text>
+                )}
+                {!!bankDetails?.bank_name && (
+                  <Text style={styles.bankLine}>Bank: {bankDetails.bank_name}</Text>
+                )}
+                {!!bankDetails?.bank_sort_code && (
+                  <Text style={styles.bankLine}>Sort code: {bankDetails.bank_sort_code}</Text>
+                )}
+                {!!bankDetails?.bank_account_number && (
+                  <Text style={styles.bankLine}>Account no: {bankDetails.bank_account_number}</Text>
+                )}
+                <Text style={styles.cashNote}>
+                  Use your project name as the reference. Once you&rsquo;ve sent it, tap below.
+                </Text>
+                <TouchableOpacity disabled={busy} onPress={onBankConfirm} style={styles.solidBtn}>
+                  <Text style={styles.solidBtnText}>{busy ? '…' : "I've paid by bank transfer"}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
         )
       )}
     </View>
@@ -515,6 +602,23 @@ const styles = StyleSheet.create({
   cashBtn: { borderWidth: 1, borderColor: palette.primary, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 10, alignItems: 'center' },
   cashBtnText: { color: palette.primary, fontSize: typography.size.sm, fontWeight: typography.weightBold as '700' },
   cashNote: { fontSize: typography.size.xs, color: palette.inkMuted, marginTop: spacing.sm, lineHeight: 16 },
+  bankPanel: {
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: palette.hairline,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    backgroundColor: palette.canvas,
+  },
+  bankHead: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weightBold as '700',
+    color: palette.inkMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  bankLine: { fontSize: typography.size.sm, color: palette.ink, marginTop: 2 },
   handoverBtn: {
     flexDirection: 'row',
     alignItems: 'center',

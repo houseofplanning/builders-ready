@@ -22,6 +22,7 @@ export interface InvoiceRow {
   paid_reference: string | null;
   stripe_payment_intent_id?: string | null;
   cash_requested_at?: string | null;
+  bank_requested_at?: string | null;
 }
 
 export function InvoicesSection({
@@ -30,6 +31,7 @@ export function InvoicesSection({
   canWrite,
   suggestedNextNumber,
   paymentsEnabled = false,
+  bankReady = false,
 }: {
   projectId: string;
   invoices: InvoiceRow[];
@@ -37,6 +39,8 @@ export function InvoicesSection({
   suggestedNextNumber: string;
   /** Builder's Stripe Connect account can accept payments — show "Pay now". */
   paymentsEnabled?: boolean;
+  /** Builder has saved bank details — bank transfer can be offered. */
+  bankReady?: boolean;
 }) {
   const [showForm, setShowForm] = useState(false);
 
@@ -82,6 +86,8 @@ export function InvoicesSection({
             projectId={projectId}
             suggestedNumber={suggestedNextNumber}
             onDone={() => setShowForm(false)}
+            paymentsEnabled={paymentsEnabled}
+            bankReady={bankReady}
           />
         </div>
       )}
@@ -174,6 +180,14 @@ function InvoiceRowComponent({
     });
   }
 
+  function onConfirmBank() {
+    setError(null);
+    startTransition(async () => {
+      const res = await markInvoicePaid({ invoice_id: invoice.id, method: 'bank_transfer' });
+      if (!res.ok) setError(res.error ?? 'Failed.');
+    });
+  }
+
   const overdue =
     (invoice.status === 'sent' || invoice.status === 'overdue') &&
     new Date(invoice.due_at) < new Date();
@@ -222,6 +236,22 @@ function InvoiceRowComponent({
                     className="rounded-lg bg-primary px-3 py-1 text-[11px] font-bold text-white disabled:opacity-60"
                   >
                     {pending ? 'Saving…' : 'Confirm cash received'}
+                  </button>
+                )}
+              </div>
+            )}
+          {invoice.bank_requested_at &&
+            (invoice.status === 'sent' || invoice.status === 'overdue') && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <span className="font-semibold">Customer says they&apos;ve paid by bank transfer.</span>
+                {canWrite && (
+                  <button
+                    type="button"
+                    onClick={onConfirmBank}
+                    disabled={pending}
+                    className="rounded-lg bg-primary px-3 py-1 text-[11px] font-bold text-white disabled:opacity-60"
+                  >
+                    {pending ? 'Saving…' : 'Confirm bank transfer received'}
                   </button>
                 )}
               </div>
@@ -298,13 +328,20 @@ function NewInvoiceForm({
   projectId,
   suggestedNumber,
   onDone,
+  paymentsEnabled,
+  bankReady,
 }: {
   projectId: string;
   suggestedNumber: string;
   onDone: () => void;
+  paymentsEnabled: boolean;
+  bankReady: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [allowCard, setAllowCard] = useState(paymentsEnabled);
+  const [allowBank, setAllowBank] = useState(bankReady);
+  const [allowCash, setAllowCash] = useState(true);
 
   const today = new Date().toISOString().slice(0, 10);
   const thirty = new Date(Date.now() + 30 * 86400 * 1000)
@@ -341,6 +378,9 @@ function NewInvoiceForm({
         issued_at,
         due_at,
         status,
+        allow_card: allowCard,
+        allow_bank_transfer: allowBank,
+        allow_cash: allowCash,
       });
       if (!res.ok) {
         setError(res.error ?? 'Failed.');
@@ -389,6 +429,48 @@ function NewInvoiceForm({
           required
         />
       </div>
+      <div>
+        <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+          How can the client pay this invoice?
+        </span>
+        <div className="flex flex-wrap gap-4 rounded-lg border border-hairline bg-canvas px-3 py-2.5">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={allowCard}
+              disabled={!paymentsEnabled}
+              onChange={(e) => setAllowCard(e.target.checked)}
+            />
+            <span className={paymentsEnabled ? 'text-ink' : 'text-ink-muted'}>
+              Card{!paymentsEnabled && ' (set up Stripe first)'}
+            </span>
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={allowBank}
+              disabled={!bankReady}
+              onChange={(e) => setAllowBank(e.target.checked)}
+            />
+            <span className={bankReady ? 'text-ink' : 'text-ink-muted'}>
+              Bank transfer{!bankReady && ' (add bank details first)'}
+            </span>
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={allowCash}
+              onChange={(e) => setAllowCash(e.target.checked)}
+            />
+            <span className="text-ink">Cash</span>
+          </label>
+        </div>
+        <p className="mt-1 text-[11px] text-ink-muted">
+          The client sees only the methods you tick. Bank transfer shows your saved
+          bank details; cash and bank transfer are confirmed by you once received.
+        </p>
+      </div>
+
       <label className="block">
         <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
           Send now or save as draft?

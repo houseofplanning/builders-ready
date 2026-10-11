@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { gbp, formatDate, relativeTime } from '@br/shared';
+import { gbp, formatDate, relativeTime, offerableInvoiceMethods } from '@br/shared';
 import { requireCustomer, isInvitedClient } from '@/lib/customer-resolver';
 import { createSupabaseServer } from '@/lib/supabase-server';
+import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { DecisionAccept, VariationSign, PayButton } from './portal-actions';
 
 interface Props {
@@ -59,7 +60,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
         .limit(8),
       supabase
         .from('invoices')
-        .select('id, number, title, amount_gbp_pence, status, due_at, cash_requested_at')
+        .select('id, number, title, amount_gbp_pence, status, due_at, cash_requested_at, bank_requested_at, allow_card, allow_bank_transfer, allow_cash')
         .eq('project_id', projectId)
         .order('issued_at', { ascending: false }),
       supabase
@@ -99,6 +100,32 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
     .select('name')
     .eq('id', project.tenant_id)
     .maybeSingle();
+
+  // Builder payment readiness + bank details. Read via admin: the client has
+  // already passed the client_id gate above, so is entitled to see how to pay
+  // their builder, but the tenants row isn't directly readable by a customer.
+  const { data: builder } = await getSupabaseAdmin()
+    .from('tenants')
+    .select(
+      'connect_charges_enabled, bank_name, bank_account_name, bank_sort_code, bank_account_number',
+    )
+    .eq('id', project.tenant_id)
+    .maybeSingle();
+  const cardReady = !!builder?.connect_charges_enabled;
+  const bankReady = !!(builder?.bank_account_number && builder?.bank_sort_code);
+  const bankDetails = bankReady
+    ? {
+        name: builder?.bank_name ?? null,
+        accountName: builder?.bank_account_name ?? null,
+        sortCode: builder?.bank_sort_code ?? null,
+        accountNumber: builder?.bank_account_number ?? null,
+      }
+    : null;
+  const methodsFor = (inv: {
+    allow_card: boolean;
+    allow_bank_transfer: boolean;
+    allow_cash: boolean;
+  }) => offerableInvoiceMethods(inv, { cardReady, bankReady });
 
   const unpaid = invoices.filter((i) => i.status === 'sent' || i.status === 'overdue');
 
@@ -193,7 +220,13 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
                     {i.status === 'overdue' ? ' · overdue' : ''}
                   </div>
                 </div>
-                <PayButton invoiceId={i.id} cashRequested={!!i.cash_requested_at} />
+                <PayButton
+                  invoiceId={i.id}
+                  methods={methodsFor(i)}
+                  bankDetails={bankDetails}
+                  cashRequested={!!i.cash_requested_at}
+                  bankRequested={!!i.bank_requested_at}
+                />
               </div>
             </Card>
           ))}
@@ -275,7 +308,13 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
                     Paid
                   </span>
                 ) : i.status === 'sent' || i.status === 'overdue' ? (
-                  <PayButton invoiceId={i.id} cashRequested={!!i.cash_requested_at} />
+                  <PayButton
+                    invoiceId={i.id}
+                    methods={methodsFor(i)}
+                    bankDetails={bankDetails}
+                    cashRequested={!!i.cash_requested_at}
+                    bankRequested={!!i.bank_requested_at}
+                  />
                 ) : (
                   <span className="text-xs font-semibold text-ink-muted">{i.status}</span>
                 )}

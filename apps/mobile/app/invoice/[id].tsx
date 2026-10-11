@@ -164,6 +164,24 @@ export default function InvoiceDetailScreen() {
     );
   }
 
+  async function onConfirmReceived() {
+    if (!invoice || !user_id) return;
+    setSubmitting(true);
+    try {
+      await markInvoicePaid({
+        invoice_id: invoice.id,
+        paid_reference: null,
+        paid_marked_by: user_id,
+      });
+      await refreshProject();
+      router.back();
+    } catch (err) {
+      Alert.alert('Could not confirm', err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <SafeAreaView
       style={[styles.shell, { backgroundColor: palette.canvas }]}
@@ -380,14 +398,47 @@ export default function InvoiceDetailScreen() {
             </View>
           )}
 
-          {/* OWNER/PM hint */}
-          {canMarkPaid && role !== 'client' && (
-            <Text style={[styles.readOnlyHint, { color: palette.inkMuted }]}>
-              Only the project&apos;s client can mark this paid. If you&apos;ve
-              received the funds directly, ask them to mark it from their app, or
-              do it on their behalf via the web admin.
-            </Text>
-          )}
+          {/* OWNER/PM — confirm a cash / bank-transfer the client has flagged */}
+          {canMarkPaid && role !== 'client' &&
+            (invoice.cash_requested_at || invoice.bank_requested_at) && (
+              <View style={styles.markPaidSection}>
+                <Text style={[styles.signTitle, { color: palette.ink }]}>
+                  {invoice.cash_requested_at
+                    ? 'Client will pay in cash'
+                    : 'Client says they’ve paid by bank transfer'}
+                </Text>
+                <Text style={[styles.signHint, { color: palette.inkMuted }]}>
+                  Confirm once you’ve received the funds — the invoice moves to Paid
+                  and the client gets a receipt.
+                </Text>
+                <TouchableOpacity
+                  disabled={submitting}
+                  onPress={onConfirmReceived}
+                  style={[
+                    styles.payBtn,
+                    { backgroundColor: palette.primary, marginTop: spacing.md },
+                  ]}
+                >
+                  <Text style={styles.payBtnText}>
+                    {submitting
+                      ? '…'
+                      : invoice.cash_requested_at
+                        ? 'Confirm cash received'
+                        : 'Confirm bank transfer received'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+          {/* OWNER/PM hint (no client flag yet) */}
+          {canMarkPaid && role !== 'client' &&
+            !invoice.cash_requested_at && !invoice.bank_requested_at && (
+              <Text style={[styles.readOnlyHint, { color: palette.inkMuted }]}>
+                When your client pays by card they&apos;re marked paid automatically.
+                For cash or bank transfer, they flag it from their app and you confirm
+                it here — or mark it paid on the web admin.
+              </Text>
+            )}
         </ScrollView>
 
         {canMarkPaid && role === 'client' && (
