@@ -21,6 +21,7 @@ export interface InvoiceRow {
   paid_at: string | null;
   paid_reference: string | null;
   stripe_payment_intent_id?: string | null;
+  cash_requested_at?: string | null;
 }
 
 export function InvoicesSection({
@@ -165,6 +166,14 @@ function InvoiceRowComponent({
     });
   }
 
+  function onConfirmCash() {
+    setError(null);
+    startTransition(async () => {
+      const res = await markInvoicePaid({ invoice_id: invoice.id, method: 'cash' });
+      if (!res.ok) setError(res.error ?? 'Failed.');
+    });
+  }
+
   const overdue =
     (invoice.status === 'sent' || invoice.status === 'overdue') &&
     new Date(invoice.due_at) < new Date();
@@ -201,6 +210,22 @@ function InvoiceRowComponent({
               {invoice.description}
             </p>
           )}
+          {invoice.cash_requested_at &&
+            (invoice.status === 'sent' || invoice.status === 'overdue') && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <span className="font-semibold">Customer will pay in cash.</span>
+                {canWrite && (
+                  <button
+                    type="button"
+                    onClick={onConfirmCash}
+                    disabled={pending}
+                    className="rounded-lg bg-primary px-3 py-1 text-[11px] font-bold text-white disabled:opacity-60"
+                  >
+                    {pending ? 'Saving…' : 'Confirm cash received'}
+                  </button>
+                )}
+              </div>
+            )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {payable && (

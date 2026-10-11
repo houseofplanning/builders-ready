@@ -20,8 +20,11 @@ interface Props {
 
 function compactGbp(pence: number): string {
   const pounds = pence / 100;
-  if (pounds >= 1000) return `£${Math.round(pounds / 1000)}k`;
-  return `£${Math.round(pounds)}`;
+  if (pounds < 1000) return `£${Math.round(pounds).toLocaleString('en-GB')}`;
+  const k = pounds / 1000;
+  // One decimal under £100k so £1,500 reads "£1.5k", not a misleading "£2k".
+  const label = k < 100 ? k.toFixed(1).replace(/\.0$/, '') : Math.round(k).toString();
+  return `£${label}k`;
 }
 
 export default async function Dashboard({ params }: Props) {
@@ -215,7 +218,7 @@ export default async function Dashboard({ params }: Props) {
 
   return (
     <div>
-      <header className="mb-6 flex items-center">
+      <header className="mb-6 flex flex-wrap items-center gap-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
             {tenant.name}
@@ -268,7 +271,7 @@ export default async function Dashboard({ params }: Props) {
       )}
 
       {/* Coloured KPI tiles */}
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <KpiTile
           tint="teal"
           icon={IconStack}
@@ -302,25 +305,30 @@ export default async function Dashboard({ params }: Props) {
       </div>
 
       {/* Portfolio margin (est.) — owner/PM only view */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-card border border-hairline bg-white px-5 py-4 shadow-card">
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-            Margin so far (est.)
-          </div>
-          <div
-            className={`text-2xl font-extrabold tracking-tight ${
-              totalMargin >= 0 ? 'text-[#0F6E56]' : 'text-error'
-            }`}
-          >
-            {compactGbp(totalMargin)}
-          </div>
+      <div className="mt-3 rounded-card border border-hairline bg-white px-5 py-4 shadow-card">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[11px] font-bold uppercase tracking-widest text-ink-muted">
+            Portfolio margin (est.)
+          </h2>
+          <span className="text-[11px] text-ink-muted">Across active projects · your team only</span>
         </div>
-        <MarginStat label="Margin %" value={`${marginPct}%`} />
-        <MarginStat label="Contract value" value={compactGbp(totalContracted)} />
-        <MarginStat label="Costs to date" value={compactGbp(totalCosts)} />
-        <span className="ml-auto text-[11px] text-ink-muted">
-          Across active projects · your team only
-        </span>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+              Margin so far
+            </div>
+            <div
+              className={`text-2xl font-extrabold tracking-tight ${
+                totalMargin >= 0 ? 'text-[#0F6E56]' : 'text-error'
+              }`}
+            >
+              {compactGbp(totalMargin)}
+            </div>
+          </div>
+          <MarginStat label="Margin %" value={`${marginPct}%`} />
+          <MarginStat label="Contract value" value={compactGbp(totalContracted)} />
+          <MarginStat label="Costs to date" value={compactGbp(totalCosts)} />
+        </div>
       </div>
 
       {/* Cash position + completion ring */}
@@ -396,8 +404,8 @@ export default async function Dashboard({ params }: Props) {
                       href={`/${slug}/projects/${p.id}`}
                       className="flex items-center px-5 py-3 hover:bg-canvas"
                     >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-semibold">{p.name}</span>
                           <ProjectStatusPill status={p.status} />
                           {atRisk && (
@@ -406,11 +414,11 @@ export default async function Dashboard({ params }: Props) {
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-ink-muted">
+                        <div className="truncate text-[11px] text-ink-muted">
                           {p.city} · {p.postcode} · PM {pm?.full_name ?? '—'}
                         </div>
                       </div>
-                      <div className="mr-4 w-32">
+                      <div className="mr-4 hidden w-32 sm:block">
                         <div className="mb-1 flex justify-between text-[10px] text-ink-muted">
                           <span>{p.progress_percent}%</span>
                           <span>{formatDate(p.estimated_end_date, { short: true })}</span>
@@ -426,7 +434,7 @@ export default async function Dashboard({ params }: Props) {
                           />
                         </div>
                       </div>
-                      <div className="text-xs font-semibold text-primary">Open →</div>
+                      <div className="ml-2 flex-shrink-0 text-xs font-semibold text-primary">Open →</div>
                     </Link>
                   </li>
                 );

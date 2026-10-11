@@ -236,7 +236,7 @@ export default function SettingsScreen() {
             ) : (
               <TouchableOpacity
                 onPress={() => setEditingName(true)}
-                style={styles.rowRight}
+                style={[styles.rowRight, { justifyContent: 'flex-start' }]}
                 hitSlop={6}
               >
                 <Text style={[styles.rowValue, { color: palette.ink }]}>

@@ -395,6 +395,64 @@ export function templateLabel(key?: string | null): string {
   return t?.label ?? 'Full renovation / refurbishment';
 }
 
+/**
+ * Map a marketplace job's trade category (human label on job_requests.
+ * trade_category) to the project-template key whose stages best fit that
+ * kind of work. Used when a customer accepts a bid so the resulting project
+ * gets a sensibly-scoped timeline (e.g. a plumbing job gets the 3-stage
+ * plumbing template, not the full 8-stage renovation timeline).
+ *
+ * Returns a key from PROJECT_TEMPLATES, or null to fall back to the default
+ * timeline. Keep in lockstep with TRADE_CATEGORIES in marketplace.ts.
+ */
+export function templateKeyForTradeCategory(category?: string | null): string | null {
+  switch ((category ?? '').trim()) {
+    case 'General building':
+      return 'full_renovation';
+    case 'Extensions':
+      return 'extension';
+    case 'Loft conversions':
+      return 'loft_conversion';
+    case 'Full renovations':
+      return 'full_renovation';
+    case 'Plumbing':
+      return 'plumbing';
+    case 'Heating & gas':
+      return 'heating';
+    case 'Electrical':
+      return 'rewire';
+    case 'Bathrooms':
+      return 'bathroom';
+    case 'Kitchens':
+      return 'kitchen';
+    case 'Carpentry & joinery':
+      return 'carpentry';
+    case 'Plastering':
+      return 'plastering';
+    case 'Painting & decorating':
+      return 'painting';
+    case 'Tiling':
+      return 'tiling';
+    case 'Flooring':
+      return 'flooring';
+    case 'Roofing':
+      return 'roofing';
+    case 'Bricklaying':
+      return 'brickwork';
+    case 'Windows & doors':
+      return 'windows_doors';
+    case 'Landscaping & gardens':
+      return 'landscaping';
+    case 'Driveways & paving':
+      return 'driveway';
+    case 'Groundworks':
+      return 'groundworks';
+    case 'Other':
+    default:
+      return 'small_works';
+  }
+}
+
 export interface StageRange {
   position: number;
   name: string;

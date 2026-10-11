@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { spacing, typography, radius, relativeTime } from '@br/shared';
@@ -30,12 +31,13 @@ export default function MarketplaceMessagesScreen() {
   }, [load]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.canvas }}>
-      <View style={[styles.header, { borderBottomColor: palette.hairline }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-          <Ionicons name="chevron-back" size={22} color={palette.primary} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.canvas }} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: palette.card, borderBottomColor: palette.hairline }]}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={10}>
+          <Ionicons name="chevron-back" size={26} color={palette.ink} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: palette.ink }]}>Messages</Text>
+        <Text style={[styles.headerTitle, { color: palette.ink }]}>Messages</Text>
+        <View style={{ width: 26 }} />
       </View>
 
       {loading ? (
@@ -44,7 +46,7 @@ export default function MarketplaceMessagesScreen() {
         <ScrollView contentContainerStyle={styles.scroll}>
           {threads.length === 0 ? (
             <Text style={[styles.empty, { color: palette.inkMuted }]}>
-              No messages yet. Message a customer from a job in Find Work.
+              No messages yet. Message a customer from a job in the Marketplace.
             </Text>
           ) : (
             threads.map((t) => (
@@ -66,7 +68,7 @@ export default function MarketplaceMessagesScreen() {
           )}
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -74,13 +76,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.sm,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
   },
-  back: { padding: 4, marginRight: 4 },
-  title: { fontSize: typography.size.xl, fontWeight: typography.weightExtraBold as '800' },
+  headerTitle: { fontSize: typography.size.lg, fontWeight: typography.weightExtraBold as '800' },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
   empty: { textAlign: 'center', marginTop: spacing.xl, fontSize: typography.size.sm },
   row: {

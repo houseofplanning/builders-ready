@@ -14,7 +14,7 @@ import { sendInvitationEmail } from '../email';
 // -------------------------------------------------------------------------
 const createSchema = z.object({
   email: z.string().email().max(255).transform((s) => s.trim().toLowerCase()),
-  role: z.enum(['pm', 'client']),
+  role: z.enum(['owner', 'pm', 'client']),
 });
 
 export interface InvitationResult {
@@ -35,6 +35,11 @@ export async function createInvitation(
   if (!tenant) return { ok: false, error: 'Not signed in.' };
   if (tenant.role !== 'owner' && tenant.role !== 'pm') {
     return { ok: false, error: 'Only owners and PMs can invite.' };
+  }
+  // Owner is a powerful role (billing, team, every project). Only an existing
+  // owner can grant it — PMs can invite PMs and clients, but not owners.
+  if (role === 'owner' && tenant.role !== 'owner') {
+    return { ok: false, error: 'Only an owner can invite another owner.' };
   }
 
   const admin = getSupabaseAdmin();

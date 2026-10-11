@@ -128,19 +128,20 @@ export async function getInvoice(id: UUID): Promise<InvoiceDetail | null> {
 export async function nextInvoiceNumber(tenantId: UUID): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `INV-${year}-`;
+  // Compute the max sequence numerically — a string sort breaks once the
+  // sequence passes 999 ("...-1000" sorts before "...-999"), which could
+  // collide/repeat a legal invoice number.
   const { data } = await supabase
     .from('invoices')
     .select('number')
     .eq('tenant_id', tenantId)
-    .like('number', `${prefix}%`)
-    .order('number', { ascending: false })
-    .limit(1);
-  let nextSeq = 1;
-  if (data && data[0]) {
-    const match = (data[0].number as string).match(/-(\d+)$/);
-    if (match) nextSeq = parseInt(match[1], 10) + 1;
+    .like('number', `${prefix}%`);
+  let maxSeq = 0;
+  for (const row of data ?? []) {
+    const match = (row.number as string).match(/-(\d+)$/);
+    if (match) maxSeq = Math.max(maxSeq, parseInt(match[1], 10));
   }
-  return `${prefix}${nextSeq.toString().padStart(3, '0')}`;
+  return `${prefix}${(maxSeq + 1).toString().padStart(3, '0')}`;
 }
 
 export interface CreateInvoiceInput {

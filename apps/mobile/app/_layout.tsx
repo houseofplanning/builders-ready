@@ -1,13 +1,33 @@
 import { useEffect } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { palette } from '@br/shared';
 import { TenantProvider, useTenant } from '../lib/tenant-provider';
 import { CurrentProjectProvider } from '../lib/current-project';
 import { useSession } from '../lib/session';
+
+/**
+ * Catches render-time errors anywhere in the tree and shows the message
+ * instead of the app silently closing. Expo Router renders this when a
+ * descendant throws during render.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <View style={styles.errWrap}>
+      <ScrollView contentContainerStyle={styles.errScroll}>
+        <Text style={styles.errTitle}>Something went wrong</Text>
+        <Text style={styles.errBody}>{error?.message ?? 'Unknown error'}</Text>
+        {error?.stack ? <Text style={styles.errStack}>{error.stack}</Text> : null}
+        <TouchableOpacity onPress={retry} style={styles.errBtn}>
+          <Text style={styles.errBtnText}>Try again</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+}
 
 export default function RootLayout() {
   return (
@@ -56,7 +76,13 @@ function AuthGate() {
       router.replace(isCustomer ? '/customer' : '/');
       return;
     }
-    if (isCustomer && group !== 'customer') {
+    // Keep the two shells separated, but ONLY bounce when the user is actually
+    // in the *wrong shell's home group* — not when they're on a shared detail
+    // route (mkt-thread, mkt-messages, find-work, messages, estimate, …) that
+    // lives outside the customer/ folder. Previously any non-'customer' group
+    // bounced a customer to /customer, which reset the back stack to home every
+    // time they opened a thread or a job.
+    if (isCustomer && group === '(tabs)') {
       router.replace('/customer');
     } else if (!isCustomer && group === 'customer') {
       router.replace('/');
@@ -223,4 +249,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: palette.canvas,
   },
+  errWrap: { flex: 1, backgroundColor: palette.canvas },
+  errScroll: { padding: 24, paddingTop: 80 },
+  errTitle: { fontSize: 20, fontWeight: '800', color: palette.ink, marginBottom: 12 },
+  errBody: { fontSize: 14, color: palette.ink, marginBottom: 12 },
+  errStack: { fontSize: 11, color: palette.inkMuted, marginBottom: 20 },
+  errBtn: {
+    backgroundColor: palette.primary,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  errBtnText: { color: '#fff', fontWeight: '700' },
 });

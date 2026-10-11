@@ -12,7 +12,6 @@ interface Row {
   budget_min_pence: number | null;
   budget_max_pence: number | null;
   budget_note: string | null;
-  bids: { count: number }[] | null;
 }
 
 const STATUS_STYLE: Record<JobRequestStatus, string> = {
@@ -26,15 +25,30 @@ const STATUS_STYLE: Record<JobRequestStatus, string> = {
 export default async function CustomerHome() {
   const me = await requireCustomer();
   const supabase = await createSupabaseServer();
+  // NOTE: no `bids(count)` embed — that silently returns nothing under RLS,
+  // which hid app-posted jobs on the web. Count quotes in a second query.
   const { data } = await supabase
     .from('job_requests')
     .select(
-      'id, title, trade_category, status, created_at, budget_min_pence, budget_max_pence, budget_note, bids(count)',
+      'id, title, trade_category, status, created_at, budget_min_pence, budget_max_pence, budget_note',
     )
     .eq('customer_id', me.user_id)
     .order('created_at', { ascending: false });
 
   const rows = (data ?? []) as Row[];
+
+  const quotesById = new Map<string, number>();
+  if (rows.length) {
+    const { data: bidRows } = await supabase
+      .from('bids')
+      .select('job_request_id')
+      .in('job_request_id', rows.map((r) => r.id))
+      .neq('status', 'withdrawn');
+    (bidRows ?? []).forEach((b) => {
+      const k = b.job_request_id as string;
+      quotesById.set(k, (quotesById.get(k) ?? 0) + 1);
+    });
+  }
 
   return (
     <div>
@@ -55,7 +69,7 @@ export default async function CustomerHome() {
         <div className="rounded-card border border-hairline bg-white p-10 text-center">
           <p className="text-base font-bold text-ink">No requests yet</p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-ink-muted">
-            Post your first job and local trades will come to you. It&rsquo;s free.
+            Post your first job and local trades will come to you.
           </p>
           <Link
             href="/me/post"
@@ -65,14 +79,14 @@ export default async function CustomerHome() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {rows.map((r) => {
-            const quotes = r.bids?.[0]?.count ?? 0;
+            const quotes = quotesById.get(r.id) ?? 0;
             return (
               <li key={r.id}>
                 <Link
                   href={`/me/requests/${r.id}`}
-                  className="flex items-center justify-between rounded-card border border-hairline bg-white p-5 transition hover:border-primary/40"
+                  className="flex h-full items-center justify-between rounded-card border border-hairline bg-white p-5 transition hover:border-primary/40"
                 >
                   <div>
                     <div className="text-base font-extrabold text-ink">{r.title}</div>

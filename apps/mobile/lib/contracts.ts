@@ -90,9 +90,10 @@ export async function getContract(
       amount_pence,
       is_retention: m.is_retention,
       invoice_id: m.invoice_id,
-      invoice_status: m.invoice_id
-        ? statusById.get(m.invoice_id) ?? 'sent'
-        : null,
+      // If the invoice row is unreadable for some reason, leave the status
+      // unknown (null) rather than defaulting to 'sent' — otherwise a paid
+      // milestone could wrongly read as still owing.
+      invoice_status: m.invoice_id ? statusById.get(m.invoice_id) ?? null : null,
       amount_resolved_pence: milestoneAmountPence(sum, { percent, amount_pence }),
     };
   });

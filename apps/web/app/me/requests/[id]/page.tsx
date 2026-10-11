@@ -7,6 +7,7 @@ import {
   budgetLabel,
   jobRequestStatusLabel,
   relativeTime,
+  MARKETPLACE_BID_CAP,
   type JobRequestStatus,
   type BidStatus,
 } from '@br/shared';
@@ -22,6 +23,10 @@ interface BidRow {
   tenant_id: string;
   amount_pence: number | null;
   message: string | null;
+  available_from: string | null;
+  duration_estimate: string | null;
+  warranty: string | null;
+  about: string | null;
   status: BidStatus;
   created_at: string;
 }
@@ -43,7 +48,7 @@ export default async function RequestDetailPage({ params }: Props) {
 
   const { data: bidsRaw } = await supabase
     .from('bids')
-    .select('id, tenant_id, amount_pence, message, status, created_at')
+    .select('id, tenant_id, amount_pence, message, available_from, duration_estimate, warranty, about, status, created_at')
     .eq('job_request_id', id)
     .order('created_at', { ascending: true });
   const bids = (bidsRaw ?? []) as BidRow[];
@@ -52,14 +57,16 @@ export default async function RequestDetailPage({ params }: Props) {
   const tenantIds = [...new Set(bids.map((b) => b.tenant_id))];
   const admin = getSupabaseAdmin();
   const tradeName = new Map<string, string>();
+  const tradePhone = new Map<string, string | null>();
   const ownerByTenant = new Map<string, string>();
   if (tenantIds.length) {
     const { data: trades } = await admin
       .from('tenants')
-      .select('id, name, owner_user_id')
+      .select('id, name, owner_user_id, business_phone')
       .in('id', tenantIds);
     (trades ?? []).forEach((t) => {
       tradeName.set(t.id as string, t.name as string);
+      tradePhone.set(t.id as string, (t.business_phone as string | null) ?? null);
       if (t.owner_user_id) ownerByTenant.set(t.id as string, t.owner_user_id as string);
     });
   }
@@ -129,7 +136,7 @@ export default async function RequestDetailPage({ params }: Props) {
       )}
 
       <h2 className="mb-3 mt-7 text-lg font-extrabold text-ink">
-        {liveBids.length} {liveBids.length === 1 ? 'quote' : 'quotes'}
+        {liveBids.length} of {MARKETPLACE_BID_CAP} quotes
       </h2>
 
       {liveBids.length === 0 ? (
@@ -159,7 +166,35 @@ export default async function RequestDetailPage({ params }: Props) {
                   {b.amount_pence ? budgetLabel(b.amount_pence, b.amount_pence) : 'Quote'}
                 </div>
               </div>
+              {b.about && <p className="mt-2 text-sm italic text-ink-muted">{b.about}</p>}
               {b.message && <p className="mt-2 text-sm text-ink">{b.message}</p>}
+              {(b.available_from || b.duration_estimate || b.warranty) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {b.available_from && (
+                    <span className="rounded-lg bg-canvas px-2.5 py-1 text-xs text-ink">
+                      🗓 Starts {b.available_from}
+                    </span>
+                  )}
+                  {b.duration_estimate && (
+                    <span className="rounded-lg bg-canvas px-2.5 py-1 text-xs text-ink">
+                      ⏱ {b.duration_estimate}
+                    </span>
+                  )}
+                  {b.warranty && (
+                    <span className="rounded-lg bg-canvas px-2.5 py-1 text-xs text-ink">
+                      🛡 {b.warranty}
+                    </span>
+                  )}
+                </div>
+              )}
+              {tradePhone.get(b.tenant_id) && (
+                <a
+                  href={`tel:${tradePhone.get(b.tenant_id)}`}
+                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline"
+                >
+                  📞 Call {tradePhone.get(b.tenant_id)}
+                </a>
+              )}
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {b.status === 'accepted' && (
                   <span className="rounded-lg bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">

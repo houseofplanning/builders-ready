@@ -36,7 +36,7 @@ export default async function TradeThreadPage({ params }: Props) {
   const firstName = customer?.full_name?.split(/\s+/)[0] ?? 'Customer';
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-9rem)] w-full max-w-2xl flex-col px-6 py-6 lg:px-10">
+    <div className="mx-auto flex h-[calc(100dvh-9rem)] w-full max-w-2xl flex-col px-6 py-6 lg:px-10">
       <Link href={`/${slug}/messages`} className="text-sm font-bold text-primary hover:underline">
         ‹ Messages
       </Link>

@@ -23,8 +23,8 @@ export default function JoinPage() {
         <Choice
           href="/signup/customer"
           kicker="I need a trade"
-          title="Post a job — free"
-          body="Describe what you need, get quotes from local trades, and run the whole job from your phone. Free, always."
+          title="Post a job"
+          body="Describe what you need, get quotes from local trades, and run the whole job from your phone."
           cta="Post a job"
           primary
         />

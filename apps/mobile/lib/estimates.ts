@@ -108,15 +108,13 @@ export async function nextEstimateNumber(tenantId: UUID): Promise<string> {
     .from('estimates')
     .select('number')
     .eq('tenant_id', tenantId)
-    .like('number', `${prefix}%`)
-    .order('number', { ascending: false })
-    .limit(1);
-  let nextSeq = 1;
-  if (data && data[0]) {
-    const match = (data[0].number as string).match(/-(\d+)$/);
-    if (match) nextSeq = parseInt(match[1], 10) + 1;
+    .like('number', `${prefix}%`);
+  let maxSeq = 0;
+  for (const row of data ?? []) {
+    const match = (row.number as string).match(/-(\d+)$/);
+    if (match) maxSeq = Math.max(maxSeq, parseInt(match[1], 10));
   }
-  return `${prefix}${nextSeq.toString().padStart(3, '0')}`;
+  return `${prefix}${(maxSeq + 1).toString().padStart(3, '0')}`;
 }
 
 export interface EstimateLineDraft {
@@ -284,57 +282,51 @@ export async function deleteEstimate(id: UUID): Promise<void> {
 }
 
 // --- sending (mobile: generate the shareable link + mark sent) -------------
-// The web admin additionally renders a branded PDF and emails the client;
-// on mobile we generate the same tokenised link so the builder can share it
-// on site (WhatsApp / text) straight away. The public page renders from the
-// token either way.
-const PUBLIC_APP_URL = 'https://buildersready.uk';
-
-function makeAcceptToken(): string {
-  try {
-    const g = (
-      globalThis as unknown as {
-        crypto?: { getRandomValues?: (a: Uint8Array) => Uint8Array };
-      }
-    ).crypto;
-    if (g && typeof g.getRandomValues === 'function') {
-      const arr = new Uint8Array(24);
-      g.getRandomValues(arr);
-      return Array.from(arr, (b) => b.toString(16).padStart(2, '0')).join('');
-    }
-  } catch {
-    /* fall through to Math.random */
-  }
-  let t = '';
-  for (let i = 0; i < 48; i++) t += Math.floor(Math.random() * 36).toString(36);
-  return t + Date.now().toString(36);
-}
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? 'https://buildersready.uk';
 
 export interface SendEstimateResult {
   token: string;
   url: string;
+  /** True if the quote was actually emailed to the client. */
+  emailed: boolean;
+  /** The address it was emailed to, if any. */
+  to: string | null;
 }
 
 /**
- * Mark a quote as sent and return its shareable link. Reuses an existing
- * token so links stay stable across re-shares. Never touches an already
- * accepted quote (guard in the UI too).
+ * Send a quote. Routes through the server so it does the FULL send — renders
+ * the branded PDF, marks the quote sent, and EMAILS the client via Resend
+ * (exactly like the web). Previously the app only stamped it 'sent' and opened
+ * the native share sheet, so the client never actually received an email.
+ * The token is generated/reused server-side so links stay stable.
  */
 export async function sendEstimate(
   id: UUID,
-  existingToken: string | null,
+  _existingToken?: string | null,
 ): Promise<SendEstimateResult> {
-  const token = existingToken ?? makeAcceptToken();
-  const { error } = await supabase
-    .from('estimates')
-    .update({
-      status: 'sent',
-      sent_at: new Date().toISOString(),
-      accept_token: token,
-    })
-    .eq('id', id);
-  if (error) throw new Error(error.message);
-  return { token, url: `${PUBLIC_APP_URL}/q/${token}` };
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error('Please sign in again.');
+  const res = await fetch(`${WEB_URL}/api/estimates/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ estimate_id: id }),
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    token?: string;
+    url?: string;
+    emailed?: boolean;
+    to?: string | null;
+    error?: string;
+  };
+  if (!res.ok || !json.ok) throw new Error(json.error ?? 'Could not send the quote.');
+  return {
+    token: json.token ?? '',
+    url: json.url ?? '',
+    emailed: !!json.emailed,
+    to: json.to ?? null,
+  };
 }
 
 // --- saved rate library ----------------------------------------------------

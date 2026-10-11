@@ -54,22 +54,23 @@ export default function HomeScreen() {
     );
   }
 
-  if (projects.length === 0 && !loading) {
+  // Trades (owner/pm) always land on the grid — Marketplace + Quotes & estimates
+  // are there, with projects appearing underneath once they exist. Only a client
+  // with no project gets a bare empty state (they have no grid to show).
+  if (projects.length === 0 && !loading && role === 'client') {
     return (
       <EmptyState
-        title="No projects yet"
-        body={
-          role === 'client'
-            ? "Your builder hasn't set up a project for you yet."
-            : 'Create your first project from the web admin at app.buildersready.uk.'
-        }
+        title="No project yet"
+        body="Your builder hasn't set up a project for you yet."
       />
     );
   }
 
-  // No project selected → show the grid picker. The provider auto-selects
-  // when there's exactly one project, so this only fires for owners/PMs
-  // with multiple projects (or after a back-to-grid tap).
+  // No project selected → show the grid. For trades (owner/pm) this is the
+  // consistent sign-in landing: the grid holds Marketplace, Quotes &
+  // estimates and every project. Clients are auto-selected into their
+  // project by the provider, so this only shows them the grid if they
+  // somehow have none.
   if (!selectedId) {
     return <ProjectGrid />;
   }
@@ -82,10 +83,11 @@ export default function HomeScreen() {
     );
   }
 
-  // Show the back-to-grid affordance only when the grid is actually a
-  // meaningful destination — i.e. multiple projects exist. Clients with
-  // a single project never see this.
-  const showBackToGrid = projects.length > 1;
+  // Show the back-to-grid affordance whenever the grid is a meaningful
+  // destination. For trades that's ALWAYS — even with one project — because
+  // the grid is their home for Marketplace and Quotes, so they must be able
+  // to get back to it. Clients have no grid, so they never see this.
+  const showBackToGrid = role !== 'client' || projects.length > 1;
 
   const { project, currentStage, finance } = current;
   const variations = Number(finance.variations_pence ?? 0);
@@ -368,11 +370,13 @@ export default function HomeScreen() {
           </View>
           <View style={{ flex: 1, marginLeft: spacing.md }}>
             <Text style={[styles.pmName, { color: palette.ink }]}>
-              {project.pm?.full_name ?? 'PM'}
+              {project.pm?.full_name?.trim() || 'Your project manager'}
             </Text>
-            <Text style={[styles.pmRole, { color: palette.inkMuted }]}>
-              Project Manager
-            </Text>
+            {project.pm?.full_name?.trim() ? (
+              <Text style={[styles.pmRole, { color: palette.inkMuted }]}>
+                Project Manager
+              </Text>
+            ) : null}
           </View>
         </View>
         {project.pm?.email && (

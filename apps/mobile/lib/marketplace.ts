@@ -17,10 +17,19 @@ export interface JobListItem {
   budget_min_pence: number | null;
   budget_max_pence: number | null;
   budget_note: string | null;
+  photos: string[];
+  bid_count: number;
   created_at: string;
 }
 
-export interface JobDetail extends JobListItem {
+export interface RichJobFields {
+  timing: string | null;
+  property_type: string | null;
+  preferred_start_date: string | null;
+  access_notes: string | null;
+}
+
+export interface JobDetail extends JobListItem, RichJobFields {
   customer_id: UUID;
   description: string | null;
   status: JobRequestStatus;
@@ -31,6 +40,7 @@ export interface BidRow {
   amount_pence: number | null;
   message: string | null;
   status: BidStatus;
+  estimate_id: UUID | null;
 }
 
 function num(v: unknown): number | null {
@@ -39,18 +49,18 @@ function num(v: unknown): number | null {
 
 export async function listOpenJobRequests(opts: {
   category?: string;
-  area?: string;
 }): Promise<JobListItem[]> {
+  // Read from the feed so we get the live bid_count ("X of 5"). Postcode-
+  // district filtering happens in the screen (so it matches the exact
+  // posted postcode, UK-wide) rather than a prefix ilike here.
   let q = supabase
-    .from('job_requests')
+    .from('open_jobs_feed')
     .select(
-      'id, title, trade_category, postcode, city, budget_min_pence, budget_max_pence, budget_note, created_at',
+      'id, title, trade_category, postcode, city, budget_min_pence, budget_max_pence, budget_note, photos, bid_count, created_at',
     )
-    .eq('status', 'open')
     .order('created_at', { ascending: false })
     .limit(60);
   if (opts.category) q = q.eq('trade_category', opts.category);
-  if (opts.area && opts.area.trim()) q = q.ilike('postcode', `${opts.area.trim().toUpperCase()}%`);
   const { data } = await q;
   return (data ?? []).map((r) => ({
     id: r.id,
@@ -61,7 +71,62 @@ export async function listOpenJobRequests(opts: {
     budget_min_pence: num(r.budget_min_pence),
     budget_max_pence: num(r.budget_max_pence),
     budget_note: r.budget_note,
+    photos: (r.photos as string[] | null) ?? [],
+    bid_count: Number(r.bid_count ?? 0),
     created_at: r.created_at,
+  }));
+}
+
+export interface TradeWonJob {
+  job_id: UUID;
+  title: string;
+  trade_category: string;
+  city: string | null;
+  postcode: string;
+  amount_pence: number | null;
+  project_id: UUID | null;
+  project_status: string | null;
+}
+
+/**
+ * Jobs this trade has won (their bid was accepted), with the resulting
+ * project's status so the Marketplace can show Hired (in progress) vs
+ * Completed. Open jobs to bid on come from listOpenJobRequests.
+ */
+export async function listTradeWonJobs(tenantId: UUID): Promise<TradeWonJob[]> {
+  const { data: bids } = await supabase
+    .from('bids')
+    .select('amount_pence, job_request_id')
+    .eq('tenant_id', tenantId)
+    .eq('status', 'accepted');
+  const bidRows = bids ?? [];
+  if (bidRows.length === 0) return [];
+  const amountByJob = new Map(bidRows.map((b) => [b.job_request_id as string, num(b.amount_pence)]));
+  const jobIds = [...amountByJob.keys()];
+
+  const { data: jobs } = await supabase
+    .from('job_requests')
+    .select('id, title, trade_category, city, postcode, matched_project_id, updated_at')
+    .in('id', jobIds)
+    .order('updated_at', { ascending: false });
+  const jobRows = jobs ?? [];
+
+  const projIds = jobRows.map((j) => j.matched_project_id).filter(Boolean) as string[];
+  const statusByProject = new Map<string, string>();
+  if (projIds.length) {
+    const { data: projs } = await supabase.from('projects').select('id, status').in('id', projIds);
+    (projs ?? []).forEach((p) => statusByProject.set(p.id as string, p.status as string));
+  }
+
+  return jobRows.map((j) => ({
+    job_id: j.id,
+    title: j.title,
+    trade_category: j.trade_category,
+    city: j.city,
+    postcode: j.postcode,
+    amount_pence: amountByJob.get(j.id) ?? null,
+    project_id: j.matched_project_id,
+    project_status: j.matched_project_id ? statusByProject.get(j.matched_project_id) ?? null : null,
   }));
 }
 
@@ -69,11 +134,17 @@ export async function getJobRequest(id: UUID): Promise<JobDetail | null> {
   const { data: r } = await supabase
     .from('job_requests')
     .select(
-      'id, customer_id, title, trade_category, description, postcode, city, budget_min_pence, budget_max_pence, budget_note, status, created_at',
+      'id, customer_id, title, trade_category, description, postcode, city, budget_min_pence, budget_max_pence, budget_note, photos, timing, property_type, preferred_start_date, access_notes, status, created_at',
     )
     .eq('id', id)
     .maybeSingle();
   if (!r) return null;
+  // Live bid count from the feed (trades can't count bids directly via RLS).
+  const { data: feed } = await supabase
+    .from('open_jobs_feed')
+    .select('bid_count')
+    .eq('id', id)
+    .maybeSingle();
   return {
     id: r.id,
     customer_id: r.customer_id,
@@ -85,6 +156,12 @@ export async function getJobRequest(id: UUID): Promise<JobDetail | null> {
     budget_min_pence: num(r.budget_min_pence),
     budget_max_pence: num(r.budget_max_pence),
     budget_note: r.budget_note,
+    photos: (r.photos as string[] | null) ?? [],
+    timing: r.timing ?? null,
+    property_type: r.property_type ?? null,
+    preferred_start_date: r.preferred_start_date ?? null,
+    access_notes: r.access_notes ?? null,
+    bid_count: Number(feed?.bid_count ?? 0),
     status: r.status,
     created_at: r.created_at,
   };
@@ -93,7 +170,7 @@ export async function getJobRequest(id: UUID): Promise<JobDetail | null> {
 export async function getMyBid(jobId: UUID, tenantId: UUID): Promise<BidRow | null> {
   const { data } = await supabase
     .from('bids')
-    .select('id, amount_pence, message, status')
+    .select('id, amount_pence, message, status, estimate_id')
     .eq('job_request_id', jobId)
     .eq('tenant_id', tenantId)
     .maybeSingle();
@@ -103,7 +180,49 @@ export async function getMyBid(jobId: UUID, tenantId: UUID): Promise<BidRow | nu
     amount_pence: num(data.amount_pence),
     message: data.message,
     status: data.status,
+    estimate_id: data.estimate_id ?? null,
   };
+}
+
+/**
+ * Create a full itemized quote (a draft estimate) attached to an existing
+ * bid, prefilled from the job, and link it via bids.estimate_id. The builder
+ * then edits/sends it in the estimate editor. Returns the estimate id.
+ */
+export async function createQuoteForBid(params: {
+  bid_id: UUID;
+  tenant_id: UUID;
+  created_by: UUID;
+  job_title: string;
+  city: string | null;
+  postcode: string;
+}): Promise<UUID> {
+  const { createEstimate } = await import('./estimates');
+  const estimateId = await createEstimate({
+    tenant_id: params.tenant_id,
+    created_by: params.created_by,
+    title: params.job_title,
+    project_type: null,
+    client_name: 'Marketplace customer',
+    client_email: null,
+    client_phone: null,
+    site_address_line1: null,
+    site_address_line2: null,
+    city: params.city,
+    postcode: params.postcode,
+    vat_mode: 'none',
+    vat_rate_bp: 2000,
+    valid_until: null,
+    notes: null,
+    terms: null,
+    lines: [],
+  });
+  const { error } = await supabase
+    .from('bids')
+    .update({ estimate_id: estimateId })
+    .eq('id', params.bid_id);
+  if (error) throw new Error(error.message);
+  return estimateId;
 }
 
 export async function submitBid(params: {
@@ -112,6 +231,10 @@ export async function submitBid(params: {
   created_by: UUID;
   amount_pence?: number | null;
   message?: string | null;
+  available_from?: string | null;
+  duration_estimate?: string | null;
+  warranty?: string | null;
+  about?: string | null;
 }): Promise<void> {
   const { error } = await supabase.from('bids').insert({
     job_request_id: params.job_request_id,
@@ -119,6 +242,10 @@ export async function submitBid(params: {
     created_by: params.created_by,
     amount_pence: params.amount_pence ?? null,
     message: params.message ?? null,
+    available_from: params.available_from ?? null,
+    duration_estimate: params.duration_estimate ?? null,
+    warranty: params.warranty ?? null,
+    about: params.about ?? null,
   });
   if (error) {
     if (error.code === '23505') throw new Error('You have already bid on this job.');
@@ -188,13 +315,14 @@ export interface ThreadMessageRow {
   id: UUID;
   sender_id: UUID;
   body: string;
+  image_url: string | null;
   created_at: string;
 }
 
 export async function getThreadMessages(threadId: UUID): Promise<ThreadMessageRow[]> {
   const { data } = await supabase
     .from('marketplace_messages')
-    .select('id, sender_id, body, created_at')
+    .select('id, sender_id, body, image_url, created_at')
     .eq('thread_id', threadId)
     .order('created_at', { ascending: true });
   return (data ?? []) as ThreadMessageRow[];
@@ -204,13 +332,15 @@ export async function sendMarketplaceMessage(params: {
   thread_id: UUID;
   sender_id: UUID;
   body: string;
+  image_url?: string | null;
 }): Promise<void> {
   const body = params.body.trim();
-  if (!body) throw new Error('Message is empty.');
+  if (!body && !params.image_url) throw new Error('Message is empty.');
   const { error } = await supabase.from('marketplace_messages').insert({
     thread_id: params.thread_id,
     sender_id: params.sender_id,
     body,
+    image_url: params.image_url ?? null,
   });
   if (error) throw new Error(error.message);
   await supabase
@@ -246,17 +376,15 @@ export async function signUpCustomer(params: {
 /** The public, PII-free feed of open jobs (no poster identity). */
 export async function browseOpenJobs(opts: {
   category?: string;
-  area?: string;
 }): Promise<JobListItem[]> {
   let q = supabase
     .from('open_jobs_feed')
     .select(
-      'id, title, trade_category, postcode, city, budget_min_pence, budget_max_pence, budget_note, created_at',
+      'id, title, trade_category, postcode, city, budget_min_pence, budget_max_pence, budget_note, photos, bid_count, created_at',
     )
     .order('created_at', { ascending: false })
     .limit(60);
   if (opts.category) q = q.eq('trade_category', opts.category);
-  if (opts.area && opts.area.trim()) q = q.ilike('postcode', `${opts.area.trim().toUpperCase()}%`);
   const { data } = await q;
   return (data ?? []).map((r) => ({
     id: r.id,
@@ -267,11 +395,13 @@ export async function browseOpenJobs(opts: {
     budget_min_pence: num(r.budget_min_pence),
     budget_max_pence: num(r.budget_max_pence),
     budget_note: r.budget_note,
+    photos: (r.photos as string[] | null) ?? [],
+    bid_count: Number(r.bid_count ?? 0),
     created_at: r.created_at,
   }));
 }
 
-export interface FeedJob extends JobListItem {
+export interface FeedJob extends JobListItem, RichJobFields {
   description: string | null;
 }
 
@@ -279,7 +409,7 @@ export async function getFeedJob(id: UUID): Promise<FeedJob | null> {
   const { data: r } = await supabase
     .from('open_jobs_feed')
     .select(
-      'id, title, trade_category, description, postcode, city, budget_min_pence, budget_max_pence, budget_note, created_at',
+      'id, title, trade_category, description, postcode, city, budget_min_pence, budget_max_pence, budget_note, photos, timing, property_type, preferred_start_date, access_notes, bid_count, created_at',
     )
     .eq('id', id)
     .maybeSingle();
@@ -294,6 +424,12 @@ export async function getFeedJob(id: UUID): Promise<FeedJob | null> {
     budget_min_pence: num(r.budget_min_pence),
     budget_max_pence: num(r.budget_max_pence),
     budget_note: r.budget_note,
+    photos: (r.photos as string[] | null) ?? [],
+    timing: r.timing ?? null,
+    property_type: r.property_type ?? null,
+    preferred_start_date: r.preferred_start_date ?? null,
+    access_notes: r.access_notes ?? null,
+    bid_count: Number(r.bid_count ?? 0),
     created_at: r.created_at,
   };
 }
@@ -308,6 +444,11 @@ export interface CreateJobRequestInput {
   budget_min_pence?: number | null;
   budget_max_pence?: number | null;
   budget_note?: string | null;
+  photos?: string[];
+  timing?: string | null;
+  property_type?: string | null;
+  preferred_start_date?: string | null;
+  access_notes?: string | null;
 }
 
 export async function createJobRequest(input: CreateJobRequestInput): Promise<UUID> {
@@ -323,6 +464,11 @@ export async function createJobRequest(input: CreateJobRequestInput): Promise<UU
       budget_min_pence: input.budget_min_pence ?? null,
       budget_max_pence: input.budget_max_pence ?? null,
       budget_note: input.budget_note ?? null,
+      photos: input.photos ?? [],
+      timing: input.timing ?? null,
+      property_type: input.property_type ?? null,
+      preferred_start_date: input.preferred_start_date || null,
+      access_notes: input.access_notes ?? null,
     })
     .select('id')
     .single();
@@ -342,35 +488,70 @@ export interface MyRequestItem {
 }
 
 export async function listMyRequests(customerId: UUID): Promise<MyRequestItem[]> {
-  const { data } = await supabase
+  // NOTE: deliberately NOT using an embedded `bids(count)` select — that
+  // embed was returning an empty result set under RLS, which silently
+  // emptied "My jobs" and broke the browse-feed own-job filter. Two plain
+  // queries are robust and fast at this scale.
+  const { data, error } = await supabase
     .from('job_requests')
     .select(
-      'id, title, trade_category, status, budget_min_pence, budget_max_pence, budget_note, bids(count)',
+      'id, title, trade_category, status, budget_min_pence, budget_max_pence, budget_note',
     )
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false });
-  return (data ?? []).map((r) => {
-    const bidsRel = r.bids as { count: number }[] | null;
-    return {
-      id: r.id,
-      title: r.title,
-      trade_category: r.trade_category,
-      status: r.status,
-      budget_min_pence: num(r.budget_min_pence),
-      budget_max_pence: num(r.budget_max_pence),
-      budget_note: r.budget_note,
-      quote_count: bidsRel?.[0]?.count ?? 0,
-    };
-  });
+  if (error || !data) return [];
+
+  const ids = data.map((r) => r.id);
+  const counts = new Map<string, number>();
+  if (ids.length) {
+    const { data: bidRows } = await supabase
+      .from('bids')
+      .select('job_request_id')
+      .in('job_request_id', ids)
+      .neq('status', 'withdrawn');
+    (bidRows ?? []).forEach((b) => {
+      const k = b.job_request_id as string;
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    });
+  }
+
+  return data.map((r) => ({
+    id: r.id,
+    title: r.title,
+    trade_category: r.trade_category,
+    status: r.status,
+    budget_min_pence: num(r.budget_min_pence),
+    budget_max_pence: num(r.budget_max_pence),
+    budget_note: r.budget_note,
+    quote_count: counts.get(r.id) ?? 0,
+  }));
+}
+
+/**
+ * Delete a job the customer posted. Allowed by the job_requests_delete RLS
+ * policy (customer_id = auth.uid()); bids and threads cascade. Only offer
+ * this while the job is still open — once matched it's a live project.
+ */
+export async function deleteJobRequest(jobId: UUID): Promise<void> {
+  const { error } = await supabase.from('job_requests').delete().eq('id', jobId);
+  if (error) throw new Error(error.message);
 }
 
 export interface RequestBid {
   id: UUID;
   tenant_id: UUID;
   trade_name: string;
+  trade_phone: string | null;
+  rating_avg: number | null;
+  rating_count: number;
   amount_pence: number | null;
   message: string | null;
+  available_from: string | null;
+  duration_estimate: string | null;
+  warranty: string | null;
+  about: string | null;
   status: BidStatus;
+  estimate_id: UUID | null;
   created_at: string;
 }
 
@@ -403,19 +584,51 @@ export async function getMyRequestWithBids(
 
   const { data: bidsRaw } = await supabase
     .from('bids')
-    .select('id, tenant_id, amount_pence, message, status, created_at')
+    .select('id, tenant_id, amount_pence, message, available_from, duration_estimate, warranty, about, status, estimate_id, created_at')
     .eq('job_request_id', id)
     .order('created_at', { ascending: true });
   const bids = (bidsRaw ?? []).filter((b) => b.status !== 'withdrawn');
 
   const tenantIds = Array.from(new Set(bids.map((b) => b.tenant_id)));
   const nameMap = new Map<string, string>();
+  const phoneMap = new Map<string, string | null>();
+  const ownerByTenant = new Map<string, string>();
   if (tenantIds.length) {
     const { data: trades } = await supabase
       .from('trades_public')
-      .select('id, name')
+      .select('id, name, business_phone, owner_user_id')
       .in('id', tenantIds);
-    (trades ?? []).forEach((t) => nameMap.set(t.id as string, t.name as string));
+    (trades ?? []).forEach((t) => {
+      nameMap.set(t.id as string, t.name as string);
+      phoneMap.set(t.id as string, (t.business_phone as string | null) ?? null);
+      if (t.owner_user_id) ownerByTenant.set(t.id as string, t.owner_user_id as string);
+    });
+  }
+
+  // Trade ratings (customer_to_trade reviews), averaged per trade owner.
+  const ratingByTenant = new Map<string, { avg: number; count: number }>();
+  const ownerIds = [...new Set(ownerByTenant.values())];
+  if (ownerIds.length) {
+    const { data: revs } = await supabase
+      .from('marketplace_reviews')
+      .select('reviewee_id, rating')
+      .eq('direction', 'customer_to_trade')
+      .in('reviewee_id', ownerIds);
+    const byOwner = new Map<string, number[]>();
+    (revs ?? []).forEach((r) => {
+      const arr = byOwner.get(r.reviewee_id as string) ?? [];
+      arr.push(r.rating as number);
+      byOwner.set(r.reviewee_id as string, arr);
+    });
+    ownerByTenant.forEach((owner, tenantId) => {
+      const arr = byOwner.get(owner);
+      if (arr?.length) {
+        ratingByTenant.set(tenantId, {
+          avg: Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10,
+          count: arr.length,
+        });
+      }
+    });
   }
 
   return {
@@ -432,10 +645,74 @@ export async function getMyRequestWithBids(
       id: b.id,
       tenant_id: b.tenant_id,
       trade_name: nameMap.get(b.tenant_id) ?? 'A trade',
+      trade_phone: phoneMap.get(b.tenant_id) ?? null,
+      rating_avg: ratingByTenant.get(b.tenant_id)?.avg ?? null,
+      rating_count: ratingByTenant.get(b.tenant_id)?.count ?? 0,
       amount_pence: num(b.amount_pence),
       message: b.message,
+      available_from: b.available_from ?? null,
+      duration_estimate: b.duration_estimate ?? null,
+      warranty: b.warranty ?? null,
+      about: b.about ?? null,
       status: b.status,
+      estimate_id: b.estimate_id ?? null,
       created_at: b.created_at,
+    })),
+  };
+}
+
+export interface QuoteLine {
+  description: string;
+  quantity: number;
+  unit: string;
+  line_price_pence: number;
+}
+export interface CustomerQuote {
+  id: UUID;
+  number: string;
+  title: string;
+  status: string;
+  subtotal_pence: number;
+  vat_pence: number;
+  total_pence: number;
+  vat_mode: string;
+  notes: string | null;
+  terms: string | null;
+  valid_until: string | null;
+  lines: QuoteLine[];
+}
+
+/** Read-only full quote for the customer (estimate + line items), via the
+ *  estimate_customer RLS policies. */
+export async function getCustomerQuote(estimateId: UUID): Promise<CustomerQuote | null> {
+  const { data: e } = await supabase
+    .from('estimates')
+    .select('id, number, title, status, subtotal_pence, vat_pence, total_pence, vat_mode, notes, terms, valid_until')
+    .eq('id', estimateId)
+    .maybeSingle();
+  if (!e) return null;
+  const { data: lines } = await supabase
+    .from('estimate_line_items')
+    .select('description, quantity, unit, line_price_pence, position')
+    .eq('estimate_id', estimateId)
+    .order('position', { ascending: true });
+  return {
+    id: e.id,
+    number: e.number,
+    title: e.title,
+    status: e.status,
+    subtotal_pence: Number(e.subtotal_pence ?? 0),
+    vat_pence: Number(e.vat_pence ?? 0),
+    total_pence: Number(e.total_pence ?? 0),
+    vat_mode: e.vat_mode,
+    notes: e.notes,
+    terms: e.terms,
+    valid_until: e.valid_until,
+    lines: (lines ?? []).map((l) => ({
+      description: l.description,
+      quantity: Number(l.quantity),
+      unit: l.unit,
+      line_price_pence: Number(l.line_price_pence ?? 0),
     })),
   };
 }
@@ -507,6 +784,134 @@ export async function listCustomerThreads(customerId: UUID): Promise<ThreadListI
   }));
 }
 
+/**
+ * Open (or find) the conversation with the builder for a matched project.
+ * Resolves the job behind the project via matched_project_id, then reuses
+ * the bid-thread the pair already have. Returns null if none can be resolved.
+ */
+export async function openProjectThread(
+  projectId: UUID,
+  customerId: UUID,
+): Promise<UUID | null> {
+  const { data: job } = await supabase
+    .from('job_requests')
+    .select('matched_bid_id')
+    .eq('matched_project_id', projectId)
+    .eq('customer_id', customerId)
+    .maybeSingle();
+  if (!job?.matched_bid_id) return null;
+  return openThreadFromBid({ bid_id: job.matched_bid_id, customer_id: customerId });
+}
+
+/** Mark a marketplace (bidding) thread's incoming messages as read. */
+export async function markMarketplaceThreadRead(
+  threadId: UUID,
+  readerId: UUID,
+): Promise<void> {
+  await supabase
+    .from('marketplace_messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('thread_id', threadId)
+    .neq('sender_id', readerId)
+    .is('read_at', null);
+}
+
+export interface CustomerConversation {
+  key: string;
+  kind: 'project' | 'thread';
+  routeId: string; // projectId (project chat) or threadId (bidding thread)
+  title: string;
+  subtitle: string;
+  last_at: string | null;
+  unread: number;
+}
+
+/**
+ * One unified inbox for the customer: a conversation per hired project (the
+ * single post-hire conversation, on `messages`) plus any pre-hire bidding
+ * threads for jobs not yet matched. Each carries an unread count.
+ */
+export async function listCustomerConversations(
+  customerId: UUID,
+): Promise<CustomerConversation[]> {
+  const convos: CustomerConversation[] = [];
+
+  // --- Project conversations (hired work) ---
+  const projects = await listCustomerProjects(customerId);
+  if (projects.length) {
+    const pids = projects.map((p) => p.id);
+    const { data: msgs } = await supabase
+      .from('messages')
+      .select('project_id, sender_id, body, sent_at, read_at')
+      .in('project_id', pids)
+      .order('sent_at', { ascending: false });
+    const lastByP = new Map<string, string>();
+    const unreadByP = new Map<string, number>();
+    (msgs ?? []).forEach((m) => {
+      const pid = m.project_id as string;
+      if (!lastByP.has(pid)) lastByP.set(pid, m.sent_at as string);
+      if (!m.read_at && m.sender_id !== customerId) {
+        unreadByP.set(pid, (unreadByP.get(pid) ?? 0) + 1);
+      }
+    });
+    projects.forEach((p) =>
+      convos.push({
+        key: `p-${p.id}`,
+        kind: 'project',
+        routeId: p.id,
+        title: p.trade_name,
+        subtitle: p.name,
+        last_at: lastByP.get(p.id) ?? null,
+        unread: unreadByP.get(p.id) ?? 0,
+      }),
+    );
+  }
+
+  // --- Pre-hire bidding threads (jobs not yet matched) ---
+  const threads = await listCustomerThreads(customerId);
+  if (threads.length) {
+    const jobIds = [...new Set(threads.map((t) => t.job_request_id))];
+    const { data: jobs } = await supabase
+      .from('job_requests')
+      .select('id, status, title')
+      .in('id', jobIds);
+    const statusById = new Map((jobs ?? []).map((j) => [j.id as string, j.status as string]));
+    const jobTitleById = new Map((jobs ?? []).map((j) => [j.id as string, j.title as string]));
+    const tids = threads.map((t) => t.id);
+    const { data: tmsgs } = await supabase
+      .from('marketplace_messages')
+      .select('thread_id, sender_id, read_at')
+      .in('thread_id', tids);
+    const unreadByT = new Map<string, number>();
+    (tmsgs ?? []).forEach((m) => {
+      if (!m.read_at && m.sender_id !== customerId) {
+        const tid = m.thread_id as string;
+        unreadByT.set(tid, (unreadByT.get(tid) ?? 0) + 1);
+      }
+    });
+    threads.forEach((t) => {
+      if (statusById.get(t.job_request_id) === 'matched') return; // superseded by project convo
+      convos.push({
+        key: `t-${t.id}`,
+        kind: 'thread',
+        routeId: t.id,
+        title: t.title,
+        subtitle: jobTitleById.get(t.job_request_id) ?? 'Your job',
+        last_at: t.last_message_at,
+        unread: unreadByT.get(t.id) ?? 0,
+      });
+    });
+  }
+
+  convos.sort((a, b) => (b.last_at ?? '').localeCompare(a.last_at ?? ''));
+  return convos;
+}
+
+export async function countCustomerUnread(customerId: UUID): Promise<number> {
+  const convos = await listCustomerConversations(customerId);
+  return convos.reduce((s, c) => s + c.unread, 0);
+}
+
 // ===========================================================================
 // CUSTOMER PROJECT PORTAL — follow the build, approve changes, pay
 // ===========================================================================
@@ -520,12 +925,13 @@ export interface ProjectHeader {
   tenant_id: UUID;
   pm_id: UUID;
   trade_name: string;
+  handover_pdf_storage_path: string | null;
 }
 
 export async function getCustomerProject(projectId: UUID): Promise<ProjectHeader | null> {
   const { data: p } = await supabase
     .from('projects')
-    .select('id, name, status, progress_percent, estimated_end_date, tenant_id, pm_id')
+    .select('id, name, status, progress_percent, estimated_end_date, tenant_id, pm_id, handover_pdf_storage_path')
     .eq('id', projectId)
     .maybeSingle();
   if (!p) return null;
@@ -543,7 +949,54 @@ export async function getCustomerProject(projectId: UUID): Promise<ProjectHeader
     tenant_id: p.tenant_id,
     pm_id: p.pm_id,
     trade_name: (trade?.name as string) ?? 'Your trade',
+    handover_pdf_storage_path: (p.handover_pdf_storage_path as string | null) ?? null,
   };
+}
+
+/** Signed URL for the handover PDF (private bucket; client allowed via RLS). */
+export async function getHandoverUrl(path: string): Promise<string | null> {
+  const { data } = await supabase.storage.from('handovers').createSignedUrl(path, 3600);
+  return data?.signedUrl ?? null;
+}
+
+export interface CustomerProjectListItem {
+  id: UUID;
+  name: string;
+  status: string;
+  progress_percent: number;
+  trade_name: string;
+}
+
+/**
+ * All projects where this user is the client — i.e. jobs they posted and
+ * then hired a builder for. Keyed to client_id (not a tenant), so it spans
+ * every builder the customer has hired. Access is granted by the
+ * projects_client_read RLS policy.
+ */
+export async function listCustomerProjects(
+  customerId: UUID,
+): Promise<CustomerProjectListItem[]> {
+  const { data } = await supabase
+    .from('projects')
+    .select('id, name, status, progress_percent, tenant_id, updated_at')
+    .eq('client_id', customerId)
+    .neq('status', 'archived')
+    .order('updated_at', { ascending: false });
+  const rows = data ?? [];
+  if (rows.length === 0) return [];
+  const tenantIds = Array.from(new Set(rows.map((p) => p.tenant_id)));
+  const { data: trades } = await supabase
+    .from('trades_public')
+    .select('id, name')
+    .in('id', tenantIds);
+  const nameMap = new Map((trades ?? []).map((t) => [t.id as string, t.name as string]));
+  return rows.map((p) => ({
+    id: p.id,
+    name: p.name,
+    status: p.status,
+    progress_percent: Number(p.progress_percent),
+    trade_name: nameMap.get(p.tenant_id) ?? 'Your builder',
+  }));
 }
 
 export interface Stage {
@@ -565,6 +1018,7 @@ export interface Update {
   headline: string | null;
   body: string;
   posted_at: string;
+  photos: string[];
 }
 export async function listProjectUpdates(projectId: UUID): Promise<Update[]> {
   const { data } = await supabase
@@ -573,7 +1027,39 @@ export async function listProjectUpdates(projectId: UUID): Promise<Update[]> {
     .eq('project_id', projectId)
     .order('posted_at', { ascending: false })
     .limit(8);
-  return (data ?? []) as Update[];
+  const updates = (data ?? []) as Omit<Update, 'photos'>[];
+  if (updates.length === 0) return [];
+
+  // Attach photos (signed URLs from the private update-photos bucket). The
+  // client can read these via the update_photos_read storage policy.
+  const ids = updates.map((u) => u.id);
+  const { data: photoRows } = await supabase
+    .from('update_photos')
+    .select('update_id, storage_path, position')
+    .in('update_id', ids)
+    .order('position', { ascending: true });
+  const byUpdate = new Map<string, string[]>();
+  const paths = (photoRows ?? []).map((r) => r.storage_path as string);
+  let signed = new Map<string, string>();
+  if (paths.length) {
+    const { data: urls } = await supabase.storage
+      .from('update-photos')
+      .createSignedUrls(paths, 3600);
+    signed = new Map(
+      (urls ?? [])
+        .filter((u) => u.signedUrl)
+        .map((u) => [u.path as string, u.signedUrl as string]),
+    );
+  }
+  (photoRows ?? []).forEach((r) => {
+    const url = signed.get(r.storage_path as string);
+    if (!url) return;
+    const arr = byUpdate.get(r.update_id as string) ?? [];
+    arr.push(url);
+    byUpdate.set(r.update_id as string, arr);
+  });
+
+  return updates.map((u) => ({ ...u, photos: byUpdate.get(u.id) ?? [] }));
 }
 
 export interface Invoice {
@@ -583,11 +1069,12 @@ export interface Invoice {
   amount_gbp_pence: number;
   status: string;
   due_at: string;
+  cash_requested_at: string | null;
 }
 export async function listProjectInvoices(projectId: UUID): Promise<Invoice[]> {
   const { data } = await supabase
     .from('invoices')
-    .select('id, number, title, amount_gbp_pence, status, due_at')
+    .select('id, number, title, amount_gbp_pence, status, due_at, cash_requested_at')
     .eq('project_id', projectId)
     .order('issued_at', { ascending: false });
   return (data ?? []).map((i) => ({
@@ -597,7 +1084,15 @@ export async function listProjectInvoices(projectId: UUID): Promise<Invoice[]> {
     amount_gbp_pence: Number(i.amount_gbp_pence),
     status: i.status,
     due_at: i.due_at,
+    cash_requested_at: (i.cash_requested_at as string | null) ?? null,
   }));
+}
+
+/** Customer flags that they intend to pay this invoice in cash; the builder
+ *  then confirms receipt. Builder-confirms model keeps 'paid' trustworthy. */
+export async function requestCashPayment(invoiceId: UUID): Promise<void> {
+  const { error } = await supabase.rpc('request_cash_payment', { p_invoice: invoiceId });
+  if (error) throw new Error(error.message);
 }
 
 export interface OpenDecision {

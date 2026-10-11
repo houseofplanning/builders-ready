@@ -57,18 +57,30 @@ export async function POST(req: Request) {
 
   const admin = getSupabaseAdmin();
 
-  // Idempotency: skip if we've seen this stripe_event_id before.
-  const { data: existing } = await admin
+  // Idempotency, done atomically: claim the event by inserting its id BEFORE
+  // running the handler. The unique constraint on stripe_event_id means a
+  // concurrent duplicate delivery can't also claim it, so the handler and its
+  // customer emails run exactly once (previously the row was written after the
+  // handler, so two simultaneous retries could both pass and double-send).
+  const { data: claimed, error: claimErr } = await admin
     .from('webhook_events')
-    .select('id')
-    .eq('stripe_event_id', event.id)
-    .maybeSingle();
-  if (existing) {
+    .upsert(
+      {
+        stripe_event_id: event.id,
+        event_type: event.type,
+        tenant_id: null,
+        payload: event as unknown as Record<string, unknown>,
+      },
+      { onConflict: 'stripe_event_id', ignoreDuplicates: true },
+    )
+    .select('id');
+  if (claimErr) {
+    return NextResponse.json({ error: 'Idempotency claim failed' }, { status: 500 });
+  }
+  if (!claimed || claimed.length === 0) {
     return NextResponse.json({ received: true, deduped: true });
   }
 
-  // Record the event up front so retries during our own handler don't
-  // double-apply side-effects.
   let tenantId: string | null = null;
 
   try {
@@ -127,18 +139,20 @@ export async function POST(req: Request) {
     }
   } catch (err) {
     console.error('Stripe webhook handler error:', err);
+    // Release the claim so Stripe's automatic retry can reprocess this event.
+    await admin.from('webhook_events').delete().eq('stripe_event_id', event.id);
     return NextResponse.json(
       { error: 'Handler error', detail: err instanceof Error ? err.message : 'unknown' },
       { status: 500 },
     );
   }
 
-  await admin.from('webhook_events').insert({
-    stripe_event_id: event.id,
-    event_type: event.type,
-    tenant_id: tenantId,
-    payload: event as unknown as Record<string, unknown>,
-  });
+  if (tenantId) {
+    await admin
+      .from('webhook_events')
+      .update({ tenant_id: tenantId })
+      .eq('stripe_event_id', event.id);
+  }
 
   return NextResponse.json({ received: true });
 }

@@ -9,7 +9,7 @@ export default function PostJobPage() {
       </Link>
       <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-ink">Post a job</h1>
       <p className="mt-1 text-sm text-ink-muted">
-        Free to post. Describe what you need and trades will come to you.
+        Describe what you need and trades will come to you.
       </p>
       <div className="mt-6">
         <PostJobForm />

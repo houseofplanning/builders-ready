@@ -10,6 +10,7 @@ import {
   reviewCreate,
   distributeStages,
   stagesForTemplate,
+  templateKeyForTradeCategory,
 } from '@br/shared';
 import { createSupabaseServer } from '../supabase-server';
 import { getSupabaseAdmin } from '../supabase-admin';
@@ -17,6 +18,7 @@ import { requireCustomer } from '../customer-resolver';
 import { resolveCurrentTenant } from '../tenant-resolver';
 import { createCheckoutForInvoice } from '../checkout';
 import { appUrl } from '../stripe';
+import { sendCustomerSignupNotification } from '../email';
 
 export interface MarketplaceResult {
   ok: boolean;
@@ -64,6 +66,11 @@ export async function createCustomerAccount(
   }
 
   // No tenant_members row — this user is a customer, not a trade.
+  // Fire-and-forget ops notification (never block signup on a Resend hiccup).
+  await sendCustomerSignupNotification({ name: full_name, email }).catch((err) => {
+    console.error('[customer signup] notification failed', err);
+  });
+
   const supabase = await createSupabaseServer();
   const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
   if (signInErr) return { ok: false, error: signInErr.message };
@@ -99,6 +106,10 @@ export async function createJobRequest(
       budget_max_pence: d.budget_max_pence ?? null,
       budget_note: d.budget_note ?? null,
       photos: d.photos ?? [],
+      timing: d.timing ?? null,
+      property_type: d.property_type ?? null,
+      preferred_start_date: d.preferred_start_date || null,
+      access_notes: d.access_notes ?? null,
     })
     .select('id')
     .single();
@@ -150,6 +161,10 @@ export async function submitBid(raw: Record<string, unknown>): Promise<Marketpla
     amount_pence: d.amount_pence ?? null,
     message: d.message ?? null,
     estimate_id: d.estimate_id ?? null,
+    available_from: d.available_from ?? null,
+    duration_estimate: d.duration_estimate ?? null,
+    warranty: d.warranty ?? null,
+    about: d.about ?? null,
   });
   if (error) {
     if (error.code === '23505') return { ok: false, error: 'You have already bid on this job.' };
@@ -210,10 +225,16 @@ export async function acceptBid(bidId: string): Promise<MarketplaceResult> {
     .eq('id', bidId)
     .maybeSingle();
   if (!bid) return { ok: false, error: 'Bid not found.' };
+  // Only a live bid can be accepted — not one that was withdrawn, declined, or
+  // already accepted. (The job-open check below isn't enough: a bid can be
+  // withdrawn while its job is still open.)
+  if (bid.status !== 'submitted' && bid.status !== 'shortlisted') {
+    return { ok: false, error: 'This bid is no longer available.' };
+  }
 
   const { data: job } = await admin
     .from('job_requests')
-    .select('id, customer_id, title, address_line1, city, postcode, status')
+    .select('id, customer_id, title, trade_category, address_line1, city, postcode, status')
     .eq('id', bid.job_request_id)
     .maybeSingle();
   if (!job || job.customer_id !== me.user_id) return { ok: false, error: 'This is not your request.' };
@@ -229,6 +250,8 @@ export async function acceptBid(bidId: string): Promise<MarketplaceResult> {
   const today = new Date();
   const start = today.toISOString().slice(0, 10);
   const end = new Date(today.getTime() + 56 * 86_400_000).toISOString().slice(0, 10);
+  // Seed a timeline scoped to the kind of work, not the generic 8-stage default.
+  const templateKey = templateKeyForTradeCategory(job.trade_category);
 
   const { data: project, error: projErr } = await admin
     .from('projects')
@@ -243,7 +266,7 @@ export async function acceptBid(bidId: string): Promise<MarketplaceResult> {
       start_date: start,
       estimated_end_date: end,
       quoted_amount_pence: bid.amount_pence ?? null,
-      project_type: null,
+      project_type: templateKey,
     })
     .select('id')
     .single();
@@ -257,7 +280,7 @@ export async function acceptBid(bidId: string): Promise<MarketplaceResult> {
     return { ok: false, error: projErr.message };
   }
 
-  const stageRows = distributeStages(start, end, stagesForTemplate(null)).map((s) => ({
+  const stageRows = distributeStages(start, end, stagesForTemplate(templateKey)).map((s) => ({
     tenant_id: bid.tenant_id,
     project_id: project.id,
     position: s.position,
@@ -493,4 +516,15 @@ export async function payInvoiceAsCustomer(invoiceId: string): Promise<Marketpla
     return { ok: false, error: result.error ?? 'Could not start payment.' };
   }
   return { ok: true, url: result.url };
+}
+
+// Customer flags that they'll pay this invoice in cash; the builder confirms.
+export async function requestCashPaymentAsCustomer(
+  invoiceId: string,
+): Promise<MarketplaceResult> {
+  await requireCustomer();
+  const supabase = await createSupabaseServer();
+  const { error } = await supabase.rpc('request_cash_payment', { p_invoice: invoiceId });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }

@@ -1,5 +1,8 @@
-import { View, Text, Image, StyleSheet, Platform } from 'react-native';
+import { useState } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import {
   palette as defaultPalette,
   spacing,
@@ -14,6 +17,9 @@ import { tenantInitials } from '../lib/theme';
  */
 export function TenantHeader() {
   const { tenant, role, palette } = useTenant();
+  const router = useRouter();
+  const [logoError, setLogoError] = useState(false);
+  const showLogo = !!tenant?.logo_url && !logoError;
 
   return (
     <SafeAreaView
@@ -29,11 +35,12 @@ export function TenantHeader() {
           },
         ]}
       >
-        {tenant?.logo_url ? (
+        {showLogo ? (
           <Image
-            source={{ uri: tenant.logo_url }}
+            source={{ uri: tenant!.logo_url! }}
             style={styles.logo}
             resizeMode="contain"
+            onError={() => setLogoError(true)}
           />
         ) : (
           <View
@@ -45,7 +52,9 @@ export function TenantHeader() {
           </View>
         )}
         <View style={styles.identity}>
-          <Text style={styles.name}>{tenant?.name ?? 'Builders Ready'}</Text>
+          {!showLogo && (
+            <Text style={styles.name}>{tenant?.name ?? 'Builders Ready'}</Text>
+          )}
           {role && (
             <Text style={[styles.role, { color: palette.inkMuted }]}>
               {role === 'owner'
@@ -56,6 +65,14 @@ export function TenantHeader() {
             </Text>
           )}
         </View>
+        <TouchableOpacity
+          onPress={() => router.push('/settings')}
+          hitSlop={12}
+          style={styles.accountBtn}
+          accessibilityLabel="Account and settings"
+        >
+          <Ionicons name="person-circle-outline" size={30} color={palette.ink} />
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -70,10 +87,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   logo: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#fff',
+    width: 150,
+    height: 34,
   },
   crest: {
     width: 36,
@@ -93,6 +108,10 @@ const styles = StyleSheet.create({
   identity: {
     marginLeft: spacing.md,
     flex: 1,
+  },
+  accountBtn: {
+    marginLeft: spacing.sm,
+    padding: 2,
   },
   name: {
     fontSize: typography.size.md,

@@ -2,118 +2,228 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   TextInput,
+  ScrollView,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { spacing, typography, radius, budgetLabel, relativeTime } from '@br/shared';
+import { spacing, typography, radius, budgetLabel, relativeTime, postcodeMatches, MARKETPLACE_BID_CAP } from '@br/shared';
 import { useTenant } from '../lib/tenant-provider';
-import { listOpenJobRequests, type JobListItem } from '../lib/marketplace';
+import { useCurrentProject } from '../lib/current-project';
+import { SelectField } from '../components/select-field';
+import {
+  listOpenJobRequests,
+  listTradeWonJobs,
+  type JobListItem,
+  type TradeWonJob,
+} from '../lib/marketplace';
+
+type Segment = 'open' | 'hired' | 'completed';
+
+const STATUS_OPTIONS = [
+  { label: 'Open', value: 'open' },
+  { label: 'Hired', value: 'hired' },
+  { label: 'Completed', value: 'completed' },
+];
 
 export default function FindWorkScreen() {
   const router = useRouter();
   const { tenant, palette } = useTenant();
+  const { setSelectedId } = useCurrentProject();
+  const [segment, setSegment] = useState<Segment>('open');
   const [area, setArea] = useState('');
   const [jobs, setJobs] = useState<JobListItem[]>([]);
+  const [won, setWon] = useState<TradeWonJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const rows = await listOpenJobRequests({ area });
-    setJobs(rows);
+    if (!tenant) {
+      setLoading(false);
+      return;
+    }
+    if (segment === 'open') {
+      setJobs(await listOpenJobRequests({}));
+    } else {
+      setWon(await listTradeWonJobs(tenant.id));
+    }
     setLoading(false);
     setRefreshing(false);
-  }, [area]);
+  }, [tenant, segment]);
 
   useEffect(() => {
+    setLoading(true);
     void load();
   }, [load]);
 
-  if (!tenant) {
-    return (
-      <View style={[styles.center, { backgroundColor: palette.canvas }]}>
-        <Text style={{ color: palette.inkMuted }}>Find Work is for trade accounts.</Text>
-      </View>
-    );
+  function openProject(projectId: string | null) {
+    if (!projectId) return;
+    setSelectedId(projectId);
+    router.replace('/(tabs)');
   }
 
+  const wonFiltered = won.filter((w) =>
+    segment === 'completed'
+      ? w.project_status === 'completed'
+      : w.project_status !== 'completed',
+  );
+
+  const visibleJobs = area.trim() ? jobs.filter((j) => postcodeMatches(j.postcode, area)) : jobs;
+
   return (
-    <View style={{ flex: 1, backgroundColor: palette.canvas }}>
-      <View style={[styles.header, { borderBottomColor: palette.hairline }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-          <Ionicons name="chevron-back" size={22} color={palette.primary} />
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.canvas }}>
+      <View style={[styles.header, { backgroundColor: palette.card, borderBottomColor: palette.hairline }]}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={10} style={{ width: 26 }}>
+          <Ionicons name="chevron-back" size={26} color={palette.ink} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: palette.ink }]}>Find work</Text>
+        <Text style={[styles.headerTitle, { color: palette.ink }]}>Marketplace</Text>
+        <TouchableOpacity onPress={() => router.push('/mkt-messages')} hitSlop={10}>
+          <Ionicons name="chatbubbles-outline" size={24} color={palette.primary} />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.filterRow}>
-        <TextInput
-          value={area}
-          onChangeText={setArea}
-          placeholder="Filter by postcode area, e.g. SW"
-          autoCapitalize="characters"
-          placeholderTextColor={palette.inkMuted}
-          style={[
-            styles.input,
-            { borderColor: palette.hairline, color: palette.ink, backgroundColor: palette.card },
-          ]}
-        />
-      </View>
-
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: spacing.xl }} color={palette.primary} />
+      {!tenant ? (
+        <View style={styles.center}>
+          <Text style={{ color: palette.inkMuted }}>The marketplace is for trade accounts.</Text>
+        </View>
       ) : (
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                void load();
-              }}
-              tintColor={palette.primary}
-            />
-          }
-        >
-          {jobs.length === 0 ? (
-            <Text style={[styles.empty, { color: palette.inkMuted }]}>
-              No open jobs match. Pull to refresh or widen your area.
-            </Text>
+        <>
+          {/* Status + area dropdowns */}
+          <View style={styles.filterRow}>
+            <View style={{ flex: 1 }}>
+              <SelectField
+                value={segment}
+                onChange={(v) => {
+                  setSegment(v as Segment);
+                  setLoading(true);
+                }}
+                placeholder="Status"
+                title="Show"
+                options={STATUS_OPTIONS}
+              />
+            </View>
+            {segment === 'open' && (
+              <View style={[styles.searchBox, { flex: 1, borderColor: palette.hairline, backgroundColor: palette.card }]}>
+                <Ionicons name="search" size={16} color={palette.inkMuted} />
+                <TextInput
+                  value={area}
+                  onChangeText={setArea}
+                  placeholder="Postcode (e.g. SW19)"
+                  placeholderTextColor={palette.inkMuted}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  style={[styles.searchInput, { color: palette.ink }]}
+                />
+                {area.length > 0 && (
+                  <TouchableOpacity onPress={() => setArea('')} hitSlop={8}>
+                    <Ionicons name="close-circle" size={18} color={palette.inkMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
+
+          {loading ? (
+            <ActivityIndicator style={{ marginTop: spacing.xl }} color={palette.primary} />
           ) : (
-            jobs.map((j) => (
-              <TouchableOpacity
-                key={j.id}
-                activeOpacity={0.7}
-                onPress={() => router.push(`/find-work/${j.id}`)}
-                style={[styles.card, { backgroundColor: palette.card, borderColor: palette.hairline }]}
-              >
-                <View style={styles.cardTop}>
-                  <Text style={[styles.tag, { color: '#fff', backgroundColor: palette.primary }]}>
-                    {j.trade_category.toUpperCase()}
+            <ScrollView
+              contentContainerStyle={styles.scroll}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => {
+                    setRefreshing(true);
+                    void load();
+                  }}
+                  tintColor={palette.primary}
+                />
+              }
+            >
+              {segment === 'open' ? (
+                visibleJobs.length === 0 ? (
+                  <Text style={[styles.empty, { color: palette.inkMuted }]}>
+                    No open jobs match. Pull to refresh or widen your area.
                   </Text>
-                  <Text style={[styles.ago, { color: palette.inkMuted }]}>
-                    {relativeTime(j.created_at)}
-                  </Text>
-                </View>
-                <Text style={[styles.cardTitle, { color: palette.ink }]}>{j.title}</Text>
-                <Text style={[styles.loc, { color: palette.inkMuted }]}>
-                  {[j.city, j.postcode].filter(Boolean).join(' · ')}
+                ) : (
+                  visibleJobs.map((j) => (
+                    <TouchableOpacity
+                      key={j.id}
+                      activeOpacity={0.7}
+                      onPress={() => router.push(`/find-work/${j.id}`)}
+                      style={[styles.card, { backgroundColor: palette.card, borderColor: palette.hairline }]}
+                    >
+                      <View style={styles.cardTop}>
+                        <Text style={[styles.tag, { color: '#fff', backgroundColor: palette.primary }]}>
+                          {j.trade_category.toUpperCase()}
+                        </Text>
+                        <Text style={[styles.ago, { color: palette.inkMuted }]}>{relativeTime(j.created_at)}</Text>
+                      </View>
+                      <Text style={[styles.cardTitle, { color: palette.ink }]}>{j.title}</Text>
+                      <Text style={[styles.loc, { color: palette.inkMuted }]}>
+                        {[j.city, j.postcode].filter(Boolean).join(' · ')}
+                      </Text>
+                      <View style={styles.cardFoot}>
+                        <Text style={[styles.budget, { color: palette.ink }]}>
+                          {budgetLabel(j.budget_min_pence, j.budget_max_pence, j.budget_note)}
+                        </Text>
+                        {j.bid_count >= MARKETPLACE_BID_CAP ? (
+                          <Text style={[styles.quotePill, { color: palette.inkMuted, backgroundColor: palette.canvas }]}>
+                            Fully quoted
+                          </Text>
+                        ) : (
+                          <Text style={[styles.quotePill, { color: palette.primary, backgroundColor: palette.canvas }]}>
+                            {j.bid_count} of {MARKETPLACE_BID_CAP} quotes
+                          </Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )
+              ) : wonFiltered.length === 0 ? (
+                <Text style={[styles.empty, { color: palette.inkMuted }]}>
+                  {segment === 'hired'
+                    ? 'No active hired jobs yet. Win a bid and it shows here.'
+                    : 'No completed jobs yet.'}
                 </Text>
-                <Text style={[styles.budget, { color: palette.ink }]}>
-                  {budgetLabel(j.budget_min_pence, j.budget_max_pence, j.budget_note)}
-                </Text>
-              </TouchableOpacity>
-            ))
+              ) : (
+                wonFiltered.map((w) => (
+                  <TouchableOpacity
+                    key={w.job_id}
+                    activeOpacity={0.7}
+                    onPress={() => openProject(w.project_id)}
+                    style={[styles.card, { backgroundColor: palette.card, borderColor: palette.hairline }]}
+                  >
+                    <View style={styles.cardTop}>
+                      <Text style={[styles.tag, { color: '#fff', backgroundColor: palette.primary }]}>
+                        {w.trade_category.toUpperCase()}
+                      </Text>
+                      <Text style={[styles.ago, { color: palette.inkMuted }]}>
+                        {w.project_status === 'completed' ? 'Completed' : 'In progress'}
+                      </Text>
+                    </View>
+                    <Text style={[styles.cardTitle, { color: palette.ink }]}>{w.title}</Text>
+                    <Text style={[styles.loc, { color: palette.inkMuted }]}>
+                      {[w.city, w.postcode].filter(Boolean).join(' · ')}
+                    </Text>
+                    {w.amount_pence != null && (
+                      <Text style={[styles.budget, { color: palette.ink }]}>
+                        {budgetLabel(w.amount_pence, w.amount_pence)}
+                      </Text>
+                    )}
+                    <Text style={[styles.openCta, { color: palette.primary }]}>Open project →</Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
           )}
-        </ScrollView>
+        </>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -122,14 +232,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.sm,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
   },
-  back: { padding: 4, marginRight: 4 },
-  title: { fontSize: typography.size.xl, fontWeight: typography.weightExtraBold as '800' },
-  filterRow: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  headerTitle: { fontSize: typography.size.lg, fontWeight: typography.weightExtraBold as '800' },
+  filterRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+  },
+  searchInput: { flex: 1, fontSize: typography.size.body, padding: 0 },
   input: {
     borderWidth: 1,
     borderRadius: radius.md,
@@ -151,15 +270,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   ago: { fontSize: typography.size.xs },
-  cardTitle: {
-    fontSize: typography.size.lg,
-    fontWeight: typography.weightExtraBold as '800',
-    marginTop: spacing.sm,
-  },
+  cardTitle: { fontSize: typography.size.lg, fontWeight: typography.weightExtraBold as '800', marginTop: spacing.sm },
   loc: { fontSize: typography.size.sm, marginTop: 2 },
-  budget: {
-    fontSize: typography.size.body,
-    fontWeight: typography.weightExtraBold as '800',
-    marginTop: spacing.sm,
+  budget: { fontSize: typography.size.body, fontWeight: typography.weightExtraBold as '800' },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.sm },
+  quotePill: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weightBold as '700',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    overflow: 'hidden',
   },
+  openCta: { fontSize: typography.size.xs, fontWeight: typography.weightBold as '700', marginTop: spacing.sm },
 });

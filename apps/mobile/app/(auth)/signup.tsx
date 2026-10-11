@@ -50,13 +50,13 @@ export default function SignupScreen() {
           <View style={styles.brand}>
             <Text style={styles.wordmark}>BUILDERS READY</Text>
             <View style={styles.divider} />
-            <Text style={styles.tag}>Post a job — free</Text>
+            <Text style={styles.tag}>Post a job</Text>
           </View>
 
           <View style={styles.card}>
             <Text style={styles.heading}>Create your account</Text>
             <Text style={styles.sub}>
-              Describe what you need and local trades will come to you. Free, always.
+              Describe what you need and local trades will come to you.
             </Text>
 
             <Text style={styles.label}>Your name</Text>

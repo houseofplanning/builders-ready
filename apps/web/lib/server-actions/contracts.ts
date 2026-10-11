@@ -17,19 +17,19 @@ async function nextInvoiceNumber(
 ): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `INV-${year}-`;
+  // Max sequence computed numerically — a string sort breaks past 999
+  // ("...-1000" sorts before "...-999"), risking a duplicate invoice number.
   const { data } = await supabase
     .from('invoices')
     .select('number')
     .eq('tenant_id', tenantId)
-    .like('number', `${prefix}%`)
-    .order('number', { ascending: false })
-    .limit(1);
-  let n = 1;
-  if (data && data[0]) {
-    const m = (data[0].number as string).match(/-(\d+)$/);
-    if (m) n = parseInt(m[1], 10) + 1;
+    .like('number', `${prefix}%`);
+  let maxSeq = 0;
+  for (const row of data ?? []) {
+    const m = (row.number as string).match(/-(\d+)$/);
+    if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
   }
-  return `${prefix}${n.toString().padStart(3, '0')}`;
+  return `${prefix}${(maxSeq + 1).toString().padStart(3, '0')}`;
 }
 
 /**

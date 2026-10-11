@@ -54,7 +54,61 @@ function QuotesEntry() {
   );
 }
 
+/**
+ * Marketplace entry — the headline feature for trades. Sits at the very top of
+ * the home grid so it's a first-class destination, not buried under More.
+ * Opens the Marketplace feed; Messages is reachable from inside there.
+ */
+function MarketplaceEntry() {
+  const { palette } = useTenant();
+  const router = useRouter();
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => router.push('/find-work')}
+      style={[gridStyles.mktCard, { backgroundColor: palette.primary }]}
+    >
+      <View style={gridStyles.mktIcon}>
+        <Ionicons name="briefcase" size={22} color="#fff" />
+      </View>
+      <View style={{ flex: 1, marginLeft: spacing.md }}>
+        <Text style={gridStyles.mktTitle}>Marketplace</Text>
+        <Text style={gridStyles.mktSub}>
+          Browse new jobs from customers, filter by area, bid and message
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color="#fff" />
+    </TouchableOpacity>
+  );
+}
+
 const gridStyles = StyleSheet.create({
+  mktCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  mktIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  mktTitle: {
+    fontSize: typography.size.body,
+    fontWeight: typography.weightExtraBold as '800',
+    color: '#fff',
+  },
+  mktSub: {
+    fontSize: typography.size.xs,
+    marginTop: 2,
+    lineHeight: 16,
+    color: 'rgba(255,255,255,0.88)',
+  },
   quotesCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -112,6 +166,7 @@ export function ProjectGrid() {
           <RefreshControl refreshing={loading} onRefresh={refresh} />
         }
       >
+        {role !== 'client' && <MarketplaceEntry />}
         {role !== 'client' && <QuotesEntry />}
         <View style={styles.emptyInline}>
           <Ionicons
@@ -125,7 +180,7 @@ export function ProjectGrid() {
           <Text style={[styles.emptyBody, { color: palette.inkMuted }]}>
             {role === 'client'
               ? "Your builder hasn't set up a project for you yet."
-              : 'Win a quote above to start your first project, or create one from the web admin at app.buildersready.uk.'}
+              : 'Win a job from the Marketplace or a quote above, and it becomes your first project here.'}
           </Text>
         </View>
       </ScrollView>
@@ -147,6 +202,7 @@ export function ProjectGrid() {
         Tap a project to open it. Tabs will appear once you&apos;re inside.
       </Text>
 
+      {role !== 'client' && <MarketplaceEntry />}
       {role !== 'client' && <QuotesEntry />}
 
       {projects.map((p) => (

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ import {
   budgetLabel,
   jobRequestStatusLabel,
   relativeTime,
+  MARKETPLACE_BID_CAP,
   type JobRequestStatus,
 } from '@br/shared';
 import { useTenant } from '../../../lib/tenant-provider';
@@ -27,6 +29,7 @@ import {
   acceptBid,
   declineBid,
   openThreadFromBid,
+  deleteJobRequest,
   type MyRequestDetail,
 } from '../../../lib/marketplace';
 
@@ -84,7 +87,7 @@ export default function CustomerRequestDetail() {
     if (!user_id) return;
     try {
       const tid = await openThreadFromBid({ bid_id: bidId, customer_id: user_id });
-      router.push(`/mkt-thread/${tid}`);
+      router.push(`/customer/thread/${tid}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not start the conversation.');
     }
@@ -107,15 +110,44 @@ export default function CustomerRequestDetail() {
 
   const isOpen = detail.status === ('open' as JobRequestStatus);
 
+  function onDelete() {
+    Alert.alert(
+      'Delete this job?',
+      'This removes your job post and any quotes trades have sent. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteJobRequest(detail!.id);
+              router.back();
+            } catch (e) {
+              Alert.alert('Error', e instanceof Error ? e.message : 'Could not delete.');
+            }
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.canvas }}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.back}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={10} style={styles.back}>
           <Ionicons name="chevron-back" size={22} color={palette.primary} />
         </TouchableOpacity>
         <Text style={styles.htitle} numberOfLines={1}>
           {detail.title}
         </Text>
+        {isOpen ? (
+          <TouchableOpacity onPress={onDelete} hitSlop={10} style={styles.headerAction}>
+            <Ionicons name="trash-outline" size={20} color="#C0392B" />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerAction} />
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -146,7 +178,7 @@ export default function CustomerRequestDetail() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <Text style={styles.sectionTitle}>
-          {detail.bids.length} {detail.bids.length === 1 ? 'quote' : 'quotes'}
+          {detail.bids.length} of {MARKETPLACE_BID_CAP} quotes
         </Text>
 
         {detail.bids.length === 0 ? (
@@ -157,13 +189,57 @@ export default function CustomerRequestDetail() {
               <View style={styles.cardTop}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.trade}>{b.trade_name}</Text>
-                  <Text style={styles.ago}>{relativeTime(b.created_at)}</Text>
+                  <View style={styles.metaRow}>
+                    {b.rating_avg != null ? (
+                      <Text style={styles.rating}>
+                        ★ {b.rating_avg.toFixed(1)} ({b.rating_count})
+                      </Text>
+                    ) : (
+                      <Text style={styles.noRating}>No reviews yet</Text>
+                    )}
+                    <Text style={styles.ago}>· {relativeTime(b.created_at)}</Text>
+                  </View>
                 </View>
                 <Text style={styles.amount}>
                   {b.amount_pence ? budgetLabel(b.amount_pence, b.amount_pence) : 'Quote'}
                 </Text>
               </View>
+              {b.about ? <Text style={styles.about}>{b.about}</Text> : null}
               {b.message ? <Text style={styles.msg}>{b.message}</Text> : null}
+
+              {(b.available_from || b.duration_estimate || b.warranty) && (
+                <View style={styles.bidChips}>
+                  {b.available_from ? (
+                    <Text style={styles.chip}>🗓 Starts {b.available_from}</Text>
+                  ) : null}
+                  {b.duration_estimate ? (
+                    <Text style={styles.chip}>⏱ {b.duration_estimate}</Text>
+                  ) : null}
+                  {b.warranty ? <Text style={styles.chip}>🛡 {b.warranty}</Text> : null}
+                </View>
+              )}
+
+              {b.trade_phone ? (
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(`tel:${b.trade_phone}`)}
+                  activeOpacity={0.7}
+                  style={styles.callLink}
+                >
+                  <Ionicons name="call-outline" size={16} color={palette.primary} />
+                  <Text style={styles.callText}>Call {b.trade_phone}</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {b.estimate_id ? (
+                <TouchableOpacity
+                  onPress={() => router.push(`/customer/quote/${b.estimate_id}`)}
+                  activeOpacity={0.7}
+                  style={styles.quoteLink}
+                >
+                  <Ionicons name="document-text-outline" size={16} color={palette.primary} />
+                  <Text style={styles.quoteLinkText}>View full quote</Text>
+                </TouchableOpacity>
+              ) : null}
 
               <View style={styles.actions}>
                 {b.status === 'accepted' ? (
@@ -213,6 +289,11 @@ const styles = StyleSheet.create({
   },
   back: { padding: 4, marginRight: 4 },
   htitle: { flex: 1, fontSize: typography.size.lg, fontWeight: typography.weightExtraBold as '800', color: palette.ink },
+  headerAction: { width: 28, alignItems: 'center' },
+  quoteLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm },
+  quoteLinkText: { color: palette.primary, fontSize: typography.size.sm, fontWeight: typography.weightBold as '700' },
+  callLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm },
+  callText: { color: palette.primary, fontSize: typography.size.sm, fontWeight: typography.weightBold as '700' },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
   meta: { fontSize: typography.size.sm, color: palette.inkMuted },
   banner: {
@@ -251,9 +332,23 @@ const styles = StyleSheet.create({
   },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start' },
   trade: { fontSize: typography.size.body, fontWeight: typography.weightExtraBold as '800', color: palette.ink },
-  ago: { fontSize: typography.size.xs, color: palette.inkMuted, marginTop: 2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2, flexWrap: 'wrap' },
+  rating: { fontSize: typography.size.xs, fontWeight: typography.weightBold as '700', color: '#B7791F' },
+  noRating: { fontSize: typography.size.xs, color: palette.inkMuted },
+  ago: { fontSize: typography.size.xs, color: palette.inkMuted },
   amount: { fontSize: typography.size.lg, fontWeight: typography.weightExtraBold as '800', color: palette.ink },
+  about: { fontSize: typography.size.sm, color: palette.inkMuted, marginTop: spacing.sm, fontStyle: 'italic' },
   msg: { fontSize: typography.size.body, color: palette.ink, marginTop: spacing.sm },
+  bidChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.sm },
+  chip: {
+    fontSize: typography.size.xs,
+    color: palette.ink,
+    backgroundColor: palette.canvas,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: spacing.md, alignItems: 'center' },
   btn: { borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 9 },
   btnOutline: { borderWidth: 1, borderColor: palette.hairline },

@@ -45,14 +45,14 @@ export default async function TradeMessagesPage({ params }: Props) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-6 py-8 lg:px-10">
+    <div className="w-full">
       <h1 className="mb-6 text-2xl font-extrabold tracking-tight text-ink">Messages</h1>
       {threads.length === 0 ? (
         <div className="rounded-card border border-hairline bg-white p-10 text-center text-sm text-ink-muted">
-          No messages yet. Message a customer from a job in Find Work.
+          No messages yet. Message a customer from a job in the Marketplace.
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {threads.map((t) => (
             <li key={t.id}>
               <Link

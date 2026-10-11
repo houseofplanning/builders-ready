@@ -99,7 +99,7 @@ export default async function ProjectDetail({ params }: Props) {
     supabase
       .from('invoices')
       .select(
-        'id, number, title, description, amount_gbp_pence, issued_at, due_at, status, paid_at, paid_reference, stripe_payment_intent_id',
+        'id, number, title, description, amount_gbp_pence, issued_at, due_at, status, paid_at, paid_reference, stripe_payment_intent_id, cash_requested_at',
       )
       .eq('project_id', id)
       .order('issued_at', { ascending: false }),
@@ -332,8 +332,8 @@ export default async function ProjectDetail({ params }: Props) {
       </Link>
 
       {/* HEADER */}
-      <section className="rounded-card border border-hairline bg-white p-6 shadow-card">
-        <div className="flex items-start gap-6">
+      <section className="rounded-card border border-hairline bg-white p-4 shadow-card sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-6">
           <div className="flex-1">
             <div className="mb-1 flex items-center gap-2">
               <h1 className="text-2xl font-extrabold tracking-tight">{project.name}</h1>
@@ -358,7 +358,7 @@ export default async function ProjectDetail({ params }: Props) {
               )}
             </p>
           </div>
-          <div className="min-w-[180px] text-right">
+          <div className="text-left sm:min-w-[180px] sm:text-right">
             <div className="text-3xl font-extrabold tracking-tight">
               {project.progress_percent}%
             </div>

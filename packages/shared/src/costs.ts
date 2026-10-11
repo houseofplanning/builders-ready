@@ -78,7 +78,10 @@ export function summariseCosts(
   for (const c of costs) {
     const amt = toNum(c.amount_pence);
     total += amt;
-    by_category[c.category] = (by_category[c.category] ?? 0) + amt;
+    // Guard against an unexpected/out-of-enum category so it can't create a
+    // stray key on the typed record — fold anything unknown into 'other'.
+    const cat: CostCategory = c.category in by_category ? c.category : 'other';
+    by_category[cat] += amt;
   }
   return { total_pence: total, by_category };
 }

@@ -4,7 +4,13 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createInvitation } from '@/lib/server-actions/invitations';
 
-export function InviteForm() {
+export function InviteForm({
+  canInviteOwner = false,
+  accountDomain = null,
+}: {
+  canInviteOwner?: boolean;
+  accountDomain?: string | null;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +25,21 @@ export function InviteForm() {
       email: String(fd.get('email') ?? '').trim().toLowerCase(),
       role: String(fd.get('role') ?? 'client'),
     };
+
+    // Owner is powerful — confirm, and gently flag a different email domain
+    // (not a hard block: plenty of genuine co-owners use personal emails).
+    if (payload.role === 'owner') {
+      const invitedDomain = payload.email.split('@')[1] ?? '';
+      const domainNote =
+        accountDomain && invitedDomain && invitedDomain !== accountDomain
+          ? `\n\nHeads up: ${payload.email} is on a different domain to your account (@${accountDomain}). Only add owners you fully trust.`
+          : '';
+      const ok = window.confirm(
+        `Invite ${payload.email} as an OWNER?\n\nOwners can manage billing, the team and every project — full control of the account.${domainNote}`,
+      );
+      if (!ok) return;
+    }
+
     startTransition(async () => {
       const res = await createInvitation(payload);
       if (!res.ok) {
@@ -56,6 +77,7 @@ export function InviteForm() {
         >
           <option value="client">Client</option>
           <option value="pm">Project Manager</option>
+          {canInviteOwner && <option value="owner">Owner</option>}
         </select>
       </label>
       <button

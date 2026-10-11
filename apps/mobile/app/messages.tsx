@@ -10,7 +10,9 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +25,7 @@ import {
   markThreadRead,
   type ThreadMessage,
 } from '../lib/messages';
+import { uploadChatPhoto } from '../lib/upload-photo';
 
 export default function MessagesScreen() {
   const router = useRouter();
@@ -87,6 +90,31 @@ export default function MessagesScreen() {
     }
   }
 
+  async function onAttach() {
+    if (!current || !tenant || !user_id) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) return;
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9 });
+    if (res.canceled || !res.assets[0]) return;
+    setSending(true);
+    try {
+      const url = await uploadChatPhoto(user_id, res.assets[0].uri);
+      await sendMessage({
+        tenant_id: tenant.id,
+        project_id: current.project.id,
+        sender_id: user_id,
+        body: '',
+        image_url: url,
+      });
+      const next = await listMessagesForProject(current.project.id);
+      setMessages(next);
+    } catch (err) {
+      Alert.alert('Could not send', err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setSending(false);
+    }
+  }
+
   if (!current) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: palette.canvas }]}>
@@ -95,8 +123,8 @@ export default function MessagesScreen() {
     );
   }
 
-  const pmName = current.project.pm?.full_name ?? 'your project manager';
-  const clientName = current.project.client?.full_name ?? 'the client';
+  const pmName = current.project.pm?.full_name?.trim() || 'your project manager';
+  const clientName = current.project.client?.full_name?.trim() || 'the client';
   const otherPartyLabel =
     role === 'client'
       ? `your project manager (${pmName})`
@@ -191,14 +219,22 @@ export default function MessagesScreen() {
                             },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.bubbleText,
-                          { color: mine ? '#fff' : palette.ink },
-                        ]}
-                      >
-                        {item.body}
-                      </Text>
+                      {item.image_url ? (
+                        <Image
+                          source={{ uri: item.image_url }}
+                          style={{ width: 200, height: 150, borderRadius: 10, marginBottom: item.body ? 6 : 0 }}
+                        />
+                      ) : null}
+                      {item.body ? (
+                        <Text
+                          style={[
+                            styles.bubbleText,
+                            { color: mine ? '#fff' : palette.ink },
+                          ]}
+                        >
+                          {item.body}
+                        </Text>
+                      ) : null}
                     </View>
                     <Text
                       style={[
@@ -224,6 +260,9 @@ export default function MessagesScreen() {
             { backgroundColor: palette.card, borderTopColor: palette.hairline },
           ]}
         >
+          <TouchableOpacity onPress={onAttach} disabled={sending} hitSlop={8} style={{ paddingHorizontal: 2 }}>
+            <Ionicons name="image-outline" size={24} color={palette.primary} />
+          </TouchableOpacity>
           <TextInput
             value={draft}
             onChangeText={setDraft}

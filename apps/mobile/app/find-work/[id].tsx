@@ -7,22 +7,28 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { spacing, typography, radius, budgetLabel, relativeTime } from '@br/shared';
+import { spacing, typography, radius, budgetLabel, relativeTime, jobTimingLabel, propertyTypeLabel, MARKETPLACE_BID_CAP } from '@br/shared';
 import { useTenant } from '../../lib/tenant-provider';
 import {
   getJobRequest,
   getMyBid,
   submitBid,
   openThreadForJob,
+  createQuoteForBid,
   type JobDetail,
   type BidRow,
 } from '../../lib/marketplace';
 
 export default function JobDetailScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { tenant, role, user_id, palette } = useTenant();
 
@@ -31,15 +37,25 @@ export default function JobDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
+  const [available, setAvailable] = useState('');
+  const [duration, setDuration] = useState('');
+  const [warranty, setWarranty] = useState('');
+  const [about, setAbout] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [quoting, setQuoting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!id || !tenant) return;
-    const [j, b] = await Promise.all([getJobRequest(id), getMyBid(id, tenant.id)]);
-    setJob(j);
-    setMyBid(b);
-    setLoading(false);
+    try {
+      const [j, b] = await Promise.all([getJobRequest(id), getMyBid(id, tenant.id)]);
+      setJob(j);
+      setMyBid(b);
+    } catch {
+      // Stop the spinner on failure so the screen isn't stuck.
+    } finally {
+      setLoading(false);
+    }
   }, [id, tenant]);
 
   useEffect(() => {
@@ -59,6 +75,10 @@ export default function JobDetailScreen() {
         created_by: user_id,
         amount_pence: pence && Number.isFinite(pence) && pence > 0 ? pence : null,
         message: message.trim() || null,
+        available_from: available.trim() || null,
+        duration_estimate: duration.trim() || null,
+        warranty: warranty.trim() || null,
+        about: about.trim() || null,
       });
       await load();
     } catch (e) {
@@ -82,6 +102,30 @@ export default function JobDetailScreen() {
     }
   }
 
+  async function onQuote() {
+    if (!job || !myBid || !tenant || !user_id) return;
+    setQuoting(true);
+    setError(null);
+    try {
+      let estId = myBid.estimate_id;
+      if (!estId) {
+        estId = await createQuoteForBid({
+          bid_id: myBid.id,
+          tenant_id: tenant.id,
+          created_by: user_id,
+          job_title: job.title,
+          city: job.city,
+          postcode: job.postcode,
+        });
+      }
+      router.push(`/estimate/${estId}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not open the quote.');
+    } finally {
+      setQuoting(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: palette.canvas }]}>
@@ -97,20 +141,31 @@ export default function JobDetailScreen() {
     );
   }
 
-  const canBid = (role === 'owner' || role === 'pm') && job.status === 'open' && !myBid;
+  const isFull = job.bid_count >= MARKETPLACE_BID_CAP;
+  const canBid =
+    (role === 'owner' || role === 'pm') && job.status === 'open' && !myBid && !isFull;
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.canvas }}>
-      <View style={[styles.header, { borderBottomColor: palette.hairline }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-          <Ionicons name="chevron-back" size={22} color={palette.primary} />
+      <View style={[styles.header, { borderBottomColor: palette.hairline, paddingTop: insets.top + spacing.sm, backgroundColor: palette.card }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.back} hitSlop={12}>
+          <Ionicons name="chevron-back" size={24} color={palette.primary} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: palette.ink }]} numberOfLines={1}>
           {job.title}
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={insets.top + 52}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
         <Text style={[styles.tag, { color: '#fff', backgroundColor: palette.primary }]}>
           {job.trade_category.toUpperCase()}
         </Text>
@@ -127,12 +182,53 @@ export default function JobDetailScreen() {
             </Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: palette.card, borderColor: palette.hairline }]}>
-            <Text style={[styles.statLabel, { color: palette.inkMuted }]}>STATUS</Text>
-            <Text style={[styles.statVal, { color: palette.ink }]}>
-              {job.status === 'open' ? 'Open' : 'Closed'}
+            <Text style={[styles.statLabel, { color: palette.inkMuted }]}>QUOTES</Text>
+            <Text style={[styles.statVal, { color: isFull ? palette.inkMuted : palette.ink }]}>
+              {isFull ? 'Fully quoted' : `${job.bid_count} of ${MARKETPLACE_BID_CAP}`}
             </Text>
           </View>
         </View>
+
+        {(job.timing || job.property_type || job.preferred_start_date || job.access_notes) && (
+          <View style={[styles.detailsCard, { backgroundColor: palette.card, borderColor: palette.hairline }]}>
+            {job.timing ? (
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: palette.inkMuted }]}>Timing</Text>
+                <Text style={[styles.detailVal, { color: palette.ink }]}>{jobTimingLabel(job.timing)}</Text>
+              </View>
+            ) : null}
+            {job.property_type ? (
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: palette.inkMuted }]}>Property</Text>
+                <Text style={[styles.detailVal, { color: palette.ink }]}>{propertyTypeLabel(job.property_type)}</Text>
+              </View>
+            ) : null}
+            {job.preferred_start_date ? (
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: palette.inkMuted }]}>Preferred start</Text>
+                <Text style={[styles.detailVal, { color: palette.ink }]}>{job.preferred_start_date}</Text>
+              </View>
+            ) : null}
+            {job.access_notes ? (
+              <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                <Text style={[styles.detailLabel, { color: palette.inkMuted }]}>Access</Text>
+                <Text style={[styles.detailVal, { color: palette.ink, flex: 1, textAlign: 'right' }]}>{job.access_notes}</Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        {job.photos.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: spacing.md }}>
+            {job.photos.map((url) => (
+              <Image
+                key={url}
+                source={{ uri: url }}
+                style={{ width: 220, height: 160, borderRadius: radius.md, marginRight: spacing.sm, backgroundColor: palette.card }}
+              />
+            ))}
+          </ScrollView>
+        )}
 
         {job.description ? (
           <Text style={[styles.desc, { color: palette.ink }]}>{job.description}</Text>
@@ -156,6 +252,19 @@ export default function JobDetailScreen() {
             {myBid.message ? (
               <Text style={[styles.desc, { color: palette.ink }]}>{myBid.message}</Text>
             ) : null}
+            <TouchableOpacity
+              onPress={onQuote}
+              disabled={quoting}
+              activeOpacity={0.85}
+              style={[styles.submit, { backgroundColor: palette.primary, opacity: quoting ? 0.6 : 1, marginTop: spacing.md }]}
+            >
+              <Text style={styles.submitText}>
+                {quoting ? 'Opening…' : myBid.estimate_id ? 'View / edit full quote' : 'Build a full quote'}
+              </Text>
+            </TouchableOpacity>
+            <Text style={[styles.hint, { color: palette.inkMuted, marginTop: 6 }]}>
+              A full itemized quote the customer can review before hiring.
+            </Text>
           </View>
         ) : canBid ? (
           <View style={[styles.bidCard, { backgroundColor: palette.card, borderColor: palette.hairline }]}>
@@ -179,6 +288,34 @@ export default function JobDetailScreen() {
               placeholderTextColor={palette.inkMuted}
               style={[styles.input, styles.multiline, { borderColor: palette.hairline, color: palette.ink }]}
             />
+            <TextInput
+              value={available}
+              onChangeText={setAvailable}
+              placeholder="When can you start? e.g. Next week"
+              placeholderTextColor={palette.inkMuted}
+              style={[styles.input, { borderColor: palette.hairline, color: palette.ink }]}
+            />
+            <TextInput
+              value={duration}
+              onChangeText={setDuration}
+              placeholder="Estimated duration, e.g. 2–3 days"
+              placeholderTextColor={palette.inkMuted}
+              style={[styles.input, { borderColor: palette.hairline, color: palette.ink }]}
+            />
+            <TextInput
+              value={warranty}
+              onChangeText={setWarranty}
+              placeholder="Guarantee offered, e.g. 12-month workmanship"
+              placeholderTextColor={palette.inkMuted}
+              style={[styles.input, { borderColor: palette.hairline, color: palette.ink }]}
+            />
+            <TextInput
+              value={about}
+              onChangeText={setAbout}
+              placeholder="About you, e.g. Gas Safe, 15 yrs, local"
+              placeholderTextColor={palette.inkMuted}
+              style={[styles.input, { borderColor: palette.hairline, color: palette.ink }]}
+            />
             {error ? <Text style={[styles.err, { color: palette.error }]}>{error}</Text> : null}
             <TouchableOpacity
               onPress={onBid}
@@ -190,16 +327,31 @@ export default function JobDetailScreen() {
           </View>
         ) : (
           <Text style={[styles.loc, { color: palette.inkMuted, marginTop: spacing.lg }]}>
-            This job is no longer accepting bids.
+            {isFull && job.status === 'open'
+              ? `This job is fully quoted (${MARKETPLACE_BID_CAP} of ${MARKETPLACE_BID_CAP}). Check back if a slot frees up.`
+              : 'This job is no longer accepting bids.'}
           </Text>
         )}
         {error && !canBid ? <Text style={[styles.err, { color: palette.error }]}>{error}</Text> : null}
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  detailsCard: { borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: spacing.md, marginTop: spacing.md },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  detailLabel: { fontSize: typography.size.xs, textTransform: 'uppercase', letterSpacing: 0.4, fontWeight: typography.weightSemibold as '600' },
+  detailVal: { fontSize: typography.size.sm, fontWeight: typography.weightSemibold as '600' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',

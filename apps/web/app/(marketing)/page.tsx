@@ -234,6 +234,55 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FOR HOMEOWNERS */}
+      <section className="border-y border-hairline bg-canvas">
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <div className="grid items-center gap-10 md:grid-cols-2">
+            <div>
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-accent-deep">
+                Not a tradesperson?
+              </p>
+              <h2 className="mb-4 text-3xl font-extrabold leading-tight tracking-tight md:text-4xl">
+                Got a job that needs doing?
+              </h2>
+              <p className="mb-6 max-w-md text-base text-ink-muted">
+                Homeowners post a job on Builders Ready and local trades come to
+                them with quotes. Compare them side by side, hire with
+                confidence, then follow the whole job — photos, decisions and
+                payments — from one app.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/signup/customer"
+                  className="rounded-lg bg-primary px-6 py-3 text-sm font-bold text-white shadow-card hover:opacity-95"
+                >
+                  Post a job
+                </Link>
+                <Link
+                  href="/homeowners"
+                  className="rounded-lg border border-hairline bg-white px-6 py-3 text-sm font-bold text-ink hover:bg-white"
+                >
+                  How it works for homeowners →
+                </Link>
+              </div>
+            </div>
+            <ol className="space-y-4">
+              <HomeownerStep n="1" title="Post your job">
+                A few details and photos. No calls, no site visits to arrange.
+              </HomeownerStep>
+              <HomeownerStep n="2" title="Compare quotes">
+                Local trades send itemised quotes with timings and reviews. You
+                choose who to hire.
+              </HomeownerStep>
+              <HomeownerStep n="3" title="Hire &amp; follow the job">
+                A live timeline, decisions you approve with a tap, and payments
+                only when work is signed off.
+              </HomeownerStep>
+            </ol>
+          </div>
+        </div>
+      </section>
+
       {/* FINAL CTA */}
       <section className="bg-primary">
         <div className="mx-auto max-w-4xl px-6 py-20 text-center text-white">
@@ -277,6 +326,28 @@ function FeatureCard({
       </div>
       <p className="text-sm text-ink-muted">{body}</p>
     </div>
+  );
+}
+
+function HomeownerStep({
+  n,
+  title,
+  children,
+}: {
+  n: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex gap-4 rounded-card border border-hairline bg-white p-5 shadow-card">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-extrabold text-primary">
+        {n}
+      </div>
+      <div>
+        <h3 className="text-base font-extrabold text-ink">{title}</h3>
+        <p className="mt-1 text-sm text-ink-muted">{children}</p>
+      </div>
+    </li>
   );
 }
 

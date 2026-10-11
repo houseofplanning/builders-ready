@@ -31,10 +31,18 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, name, status, progress_percent, estimated_end_date, tenant_id, client_id')
+    .select('id, name, status, progress_percent, estimated_end_date, tenant_id, client_id, handover_pdf_storage_path')
     .eq('id', projectId)
     .maybeSingle();
   if (!project || project.client_id !== me.user_id) notFound();
+
+  let handoverUrl: string | null = null;
+  if (project.handover_pdf_storage_path) {
+    const { data: signed } = await supabase.storage
+      .from('handovers')
+      .createSignedUrl(project.handover_pdf_storage_path, 3600);
+    handoverUrl = signed?.signedUrl ?? null;
+  }
 
   const [stagesRes, updatesRes, invoicesRes, decisionsRes, variationsRes] =
     await Promise.all([
@@ -51,7 +59,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
         .limit(8),
       supabase
         .from('invoices')
-        .select('id, number, title, amount_gbp_pence, status, due_at')
+        .select('id, number, title, amount_gbp_pence, status, due_at, cash_requested_at')
         .eq('project_id', projectId)
         .order('issued_at', { ascending: false }),
       supabase
@@ -169,7 +177,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
                     {i.status === 'overdue' ? ' · overdue' : ''}
                   </div>
                 </div>
-                <PayButton invoiceId={i.id} />
+                <PayButton invoiceId={i.id} cashRequested={!!i.cash_requested_at} />
               </div>
             </Card>
           ))}
@@ -216,6 +224,20 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
         )}
       </Section>
 
+      {/* Handover */}
+      {handoverUrl && (
+        <Section title="Project handover">
+          <a
+            href={handoverUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white"
+          >
+            Download handover PDF
+          </a>
+        </Section>
+      )}
+
       {/* All invoices */}
       {invoices.length > 0 && (
         <Section title="Payments">
@@ -236,7 +258,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
                     Paid
                   </span>
                 ) : i.status === 'sent' || i.status === 'overdue' ? (
-                  <PayButton invoiceId={i.id} />
+                  <PayButton invoiceId={i.id} cashRequested={!!i.cash_requested_at} />
                 ) : (
                   <span className="text-xs font-semibold text-ink-muted">{i.status}</span>
                 )}

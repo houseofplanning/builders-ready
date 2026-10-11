@@ -17,6 +17,8 @@ let dateShortFormatter: Intl.DateTimeFormat | null = null;
 let relativeFormatter: Intl.RelativeTimeFormat | null = null;
 
 export function gbp(pence: number, opts?: { whole?: boolean }): string {
+  // Never render "£NaN"/"£Infinity" from a bad upstream value.
+  if (!Number.isFinite(pence)) pence = 0;
   try {
     if (opts?.whole) {
       if (!gbpWholeFormatter) {
@@ -45,9 +47,15 @@ export function gbp(pence: number, opts?: { whole?: boolean }): string {
   }
 }
 
-export function formatDate(iso: string, opts?: { short?: boolean }): string {
+export function formatDate(
+  iso: string | null | undefined,
+  opts?: { short?: boolean },
+): string {
+  // Guard missing values: `new Date(null)` is the 1970 epoch (not NaN), which
+  // would otherwise render a bogus "01 Jan 1970" instead of an empty field.
+  if (iso == null || iso === '') return '—';
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
+  if (Number.isNaN(d.getTime())) return '—';
   try {
     if (opts?.short) {
       if (!dateShortFormatter) {

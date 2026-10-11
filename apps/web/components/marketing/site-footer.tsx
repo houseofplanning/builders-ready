@@ -26,6 +26,8 @@ export function SiteFooter() {
             <ul className="mt-3 space-y-2 text-sm">
               <FooterLink href="/features" label="Features" />
               <FooterLink href="/pricing" label="Pricing" />
+              <FooterLink href="/homeowners" label="For homeowners" />
+              <FooterLink href="/signup/customer" label="Post a job" />
               <FooterLink href="/signup" label="Start free trial" />
               <FooterLink href="/login" label="Sign in" />
             </ul>

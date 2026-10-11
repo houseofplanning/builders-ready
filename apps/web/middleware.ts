@@ -89,6 +89,10 @@ const RESERVED_TOP_LEVEL = new Set([
   'privacy',
   'terms',
   'delete-account',
+  'homeowners',
+  'me',
+  'brand',
+  'q', // public shareable quote page (/q/<accept_token>) — no login
   // Infrastructure routes / files
   'api',
   '_next',

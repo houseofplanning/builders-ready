@@ -62,7 +62,7 @@ export default async function ProjectsListPage({ params }: Props) {
                 href={`/${slug}/projects/${p.id}`}
                 className={`block ${i > 0 ? 'border-t border-hairline' : ''} p-5 transition hover:bg-canvas`}
               >
-                <div className="grid grid-cols-[2fr_1fr_1.5fr_0.8fr] items-center gap-4">
+                <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[2fr_1fr_1.5fr_0.8fr] sm:items-center sm:gap-4">
                   <div>
                     <div className="text-sm font-bold text-ink">{p.name}</div>
                     <div className="mt-0.5 text-[11px] text-ink-muted">

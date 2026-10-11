@@ -76,6 +76,7 @@ export async function createInvoiceOnWeb(
 const markPaidSchema = z.object({
   invoice_id: z.string().uuid(),
   paid_reference: z.string().max(120).nullable().optional(),
+  method: z.enum(['cash', 'bank_transfer', 'manual']).default('manual'),
 });
 
 export async function markInvoicePaid(
@@ -104,6 +105,7 @@ export async function markInvoicePaid(
       status: 'paid',
       paid_at: new Date().toISOString(),
       paid_reference: parsed.data.paid_reference ?? null,
+      paid_via: parsed.data.method,
     })
     .eq('id', parsed.data.invoice_id);
   if (error) return { ok: false, error: error.message };

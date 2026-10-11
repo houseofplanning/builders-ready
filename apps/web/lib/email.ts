@@ -39,16 +39,19 @@ export interface InvitationEmailParams {
   to: string;
   tenantName: string;
   inviterName: string;
-  role: 'pm' | 'client';
+  role: 'owner' | 'pm' | 'client';
   token: string;
 }
 
 const ROLE_LABEL = {
+  owner: 'Owner',
   pm: 'Project Manager',
   client: 'Client',
 } as const;
 
 const ROLE_CONTEXT = {
+  owner:
+    "As an Owner, you'll have full control of the account — manage the team and billing, quote, run every project, use the Marketplace and get paid.",
   pm:
     "As a Project Manager, you'll be able to post site updates, change stage statuses, raise decisions, propose variations and create invoices on the projects assigned to you.",
   client:
@@ -507,6 +510,80 @@ export async function sendSignupNotification(
     }
   } catch (err) {
     console.error('[signup-notification] send failed', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// sendCustomerSignupNotification — ops alert when a marketplace CUSTOMER (no
+// tenant) creates an account to post jobs. Mirrors the trade signup alert.
+// ---------------------------------------------------------------------------
+export async function sendCustomerSignupNotification(p: {
+  name: string;
+  email: string;
+}): Promise<void> {
+  const to = process.env.SIGNUP_NOTIFICATION_EMAIL ?? 'info@buildersready.uk';
+  const subject = `New Builders Ready customer signup: ${p.name}`;
+
+  const text = [
+    `A new customer just signed up to post jobs on the marketplace.`,
+    ``,
+    `Name         : ${p.name}`,
+    `Email        : ${p.email}`,
+    `Type         : Customer (marketplace)`,
+    `Signed up at : ${new Date().toUTCString()}`,
+    ``,
+    `— Builders Ready signup bot`,
+  ].join('\n');
+
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+  const COPPER = '#E07A5F';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:24px 28px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;letter-spacing:2px;font-size:13px;color:${INK};">BUILDERS <span style="color:${PRIMARY};">READY</span></div>
+          </td></tr>
+          <tr><td style="padding:24px 28px;">
+            <div style="font-size:11px;font-weight:600;color:${COPPER};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">
+              New customer
+            </div>
+            <h1 style="margin:0 0 14px;font-size:20px;line-height:1.25;font-weight:800;color:${INK};">
+              ${escapeHtml(p.name)} just signed up to post jobs
+            </h1>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="font-size:13px;line-height:20px;color:${INK};margin:8px 0 0;">
+              <tr><td style="padding:4px 0;color:${MUTED};width:130px;">Name</td><td>${escapeHtml(p.name)}</td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Email</td><td><a href="mailto:${escapeHtml(p.email)}" style="color:${PRIMARY};">${escapeHtml(p.email)}</a></td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Type</td><td><strong>Customer (marketplace)</strong></td></tr>
+              <tr><td style="padding:4px 0;color:${MUTED};">Signed up at</td><td>${escapeHtml(new Date().toUTCString())}</td></tr>
+            </table>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  try {
+    const { error } = await getResend().emails.send({
+      from: fromAddress(),
+      to,
+      subject,
+      html,
+      text,
+    });
+    if (error) {
+      console.error('[customer-signup-notification] resend rejected', error);
+    }
+  } catch (err) {
+    console.error('[customer-signup-notification] send failed', err);
   }
 }
 

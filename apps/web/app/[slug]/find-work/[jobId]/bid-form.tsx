@@ -19,6 +19,10 @@ export function BidForm({ jobId }: { jobId: string }) {
       job_request_id: jobId,
       amount_pence: amount && Number.isFinite(amount) && amount > 0 ? amount : undefined,
       message: String(fd.get('message') ?? '') || undefined,
+      available_from: String(fd.get('available_from') ?? '') || undefined,
+      duration_estimate: String(fd.get('duration_estimate') ?? '') || undefined,
+      warranty: String(fd.get('warranty') ?? '') || undefined,
+      about: String(fd.get('about') ?? '') || undefined,
     };
     startTransition(async () => {
       const res = await submitBid(payload);
@@ -65,6 +69,13 @@ export function BidForm({ jobId }: { jobId: string }) {
         />
       </label>
 
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <BidField name="available_from" label="When can you start?" placeholder="e.g. Next week" />
+        <BidField name="duration_estimate" label="Estimated duration" placeholder="e.g. 2–3 days" />
+        <BidField name="warranty" label="Guarantee offered" placeholder="e.g. 12-month workmanship" />
+        <BidField name="about" label="About you" placeholder="e.g. Gas Safe, 15 yrs, local" />
+      </div>
+
       {error && (
         <div className="mt-3 rounded-lg border border-error bg-error/5 px-3 py-2 text-xs text-error">
           {error}
@@ -79,5 +90,29 @@ export function BidForm({ jobId }: { jobId: string }) {
         {pending ? 'Sending…' : 'Submit bid'}
       </button>
     </form>
+  );
+}
+
+function BidField({
+  name,
+  label,
+  placeholder,
+}: {
+  name: string;
+  label: string;
+  placeholder: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+        {label}
+      </span>
+      <input
+        name={name}
+        maxLength={200}
+        placeholder={placeholder}
+        className="block w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
+      />
+    </label>
   );
 }

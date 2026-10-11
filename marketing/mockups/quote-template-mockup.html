@@ -1,0 +1,227 @@
+<meta charset="utf-8">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --teal:#0F4C5C;--teald:#0A3641;--coral:#E07A5F;--ink:#14252C;--mut:#6B818C;
+    --canvas:#F6F8F8;--line:#E4E9EB;--green:#168052;--greenbg:#E4F4EC;--white:#fff;
+    --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  body{font-family:var(--font);background:var(--canvas);color:var(--ink);padding:28px 20px 60px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1.page{font-size:26px;font-weight:800;color:var(--teald);margin-bottom:4px}
+  p.sub{color:var(--mut);font-size:15px;margin-bottom:28px;max-width:760px}
+  .seclabel{display:inline-block;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);background:#E3EEF1;padding:6px 12px;border-radius:20px;margin:30px 0 14px}
+  .phones{display:flex;gap:26px;flex-wrap:wrap;justify-content:center}
+  .phone{width:300px;flex:0 0 auto;background:#1b1f24;border-radius:40px;padding:11px;box-shadow:0 18px 40px rgba(10,40,50,.22)}
+  .screen{background:var(--canvas);border-radius:30px;overflow:hidden;height:640px;position:relative;display:flex;flex-direction:column}
+  .statusbar{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:13px;font-weight:800;color:var(--ink);background:var(--white)}
+  .sig{display:flex;align-items:flex-end;gap:2px;height:13px}
+  .sig i{width:3px;background:var(--ink);display:block}
+  .sig i:nth-child(1){height:5px}.sig i:nth-child(2){height:8px}.sig i:nth-child(3){height:11px}.sig i:nth-child(4){height:13px}
+  .batt{width:22px;height:12px;border:1.5px solid var(--ink);border-radius:3px;position:relative;display:inline-block;margin-left:6px}
+  .batt::after{content:"";position:absolute;left:2px;top:2px;bottom:2px;width:13px;background:var(--ink);border-radius:1px}
+  .dot{width:52px;height:15px;background:#0b0e11;border-radius:9px}
+  .scrollarea{flex:1;overflow:hidden;padding:16px 16px 0}
+  .appbar{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .back{font-size:22px;color:var(--teal);font-weight:700;line-height:1}
+  .appbar h2{font-size:18px;font-weight:800}
+  .pbadge{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:7px;margin-left:auto}
+  .pbadge.b{background:#EAF0F1;color:var(--teal)}
+  .pbadge.c{background:var(--greenbg);color:var(--green)}
+  .grouphdr{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--teal);margin:12px 2px 4px}
+  .card{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:4px 14px;margin-bottom:10px}
+  .qline{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;gap:8px;align-items:center}
+  .qline:last-child{border-bottom:none}
+  .qline .nm{font-weight:700}
+  .qline .mt{color:var(--mut);font-size:11px;font-weight:600}
+  .qline .vl{font-weight:800;white-space:nowrap}
+  .qline.client{opacity:.6}
+  .supply{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;font-size:10px;font-weight:800;margin-top:3px}
+  .supply span{padding:2px 7px;color:var(--mut)}
+  .supply span.on{background:var(--teal);color:#fff}
+  .supply.clienton span.cl{background:var(--green);color:#fff}
+  .byclient{font-size:10px;font-weight:800;color:var(--green);background:var(--greenbg);padding:2px 7px;border-radius:6px}
+  .totalcard{background:var(--teal);color:#fff;border-radius:14px;padding:12px 14px;margin:8px 0 10px}
+  .totalcard .row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:#cfe0e4}
+  .totalcard .row.big{font-size:18px;font-weight:800;color:#fff;border-top:1px solid rgba(255,255,255,.2);margin-top:6px;padding-top:8px}
+  .runbar{position:absolute;left:0;right:0;bottom:0;background:var(--white);border-top:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+  .btn{background:var(--coral);color:#fff;border:none;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:800;cursor:default}
+  .btn.block{width:100%;display:block;text-align:center}
+  .asof{font-size:10px;color:var(--mut);background:#EEF3F4;border-radius:8px;padding:5px 9px;display:inline-flex;align-items:center;gap:5px;font-weight:700;margin-bottom:4px}
+  .asof b{color:var(--teal)}
+  /* chooser sheet */
+  .sheetwrap{position:absolute;inset:0;background:rgba(10,30,36,.35);display:flex;align-items:flex-end}
+  .sheet{background:#fff;width:100%;border-radius:22px 22px 0 0;padding:18px 16px 20px}
+  .sheet h3{font-size:16px;font-weight:800;margin-bottom:3px}
+  .sheet .cap{font-size:12px;color:var(--mut);margin-bottom:14px}
+  .choice{border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+  .choice.on{border-color:var(--teal);background:#F2F8F9}
+  .choice .t{font-weight:800;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+  .choice .d{font-size:11px;color:var(--mut);margin-top:2px}
+  .tick{width:20px;height:20px;border-radius:50%;background:var(--teal);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+  .mini{font-size:11px;color:var(--mut);margin-top:6px;line-height:1.5}
+  .caption{font-size:12px;color:var(--mut);text-align:center;margin-top:10px;font-weight:600;max-width:900px;margin-left:auto;margin-right:auto}
+  /* website */
+  .browser{background:var(--white);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 18px 44px rgba(10,40,50,.14)}
+  .chrome{background:#EAEEEF;padding:11px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+  .chrome i{width:11px;height:11px;border-radius:50%;background:#cfd6d8;display:inline-block}
+  .chrome .url{margin-left:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 12px;font-size:12px;color:var(--mut);flex:1}
+  .dtop{display:grid;grid-template-columns:1.55fr 1fr;min-height:520px}
+  .dleft{border-right:1px solid var(--line);padding:22px}
+  .dright{padding:22px;background:#F2F8F9}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+  .toolbar h3{font-size:14px;font-weight:800;display:inline}
+  .selwrap{display:flex;align-items:center;gap:8px}
+  .selwrap label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--mut)}
+  .sel{border:1.5px solid var(--teal);color:var(--teal);background:#fff;border-radius:9px;padding:7px 12px;font-size:13px;font-weight:800}
+  .table{width:100%;border-collapse:collapse;font-size:13px}
+  .table th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);font-weight:800;padding:7px 8px;border-bottom:2px solid var(--line)}
+  .table td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .table td.r,.table th.r{text-align:right}
+  .table .grp td{background:#F1F6F7;font-weight:800;font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--teal)}
+  .table .sub{color:var(--mut);font-size:11px}
+  .table tr.clientrow{color:var(--mut)}
+  .toggle{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;font-size:10px;font-weight:800}
+  .toggle span{padding:3px 8px;color:var(--mut)}
+  .toggle span.on{background:var(--teal);color:#fff}
+  .toggle.cl span.c{background:var(--green);color:#fff}
+  .editchip{font-size:10px;color:var(--coral);font-weight:800;border:1px solid var(--coral);border-radius:6px;padding:1px 6px;margin-left:6px}
+  .lockchip{font-size:10px;color:var(--mut);font-weight:700;margin-left:6px}
+  .totbar{display:flex;gap:16px;justify-content:flex-end;align-items:center;margin-top:16px;flex-wrap:wrap}
+  .totbox{text-align:right}
+  .totbox small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);font-weight:800}
+  .totbox b{font-size:16px}
+  .totbox.price b{font-size:21px;color:var(--teald)}
+  .totbox.margin b{color:var(--green)}
+  /* client preview card */
+  .pvtitle{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin-bottom:10px}
+  .pv{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 18px 20px;box-shadow:0 8px 20px rgba(10,40,50,.06)}
+  .pv .logo{font-weight:800;font-size:13px;letter-spacing:1px;color:var(--teald);margin-bottom:2px}
+  .pv .logo b{color:var(--teal)}
+  .pv .meta{font-size:11px;color:var(--mut);margin-bottom:14px}
+  .pv .pvrow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .pv .pvrow .lbl{font-weight:700}
+  .pv .pvrow .lblmut{font-size:11px;color:var(--mut);font-weight:600;margin-top:2px}
+  .pv .pvrow .amt{font-weight:800}
+  .pv .pvtot{display:flex;justify-content:space-between;padding-top:12px;font-size:18px;font-weight:800;color:var(--teald)}
+  .pv .note{margin-top:12px;font-size:11px;color:var(--green);background:var(--greenbg);border-radius:9px;padding:8px 10px;font-weight:700}
+  @media(max-width:820px){.dtop{grid-template-columns:1fr}.dleft{border-right:none;border-bottom:1px solid var(--line)}}
+</style>
+
+<div class="wrap">
+  <h1 class="page">Quote templates &mdash; builder detail vs client view</h1>
+  <p class="sub">Same painter &amp; decorator job. The builder builds it up in full, but chooses how much the <b>client</b> sees &mdash; and flags any materials the <b>client is supplying</b> so they drop out of the price.</p>
+
+  <div class="seclabel">On the app</div>
+  <div class="phones">
+
+    <!-- Phone 1: builder internal with supplied-by -->
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span class="dot"></span><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"></span></div>
+      <div class="scrollarea" style="padding-bottom:80px">
+        <div class="appbar"><span class="back">&larr;</span><h2>Your quote</h2><span class="pbadge b">Builder view</span></div>
+        <span class="asof">Priced as of <b>Oct 2026</b></span>
+        <div class="grouphdr"><span>Materials</span><span style="color:var(--mut);text-transform:none;font-weight:700">supplied by</span></div>
+        <div class="card">
+          <div class="qline client"><div><div class="nm">Emulsion &mdash; walls &amp; ceiling</div><div class="supply clienton"><span>You</span><span class="cl on">Client</span></div></div><div class="vl"><span class="byclient">by client</span></div></div>
+          <div class="qline"><div><div class="nm">Gloss + primer</div><div class="supply"><span class="on">You</span><span class="cl">Client</span></div></div><div class="vl">&pound;41</div></div>
+          <div class="qline"><div><div class="nm">Filler, tape, sheets, rollers</div><div class="supply"><span class="on">You</span><span class="cl">Client</span></div></div><div class="vl">&pound;38</div></div>
+        </div>
+        <div class="grouphdr"><span>Labour</span></div>
+        <div class="card">
+          <div class="qline"><div><div class="nm">Decorator &mdash; 3 days</div><div class="mt">your rate &middot; &pound;220/day</div></div><div class="vl">&pound;660</div></div>
+          <div class="qline"><div><div class="nm">Prep &amp; patching</div><div class="mt">&frac12; day</div></div><div class="vl">&pound;110</div></div>
+        </div>
+        <div class="totalcard">
+          <div class="row"><span>Cost to you</span><span>&pound;849</span></div>
+          <div class="row"><span>Margin 35%</span><span>+&pound;297</span></div>
+          <div class="row big"><span>Client price</span><span>&pound;1,146</span></div>
+        </div>
+        <div class="mini">Client supplies the emulsion &mdash; it's excluded from the price and your cost.</div>
+      </div>
+      <div class="runbar"><button class="btn block">Choose what the client sees &rarr;</button></div>
+    </div></div>
+
+    <!-- Phone 2: chooser sheet -->
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span class="dot"></span><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"></span></div>
+      <div class="scrollarea" style="filter:blur(.4px);opacity:.5">
+        <div class="appbar"><span class="back">&larr;</span><h2>Your quote</h2></div>
+        <div class="grouphdr"><span>Materials</span></div><div class="card"><div class="qline"><div class="nm">Gloss + primer</div><div class="vl">&pound;41</div></div></div>
+      </div>
+      <div class="sheetwrap"><div class="sheet">
+        <h3>What should the client see?</h3>
+        <div class="cap">Your full build-up stays private either way.</div>
+        <div class="choice"><div class="t">Full breakdown</div><div class="d">Every line and quantity, as above.</div></div>
+        <div class="choice on"><div class="t">Materials &amp; labour totals <span class="tick">&#10003;</span></div><div class="d">Two lines: one for materials, one for labour.</div></div>
+        <div class="choice"><div class="t">Single price</div><div class="d">One total figure, nothing itemised.</div></div>
+        <button class="btn block" style="margin-top:4px">Preview client quote</button>
+      </div></div>
+    </div></div>
+
+    <!-- Phone 3: client view collapsed -->
+    <div class="phone"><div class="screen">
+      <div class="statusbar"><span>9:41</span><span class="dot"></span><span class="sig"><i></i><i></i><i></i><i></i></span><span class="batt"></span></div>
+      <div class="scrollarea" style="padding-bottom:80px">
+        <div class="appbar"><span class="back">&larr;</span><h2>Quote</h2><span class="pbadge c">Client view</span></div>
+        <div style="font-weight:800;letter-spacing:1px;color:var(--teald);font-size:13px;margin:4px 2px 0">REGAL <b style="color:var(--teal)">DECORATING</b></div>
+        <div class="mt" style="margin:2px 2px 12px">Lounge &amp; hallway redecoration &middot; 14 Oak Rd</div>
+        <div class="card">
+          <div class="qline"><div><div class="nm">Materials &amp; sundries</div><div class="mt">paint supplied by you</div></div><div class="vl">&pound;107</div></div>
+          <div class="qline"><div><div class="nm">Labour &amp; preparation</div><div class="mt">all works to completion</div></div><div class="vl">&pound;1,039</div></div>
+        </div>
+        <div class="totalcard">
+          <div class="row"><span>Subtotal</span><span>&pound;1,146</span></div>
+          <div class="row"><span>VAT</span><span>Not registered</span></div>
+          <div class="row big"><span>Total</span><span>&pound;1,146</span></div>
+        </div>
+        <div class="mini" style="color:var(--green);font-weight:700">You're supplying the emulsion, so it's not in this price.</div>
+      </div>
+      <div class="runbar"><button class="btn block">Approve &amp; sign</button></div>
+    </div></div>
+
+  </div>
+  <div class="caption">The builder's full build-up (left) is private. They pick the client's detail level (middle) and flag client-supplied materials &mdash; the client's quote (right) shows only what was chosen, with supplied items clearly excluded.</div>
+
+  <!-- ============ WEBSITE ============ -->
+  <div class="seclabel">On the website</div>
+  <div class="browser">
+    <div class="chrome"><i></i><i></i><i></i><span class="url">buildersready.uk/regal-decorating/quotes/new</span></div>
+    <div class="dtop">
+      <div class="dleft">
+        <div class="toolbar">
+          <div><h3>Your build-up</h3> <span class="lockchip">private to you</span></div>
+          <div class="selwrap"><label>Client sees</label><span class="sel">Materials &amp; labour totals &#9662;</span></div>
+        </div>
+        <table class="table">
+          <tr><th>Item</th><th>How it was worked out</th><th class="r">Supplied by</th><th class="r">Line</th></tr>
+          <tr class="grp"><td colspan="4">Materials</td></tr>
+          <tr class="clientrow"><td>Emulsion &mdash; walls &amp; ceiling</td><td class="sub">48m&sup2; + 14m&sup2; &divide; 11 &times; 2 coats</td><td class="r"><span class="toggle cl"><span>You</span><span class="c on">Client</span></span></td><td class="r">&pound;0</td></tr>
+          <tr><td>Gloss + primer <span class="editchip">edited</span></td><td class="sub">woodwork, 6 doors + skirting</td><td class="r"><span class="toggle"><span class="on">You</span><span class="c">Client</span></span></td><td class="r">&pound;41</td></tr>
+          <tr><td>Filler, tape, dust sheets, rollers</td><td class="sub">sundries allowance</td><td class="r"><span class="toggle"><span class="on">You</span><span class="c">Client</span></span></td><td class="r">&pound;38</td></tr>
+          <tr class="grp"><td colspan="4">Labour</td></tr>
+          <tr><td>Decorator <span class="lockchip">your rate</span></td><td class="sub">3 days @ &pound;220</td><td class="r">&mdash;</td><td class="r">&pound;660</td></tr>
+          <tr><td>Prep &amp; patching</td><td class="sub">&frac12; day</td><td class="r">&mdash;</td><td class="r">&pound;110</td></tr>
+        </table>
+        <div class="totbar">
+          <div class="totbox"><small>Cost to you</small><b>&pound;849</b></div>
+          <div class="totbox margin"><small>Margin 35%</small><b>+&pound;297</b></div>
+          <div class="totbox price"><small>Client price</small><b>&pound;1,146</b></div>
+        </div>
+      </div>
+      <div class="dright">
+        <div class="pvtitle">What the client receives</div>
+        <div class="pv">
+          <div class="logo">REGAL <b>DECORATING</b></div>
+          <div class="meta">Quote #1042 &middot; Lounge &amp; hallway &middot; 14 Oak Rd</div>
+          <div class="pvrow"><div><div class="lbl">Materials &amp; sundries</div><div class="lblmut">paint supplied by client</div></div><div class="amt">&pound;107</div></div>
+          <div class="pvrow"><div><div class="lbl">Labour &amp; preparation</div><div class="lblmut">all works to completion</div></div><div class="amt">&pound;1,039</div></div>
+          <div class="pvtot"><span>Total (ex VAT)</span><span>&pound;1,146</span></div>
+          <div class="note">Emulsion supplied by you &mdash; excluded from this price.</div>
+        </div>
+        <div style="font-size:11px;color:var(--mut);margin-top:12px;line-height:1.6">Switch <b>Client sees</b> to <b>Full breakdown</b> or <b>Single price</b> and this preview updates &mdash; your build-up never changes.</div>
+      </div>
+    </div>
+  </div>
+  <div class="caption">Builder keeps the detail; the client gets exactly the level the builder picks. Client-supplied materials are toggled per line and drop out of both the price and the builder's cost.</div>
+</div>

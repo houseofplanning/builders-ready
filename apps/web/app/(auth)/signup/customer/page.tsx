@@ -35,9 +35,9 @@ export default function CustomerSignupPage() {
         <div className="mb-6 text-center text-sm font-extrabold tracking-[0.2em] text-ink">
           BUILDERS <span className="text-primary">READY</span>
         </div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink">Post a job — free</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-ink">Post a job</h1>
         <p className="mt-1 text-xs text-ink-muted">
-          Create your free account and describe what you need. Trades come to you.
+          Create your account and describe what you need. Trades come to you.
         </p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-3">

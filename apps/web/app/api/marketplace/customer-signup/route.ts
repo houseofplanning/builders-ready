@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
+import { sendCustomerSignupNotification } from '@/lib/email';
 
 /**
  * Mobile customer signup. Creates an auth user with NO tenant membership
@@ -47,5 +48,11 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ error: error?.message ?? 'Could not create account.' }, { status: 400 });
   }
+
+  // Fire-and-forget ops notification; never block signup on a Resend hiccup.
+  await sendCustomerSignupNotification({ name: parsed.data.full_name, email }).catch((err) => {
+    console.error('[customer signup api] notification failed', err);
+  });
+
   return NextResponse.json({ ok: true });
 }

@@ -155,3 +155,34 @@ export async function uploadPhoto(p: UploadParams): Promise<UploadedPhoto> {
     byte_size: p.asset.byteSize,
   };
 }
+
+/**
+ * Compress and upload a job-post photo to the public `job-photos` bucket
+ * under `<uid>/…`, returning its public URL (stored directly in
+ * job_requests.photos so display is trivial for both customers and the
+ * PII-free trade feed). Used by the customer post-a-job flow.
+ */
+export async function uploadJobPhoto(userId: string, uri: string): Promise<string> {
+  const asset = await compressImage(uri);
+  const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+  const arrayBuffer = base64ToArrayBuffer(base64);
+  const path = `${userId}/${Date.now()}-${Math.round(Math.random() * 1e6)}.jpg`;
+  const { error } = await supabase.storage
+    .from('job-photos')
+    .upload(path, arrayBuffer, { contentType: 'image/jpeg', upsert: false });
+  if (error) throw new Error(`Job photo upload failed: ${error.message}`);
+  return supabase.storage.from('job-photos').getPublicUrl(path).data.publicUrl;
+}
+
+/** Compress and upload a chat image to the public `chat-photos` bucket. */
+export async function uploadChatPhoto(userId: string, uri: string): Promise<string> {
+  const asset = await compressImage(uri);
+  const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: 'base64' });
+  const arrayBuffer = base64ToArrayBuffer(base64);
+  const path = `${userId}/${Date.now()}-${Math.round(Math.random() * 1e6)}.jpg`;
+  const { error } = await supabase.storage
+    .from('chat-photos')
+    .upload(path, arrayBuffer, { contentType: 'image/jpeg', upsert: false });
+  if (error) throw new Error(`Chat photo upload failed: ${error.message}`);
+  return supabase.storage.from('chat-photos').getPublicUrl(path).data.publicUrl;
+}

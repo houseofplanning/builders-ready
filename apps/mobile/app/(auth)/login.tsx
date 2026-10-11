@@ -124,7 +124,7 @@ export default function LoginScreen() {
             >
               <Text style={styles.linkText}>
                 Looking to hire a trade?{' '}
-                <Text style={styles.linkStrong}>Create a free account</Text>
+                <Text style={styles.linkStrong}>Create an account</Text>
               </Text>
             </TouchableOpacity>
           </View>

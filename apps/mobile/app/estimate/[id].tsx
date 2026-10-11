@@ -97,13 +97,18 @@ export default function EstimateDetailScreen() {
     if (!estimate) return;
     setSending(true);
     try {
-      const { url } = await sendEstimate(estimate.id, estimate.accept_token);
+      const { url, emailed, to } = await sendEstimate(estimate.id);
       await load();
-      await Share.share({
-        message: `${estimate.title} — here's your quote from ${
-          tenant?.name ?? 'us'
-        }: ${url}`,
-      });
+      if (emailed) {
+        Alert.alert('Quote sent', `Emailed to ${to}.`);
+      } else {
+        // No email on the quote — let the builder share the link themselves.
+        await Share.share({
+          message: `${estimate.title} — here's your quote from ${
+            tenant?.name ?? 'us'
+          }: ${url}`,
+        });
+      }
     } catch (err) {
       Alert.alert(
         'Could not send',

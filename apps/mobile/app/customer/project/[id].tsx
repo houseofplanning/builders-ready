@@ -9,10 +9,13 @@ import {
   ActivityIndicator,
   Linking,
   Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { palette, spacing, typography, radius, gbp, relativeTime, formatDate } from '@br/shared';
 import { useTenant } from '../../../lib/tenant-provider';
 import {
@@ -25,6 +28,8 @@ import {
   decideDecision,
   signVariation,
   payInvoice,
+  requestCashPayment,
+  getHandoverUrl,
   type ProjectHeader,
   type Stage,
   type Update,
@@ -33,11 +38,11 @@ import {
   type ProposedVariation,
 } from '../../../lib/marketplace';
 
-const STAGE_LABEL: Record<string, string> = {
-  not_started: 'Not started',
-  in_progress: 'In progress',
-  complete: 'Complete',
-  delayed: 'Delayed',
+const STAGE_STYLE: Record<string, { label: string; color: string; bg: string }> = {
+  not_started: { label: 'Not started', color: palette.inkMuted, bg: palette.canvas },
+  in_progress: { label: 'In progress', color: palette.primary, bg: '#E7F0F2' },
+  complete: { label: 'Complete', color: '#0F6E56', bg: '#E8F7F0' },
+  delayed: { label: 'Delayed', color: '#B54708', bg: '#FEF0E6' },
 };
 
 export default function CustomerProject() {
@@ -54,26 +59,54 @@ export default function CustomerProject() {
 
   const load = useCallback(async () => {
     if (!id) return;
-    const [p, s, u, inv, d, v] = await Promise.all([
-      getCustomerProject(id),
-      listProjectStages(id),
-      listProjectUpdates(id),
-      listProjectInvoices(id),
-      listOpenDecisions(id),
-      listProposedVariations(id),
-    ]);
-    setProject(p);
-    setStages(s);
-    setUpdates(u);
-    setInvoices(inv);
-    setDecisions(d);
-    setVariations(v);
-    setLoading(false);
+    try {
+      const [p, s, u, inv, d, v] = await Promise.all([
+        getCustomerProject(id),
+        listProjectStages(id),
+        listProjectUpdates(id),
+        listProjectInvoices(id),
+        listOpenDecisions(id),
+        listProposedVariations(id),
+      ]);
+      setProject(p);
+      setStages(s);
+      setUpdates(u);
+      setInvoices(inv);
+      setDecisions(d);
+      setVariations(v);
+    } catch {
+      // Stop the spinner on failure so the screen isn't stuck; pull-to-refresh retries.
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => {
     void load();
   }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
+  function onMessageBuilder() {
+    if (!id) return;
+    // One conversation per project — both sides use the project chat.
+    router.push(`/customer/project-chat/${id}`);
+  }
+
+  async function onHandover() {
+    const path = project?.handover_pdf_storage_path;
+    if (!path) return;
+    try {
+      const url = await getHandoverUrl(path);
+      if (url) await Linking.openURL(url);
+      else Alert.alert('Not available', 'The handover document could not be opened.');
+    } catch (e) {
+      Alert.alert('Error', e instanceof Error ? e.message : 'Could not open the document.');
+    }
+  }
 
   if (loading) {
     return (
@@ -103,10 +136,23 @@ export default function CustomerProject() {
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+      >
         <Text style={styles.meta}>
           {project.trade_name} · est. {formatDate(project.estimated_end_date)}
         </Text>
+
+        <TouchableOpacity onPress={onMessageBuilder} activeOpacity={0.8} style={styles.msgBtn}>
+          <Ionicons name="chatbubble-ellipses-outline" size={18} color={palette.primary} />
+          <Text style={styles.msgBtnText}>Message your builder</Text>
+        </TouchableOpacity>
 
         <View style={styles.progressCard}>
           <View style={styles.progressRow}>
@@ -128,18 +174,23 @@ export default function CustomerProject() {
               <VariationCard key={v.id} v={v} userId={user_id ?? ''} onDone={load} />
             ))}
             {unpaid.map((i) => (
-              <InvoiceRow key={i.id} i={i} pay />
+              <InvoiceRow key={i.id} i={i} pay onDone={load} />
             ))}
           </>
         )}
 
         <Text style={styles.section}>Timeline</Text>
-        {stages.map((s) => (
-          <View key={s.id} style={styles.lineRow}>
-            <Text style={styles.lineName}>{s.name}</Text>
-            <Text style={styles.lineStatus}>{STAGE_LABEL[s.status] ?? s.status}</Text>
-          </View>
-        ))}
+        {stages.map((s) => {
+          const st = STAGE_STYLE[s.status] ?? { label: s.status, color: palette.inkMuted, bg: palette.canvas };
+          return (
+            <View key={s.id} style={styles.lineRow}>
+              <Text style={styles.lineName}>{s.name}</Text>
+              <Text style={[styles.lineStatusPill, { color: st.color, backgroundColor: st.bg }]}>
+                {st.label}
+              </Text>
+            </View>
+          );
+        })}
 
         <Text style={styles.section}>Updates</Text>
         {updates.length === 0 ? (
@@ -149,6 +200,17 @@ export default function CustomerProject() {
             <View key={u.id} style={styles.card}>
               {u.headline ? <Text style={styles.cardTitle}>{u.headline}</Text> : null}
               <Text style={styles.cardBody}>{u.body}</Text>
+              {u.photos.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginTop: spacing.sm }}
+                >
+                  {u.photos.map((url) => (
+                    <Image key={url} source={{ uri: url }} style={styles.updatePhoto} />
+                  ))}
+                </ScrollView>
+              )}
               <Text style={styles.muted}>{relativeTime(u.posted_at)}</Text>
             </View>
           ))
@@ -158,8 +220,23 @@ export default function CustomerProject() {
           <>
             <Text style={styles.section}>Payments</Text>
             {invoices.map((i) => (
-              <InvoiceRow key={i.id} i={i} pay={i.status === 'sent' || i.status === 'overdue'} />
+              <InvoiceRow
+                key={i.id}
+                i={i}
+                pay={i.status === 'sent' || i.status === 'overdue'}
+                onDone={load}
+              />
             ))}
+          </>
+        )}
+
+        {project.handover_pdf_storage_path && (
+          <>
+            <Text style={styles.section}>Project handover</Text>
+            <TouchableOpacity onPress={onHandover} activeOpacity={0.85} style={styles.handoverBtn}>
+              <Ionicons name="document-text-outline" size={20} color="#fff" />
+              <Text style={styles.handoverText}>Download handover PDF</Text>
+            </TouchableOpacity>
           </>
         )}
 
@@ -172,6 +249,7 @@ export default function CustomerProject() {
           </TouchableOpacity>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -249,7 +327,7 @@ function VariationCard({ v, userId, onDone }: { v: ProposedVariation; userId: st
   );
 }
 
-function InvoiceRow({ i, pay }: { i: Invoice; pay: boolean }) {
+function InvoiceRow({ i, pay, onDone }: { i: Invoice; pay: boolean; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   async function onPay() {
     setBusy(true);
@@ -261,6 +339,29 @@ function InvoiceRow({ i, pay }: { i: Invoice; pay: boolean }) {
     } finally {
       setBusy(false);
     }
+  }
+  function onCash() {
+    Alert.alert(
+      'Pay in cash?',
+      "This lets your builder know you'll pay in cash. They'll confirm once they've received it.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: "I'll pay in cash",
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await requestCashPayment(i.id);
+              onDone();
+            } catch (e) {
+              Alert.alert('Error', e instanceof Error ? e.message : 'Could not update.');
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ],
+    );
   }
   return (
     <View style={styles.card}>
@@ -276,14 +377,26 @@ function InvoiceRow({ i, pay }: { i: Invoice; pay: boolean }) {
         </View>
         {i.status === 'paid' ? (
           <Text style={styles.paid}>Paid</Text>
-        ) : pay ? (
-          <TouchableOpacity disabled={busy} onPress={onPay} style={styles.payBtn}>
-            <Text style={styles.payBtnText}>{busy ? '…' : 'Pay now'}</Text>
-          </TouchableOpacity>
-        ) : (
+        ) : !pay ? (
           <Text style={styles.muted}>{i.status}</Text>
-        )}
+        ) : null}
       </View>
+      {i.status !== 'paid' && pay && (
+        i.cash_requested_at ? (
+          <Text style={styles.cashNote}>
+            Cash payment flagged — waiting for your builder to confirm receipt.
+          </Text>
+        ) : (
+          <View style={styles.invActions}>
+            <TouchableOpacity disabled={busy} onPress={onPay} style={[styles.payBtn, { flex: 1 }]}>
+              <Text style={styles.payBtnText}>{busy ? '…' : 'Pay by card'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity disabled={busy} onPress={onCash} style={styles.cashBtn}>
+              <Text style={styles.cashBtnText}>I&rsquo;ll pay in cash</Text>
+            </TouchableOpacity>
+          </View>
+        )
+      )}
     </View>
   );
 }
@@ -301,6 +414,18 @@ const styles = StyleSheet.create({
   htitle: { flex: 1, fontSize: typography.size.lg, fontWeight: typography.weightExtraBold as '800', color: palette.ink },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
   meta: { fontSize: typography.size.sm, color: palette.inkMuted },
+  msgBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: palette.primary,
+    borderRadius: radius.md,
+    paddingVertical: 11,
+    marginTop: spacing.md,
+  },
+  msgBtnText: { color: palette.primary, fontSize: typography.size.body, fontWeight: typography.weightBold as '700' },
   progressCard: {
     borderWidth: 1,
     borderColor: palette.hairline,
@@ -332,6 +457,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: typography.size.body, fontWeight: typography.weightExtraBold as '800', color: palette.ink },
   cardBody: { fontSize: typography.size.body, color: palette.ink, marginTop: 4 },
   muted: { fontSize: typography.size.xs, color: palette.inkMuted, marginTop: 4 },
+  updatePhoto: { width: 240, height: 170, borderRadius: radius.md, marginRight: spacing.sm, backgroundColor: palette.canvas },
   deltaText: { fontSize: typography.size.body, fontWeight: typography.weightBold as '700', color: palette.ink, marginTop: 6 },
   lineRow: {
     flexDirection: 'row',
@@ -344,8 +470,15 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     backgroundColor: palette.card,
   },
-  lineName: { fontSize: typography.size.body, fontWeight: typography.weightSemibold as '600', color: palette.ink },
-  lineStatus: { fontSize: typography.size.xs, fontWeight: typography.weightBold as '700', color: palette.inkMuted },
+  lineName: { fontSize: typography.size.body, fontWeight: typography.weightSemibold as '600', color: palette.ink, flex: 1, paddingRight: spacing.sm },
+  lineStatusPill: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weightBold as '700',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
   optionBtn: {
     borderWidth: 1,
     borderColor: palette.primary,
@@ -368,8 +501,22 @@ const styles = StyleSheet.create({
   solidBtn: { backgroundColor: palette.primary, borderRadius: radius.md, paddingVertical: 11, alignItems: 'center', marginTop: spacing.sm },
   solidBtnText: { color: '#fff', fontSize: typography.size.sm, fontWeight: typography.weightBold as '700' },
   invRow: { flexDirection: 'row', alignItems: 'center' },
-  payBtn: { backgroundColor: palette.primary, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 9 },
+  invActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  payBtn: { backgroundColor: palette.primary, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 10, alignItems: 'center' },
   payBtnText: { color: '#fff', fontSize: typography.size.sm, fontWeight: typography.weightBold as '700' },
+  cashBtn: { borderWidth: 1, borderColor: palette.primary, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 10, alignItems: 'center' },
+  cashBtnText: { color: palette.primary, fontSize: typography.size.sm, fontWeight: typography.weightBold as '700' },
+  cashNote: { fontSize: typography.size.xs, color: palette.inkMuted, marginTop: spacing.sm, lineHeight: 16 },
+  handoverBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: palette.primary,
+    borderRadius: radius.md,
+    paddingVertical: 13,
+  },
+  handoverText: { color: '#fff', fontSize: typography.size.body, fontWeight: typography.weightBold as '700' },
   paid: {
     fontSize: typography.size.xs,
     fontWeight: typography.weightBold as '700',

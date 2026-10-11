@@ -37,15 +37,22 @@ function toNumber(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Round to 2 decimals, matching the DB's numeric(_,2) storage for quantity
+ *  and markup_percent, so the app's live total always equals what Postgres
+ *  recomputes in the generated columns (no sub-penny drift). */
+function round2(v: unknown): number {
+  return Math.round(toNumber(v) * 100) / 100;
+}
+
 export function lineCostPence(line: EstimateLineMathInput): number {
-  return Math.round(toNumber(line.quantity) * toNumber(line.unit_cost_pence));
+  return Math.round(round2(line.quantity) * toNumber(line.unit_cost_pence));
 }
 
 export function linePricePence(line: EstimateLineMathInput): number {
   return Math.round(
-    toNumber(line.quantity) *
+    round2(line.quantity) *
       toNumber(line.unit_cost_pence) *
-      (1 + toNumber(line.markup_percent) / 100),
+      (1 + round2(line.markup_percent) / 100),
   );
 }
 

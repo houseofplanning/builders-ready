@@ -1,27 +1,51 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { palette, spacing, typography, radius, budgetLabel, relativeTime } from '@br/shared';
+import { supabase } from '../../../lib/supabase';
+import { useTenant } from '../../../lib/tenant-provider';
 import { getFeedJob, type FeedJob } from '../../../lib/marketplace';
 
 export default function FeedJobDetail() {
   const router = useRouter();
+  const { user_id } = useTenant();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [job, setJob] = useState<FeedJob | null>(null);
   const [loading, setLoading] = useState(true);
+  const [redirecting, setRedirecting] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
+    // If this is the customer's OWN job, send them to their job view —
+    // the feed detail is only for other people's jobs.
+    if (user_id) {
+      const { data: own } = await supabase
+        .from('job_requests')
+        .select('id')
+        .eq('id', id)
+        .eq('customer_id', user_id)
+        .maybeSingle();
+      if (own) {
+        setRedirecting(true);
+        router.replace(`/customer/request/${id}`);
+        return;
+      }
+    }
     setJob(await getFeedJob(id));
     setLoading(false);
-  }, [id]);
+  }, [id, user_id, router]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  if (redirecting) {
+    // Own job — the request view is taking over; render nothing to avoid a
+    // flash of the "another customer's job" layout.
+    return <SafeAreaView edges={['top']} style={styles.center} />;
+  }
   if (loading) {
     return (
       <SafeAreaView edges={['top']} style={styles.center}>
@@ -61,6 +85,14 @@ export default function FeedJobDetail() {
             {budgetLabel(job.budget_min_pence, job.budget_max_pence, job.budget_note)}
           </Text>
         </View>
+
+        {job.photos.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoStrip}>
+            {job.photos.map((url) => (
+              <Image key={url} source={{ uri: url }} style={styles.photo} />
+            ))}
+          </ScrollView>
+        )}
 
         {job.description ? <Text style={styles.desc}>{job.description}</Text> : null}
 
@@ -112,6 +144,8 @@ const styles = StyleSheet.create({
   },
   statLabel: { fontSize: 10, fontWeight: typography.weightBold as '700', color: palette.inkMuted, letterSpacing: 0.6 },
   statVal: { fontSize: typography.size.lg, fontWeight: typography.weightExtraBold as '800', color: palette.ink, marginTop: 4 },
+  photoStrip: { marginTop: spacing.md },
+  photo: { width: 220, height: 160, borderRadius: radius.md, marginRight: spacing.sm, backgroundColor: palette.card },
   desc: { fontSize: typography.size.body, color: palette.ink, marginTop: spacing.md, lineHeight: 21 },
   note: { fontSize: typography.size.sm, color: palette.inkMuted, marginTop: spacing.lg },
   postBtn: {

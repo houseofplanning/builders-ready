@@ -8,6 +8,7 @@ import type { Message, UUID } from '@br/shared';
 
 export interface ThreadMessage extends Message {
   sender_name: string;
+  image_url: string | null;
 }
 
 export async function listMessagesForProject(
@@ -15,7 +16,7 @@ export async function listMessagesForProject(
 ): Promise<ThreadMessage[]> {
   const { data: rows, error } = await supabase
     .from('messages')
-    .select('id, tenant_id, project_id, sender_id, body, sent_at, read_at')
+    .select('id, tenant_id, project_id, sender_id, body, image_url, sent_at, read_at')
     .eq('project_id', projectId)
     .order('sent_at', { ascending: true });
   if (error || !rows || rows.length === 0) return [];
@@ -31,6 +32,7 @@ export async function listMessagesForProject(
 
   return rows.map((m) => ({
     ...(m as Message),
+    image_url: (m.image_url as string | null) ?? null,
     sender_name: profileMap.get(m.sender_id) ?? 'Someone',
   }));
 }
@@ -40,9 +42,10 @@ export async function sendMessage(params: {
   project_id: UUID;
   sender_id: UUID;
   body: string;
+  image_url?: string | null;
 }): Promise<UUID> {
   const body = params.body.trim();
-  if (!body) throw new Error('Message is empty.');
+  if (!body && !params.image_url) throw new Error('Message is empty.');
   const { data, error } = await supabase
     .from('messages')
     .insert({
@@ -50,6 +53,7 @@ export async function sendMessage(params: {
       project_id: params.project_id,
       sender_id: params.sender_id,
       body,
+      image_url: params.image_url ?? null,
     })
     .select('id')
     .single();

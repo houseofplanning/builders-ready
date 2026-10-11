@@ -87,7 +87,7 @@ export default async function PublicQuotePage({ params }: Props) {
             <img
               src={tenant.logo_url}
               alt={tenant.name ?? ''}
-              className="h-10 w-10 rounded-md object-contain"
+              className="h-10 w-auto max-w-[220px] object-contain object-left"
             />
           ) : (
             <div
@@ -215,19 +215,7 @@ export default async function PublicQuotePage({ params }: Props) {
           )}
         </div>
 
-        {accepted ? (
-          <div className="mt-4 rounded-2xl border border-[#B7E3D2] bg-[#E1F5EE] p-5 text-center">
-            <div className="text-sm font-extrabold text-[#0F6E56]">
-              Quote accepted
-              {estimate.client_signature ? ` by ${estimate.client_signature}` : ''}
-              {estimate.accepted_at ? ` · ${formatDate(estimate.accepted_at)}` : ''}
-            </div>
-            <div className="mt-1 text-xs text-ink-muted">
-              Thanks — {tenant.name} has been notified and will be in touch to
-              get started.
-            </div>
-          </div>
-        ) : expired ? (
+        {expired && !accepted ? (
           <p className="mt-4 text-center text-xs text-ink-muted">
             This quote has expired. Please contact {tenant.name} for an updated
             quote.
@@ -237,6 +225,11 @@ export default async function PublicQuotePage({ params }: Props) {
             token={token}
             primary={primary}
             builderName={tenant.name ?? 'your builder'}
+            status={estimate.status}
+            clientName={estimate.client_name}
+            clientEmail={estimate.client_email}
+            signature={estimate.client_signature}
+            acceptedAt={estimate.accepted_at}
           />
         )}
 

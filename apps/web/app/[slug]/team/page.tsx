@@ -21,7 +21,7 @@ interface MemberRow {
 interface InvitationRow {
   id: string;
   email: string;
-  role: 'pm' | 'client';
+  role: 'owner' | 'pm' | 'client';
   created_at: string;
   expires_at: string;
 }
@@ -146,7 +146,10 @@ export default async function TeamPage({ params }: Props) {
           mobile-app experience.
         </p>
         <div className="mt-4">
-          <InviteForm />
+          <InviteForm
+            canInviteOwner={role === 'owner'}
+            accountDomain={tenant.business_email?.split('@')[1] ?? null}
+          />
         </div>
       </section>
 
@@ -169,7 +172,11 @@ export default async function TeamPage({ params }: Props) {
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold text-ink">{inv.email}</div>
                   <div className="text-[11px] text-ink-muted">
-                    {inv.role === 'pm' ? 'Project Manager' : 'Client'}
+                    {inv.role === 'owner'
+                      ? 'Owner'
+                      : inv.role === 'pm'
+                        ? 'Project Manager'
+                        : 'Client'}
                     {' · '}
                     sent {formatDate(inv.created_at, { short: true })}
                     {' · '}

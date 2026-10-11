@@ -162,17 +162,23 @@ export function BrandingForm({ initial }: Props) {
           Live preview — how clients will see your app
         </div>
         <div className="flex items-center gap-3">
-          <div
-            className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md text-xs font-extrabold tracking-widest text-white"
-            style={{ background: logoUrl ? '#ffffff' : primary }}
-          >
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt="" className="h-full w-full object-contain" />
-            ) : (
-              initials || 'BR'
-            )}
-          </div>
+          {logoUrl ? (
+            // Match the real header: wide wordmarks keep their aspect ratio
+            // (h-9 w-auto) instead of being squished into a tiny square.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt=""
+              className="h-9 w-auto max-w-[160px] object-contain object-left"
+            />
+          ) : (
+            <div
+              className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md text-xs font-extrabold tracking-widest text-white"
+              style={{ background: primary }}
+            >
+              {initials || 'BR'}
+            </div>
+          )}
           <div>
             <div className="text-xs font-extrabold tracking-widest">{initial.name}</div>
             <div className="text-[9px] uppercase tracking-widest text-ink-muted">

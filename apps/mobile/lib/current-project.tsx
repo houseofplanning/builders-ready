@@ -75,7 +75,7 @@ export function CurrentProjectProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { tenant } = useTenant();
+  const { tenant, role } = useTenant();
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [selectedId, setSelectedIdState] = useState<string | null>(null);
   const [current, setCurrent] = useState<ResolvedProject | null>(null);
@@ -110,19 +110,27 @@ export function CurrentProjectProvider({
       setProjects(list);
 
       // Selection policy:
-      //   - 1 project total (typical client)         → auto-select it
-      //   - cached selection still valid             → restore it
-      //   - otherwise                                → leave NULL so the
-      //     Home tab shows the project grid
-      const cachedId = await AsyncStorage.getItem(
-        `${SELECTED_KEY}.${tenant.id}`,
-      );
-      const validCached = cachedId && list.some((p) => p.id === cachedId);
-      const next = validCached
-        ? cachedId
-        : list.length === 1
-          ? list[0].id
-          : null;
+      //   Trades (owner/pm) ALWAYS land on the project grid — it's their
+      //   home base, holding Marketplace, Quotes & estimates and every
+      //   project. So we never auto-select or restore a cached project for
+      //   them; they tap in from the grid each session.
+      //
+      //   Clients have no grid to land on, so we drop them straight into
+      //   their project: a valid cached selection, else their single
+      //   project, else NULL.
+      const isClient = role === 'client';
+      let next: string | null = null;
+      if (isClient) {
+        const cachedId = await AsyncStorage.getItem(
+          `${SELECTED_KEY}.${tenant.id}`,
+        );
+        const validCached = cachedId && list.some((p) => p.id === cachedId);
+        next = validCached
+          ? cachedId
+          : list.length === 1
+            ? list[0].id
+            : null;
+      }
       setSelectedIdState(next);
       initialisedFor.current = tenant.id;
       if (!next) {
@@ -133,7 +141,7 @@ export function CurrentProjectProvider({
     return () => {
       cancelled = true;
     };
-  }, [tenant]);
+  }, [tenant, role]);
 
   // --- Step 2: when selection changes, fetch full project payload ---------
   const fetchCurrent = useCallback(
@@ -183,15 +191,18 @@ export function CurrentProjectProvider({
       const flatPm = Array.isArray(rawPm)
         ? (rawPm[0] as Profile | undefined)
         : (rawPm as Profile | null | undefined);
-      const placeholder = (which: 'Client' | 'Project manager'): Profile =>
+      // Empty name (not a fake "Project manager"/"Client") so screens can
+      // fall back to an honest label with `|| '…'` and never show the
+      // placeholder as if it were a person's real name.
+      const placeholder = (): Profile =>
         ({
           id: '',
-          full_name: which,
+          full_name: '',
           email: '',
           phone: null,
         } as unknown as Profile);
-      const client = flatClient ?? placeholder('Client');
-      const pm = flatPm ?? placeholder('Project manager');
+      const client = flatClient ?? placeholder();
+      const pm = flatPm ?? placeholder();
       const allStages = (stages ?? []) as ProjectStage[];
       const currentStage =
         allStages.find((s) => s.id === project.current_stage_id) ?? null;

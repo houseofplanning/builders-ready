@@ -19,7 +19,7 @@ export function milestoneAmountPence(
     return Math.max(0, Math.round(m.amount_pence));
   }
   if (m.percent != null && Number.isFinite(m.percent)) {
-    return Math.round((contractSumPence * m.percent) / 100);
+    return Math.max(0, Math.round((contractSumPence * m.percent) / 100));
   }
   return 0;
 }

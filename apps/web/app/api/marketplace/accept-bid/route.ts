@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { distributeStages, stagesForTemplate } from '@br/shared';
+import { distributeStages, stagesForTemplate, templateKeyForTradeCategory } from '@br/shared';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 
 /**
@@ -45,10 +45,15 @@ export async function POST(req: Request) {
     .eq('id', bidId)
     .maybeSingle();
   if (!bid) return NextResponse.json({ error: 'Bid not found.' }, { status: 404 });
+  // Only a live bid can be accepted — not one withdrawn/declined/already
+  // accepted (a bid can be withdrawn while its job is still open).
+  if (bid.status !== 'submitted' && bid.status !== 'shortlisted') {
+    return NextResponse.json({ error: 'This bid is no longer available.' }, { status: 409 });
+  }
 
   const { data: job } = await admin
     .from('job_requests')
-    .select('id, customer_id, title, address_line1, city, postcode, status')
+    .select('id, customer_id, title, trade_category, address_line1, city, postcode, status')
     .eq('id', bid.job_request_id)
     .maybeSingle();
   if (!job || job.customer_id !== userId) {
@@ -68,6 +73,8 @@ export async function POST(req: Request) {
   const today = new Date();
   const start = today.toISOString().slice(0, 10);
   const end = new Date(today.getTime() + 56 * 86_400_000).toISOString().slice(0, 10);
+  // Seed a timeline scoped to the kind of work, not the generic 8-stage default.
+  const templateKey = templateKeyForTradeCategory(job.trade_category);
 
   const { data: project, error: projErr } = await admin
     .from('projects')
@@ -82,7 +89,7 @@ export async function POST(req: Request) {
       start_date: start,
       estimated_end_date: end,
       quoted_amount_pence: bid.amount_pence ?? null,
-      project_type: null,
+      project_type: templateKey,
     })
     .select('id')
     .single();
@@ -96,7 +103,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: projErr.message }, { status: 400 });
   }
 
-  const stageRows = distributeStages(start, end, stagesForTemplate(null)).map((s) => ({
+  const stageRows = distributeStages(start, end, stagesForTemplate(templateKey)).map((s) => ({
     tenant_id: bid.tenant_id,
     project_id: project.id,
     position: s.position,

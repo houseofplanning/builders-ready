@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
 import {
   palette,
   spacing,
@@ -37,6 +38,14 @@ export default function MyJobs() {
     void load();
   }, [load]);
 
+  // Refresh when the tab regains focus so a just-posted job appears
+  // without needing to reopen the app.
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.canvas }}>
       <Text style={styles.title}>My jobs</Text>
@@ -45,9 +54,21 @@ export default function MyJobs() {
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           {rows.length === 0 ? (
-            <Text style={styles.empty}>
-              You haven&rsquo;t posted a job yet. Tap Browse to post one.
-            </Text>
+            <View style={styles.emptyWrap}>
+              <Ionicons name="clipboard-outline" size={46} color={palette.inkMuted} />
+              <Text style={styles.emptyTitle}>No jobs yet</Text>
+              <Text style={styles.empty}>
+                Post a job and local trades will send you quotes.
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push('/customer/post')}
+                activeOpacity={0.85}
+                style={styles.emptyBtn}
+              >
+                <Ionicons name="add" size={18} color="#fff" />
+                <Text style={styles.emptyBtnText}>Post a job</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             rows.map((r) => (
               <TouchableOpacity
@@ -94,7 +115,20 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
   },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  empty: { textAlign: 'center', marginTop: spacing.xl, fontSize: typography.size.sm, color: palette.inkMuted },
+  emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl * 2, paddingHorizontal: spacing.lg },
+  emptyTitle: { fontSize: typography.size.lg, fontWeight: typography.weightExtraBold as '800', color: palette.ink, marginTop: spacing.md },
+  empty: { textAlign: 'center', marginTop: spacing.sm, fontSize: typography.size.sm, color: palette.inkMuted, lineHeight: 20 },
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: palette.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    marginTop: spacing.lg,
+  },
+  emptyBtnText: { color: '#fff', fontSize: typography.size.body, fontWeight: typography.weightBold as '700' },
   card: {
     flexDirection: 'row',
     alignItems: 'center',

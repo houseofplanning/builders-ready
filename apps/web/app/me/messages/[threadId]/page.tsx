@@ -35,7 +35,7 @@ export default async function CustomerThreadPage({ params }: Props) {
   ]);
 
   return (
-    <div className="flex h-[calc(100vh-10rem)] flex-col">
+    <div className="flex h-[calc(100dvh-8rem)] flex-col">
       <Link href="/me/messages" className="text-sm font-bold text-primary hover:underline">
         ‹ Messages
       </Link>

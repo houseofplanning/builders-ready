@@ -7,7 +7,7 @@ interface Msg {
 
 export function MessageThread({ messages, meId }: { messages: Msg[]; meId: string }) {
   return (
-    <div className="flex-1 space-y-2 overflow-y-auto py-2">
+    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto py-2">
       {messages.length === 0 && (
         <p className="py-8 text-center text-sm text-ink-muted">Say hello to get started.</p>
       )}
@@ -16,7 +16,7 @@ export function MessageThread({ messages, meId }: { messages: Msg[]; meId: strin
         return (
           <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
+              className={`max-w-[75%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2 text-sm ${
                 mine ? 'bg-primary text-white' : 'border border-hairline bg-white text-ink'
               }`}
             >

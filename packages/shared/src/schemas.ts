@@ -10,7 +10,18 @@ import { z } from 'zod';
 // --- shared atoms ----------------------------------------------------------
 
 export const uuid = z.string().uuid();
-export const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD');
+export const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD')
+  // Shape alone isn't enough — reject well-formed but impossible dates like
+  // 2026-13-99 or 2026-02-30 (which would otherwise crash stage seeding).
+  .refine(
+    (s) => {
+      const d = new Date(`${s}T00:00:00Z`);
+      return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+    },
+    { message: 'not a real calendar date' },
+  );
 export const email = z.string().email().max(255);
 
 export const slug = z
@@ -152,7 +163,7 @@ export const estimateLineInput = z.object({
   kind: estimateLineKind.default('material'),
   saved_rate_id: uuid.nullable().optional(),
   description: z.string().min(1).max(300),
-  quantity: z.number().nonnegative().default(1),
+  quantity: z.number().nonnegative().max(9_999_999_999.99).default(1),
   unit: z.string().min(1).max(20).default('each'),
   /** Builder's cost per unit, integer pence. */
   unit_cost_pence: z.number().int().nonnegative().default(0),

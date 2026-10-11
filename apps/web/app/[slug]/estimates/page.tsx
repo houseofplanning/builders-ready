@@ -123,7 +123,7 @@ export default async function EstimatesListPage({ params }: Props) {
                 href={`/${slug}/estimates/${e.id}`}
                 className={`block ${i > 0 ? 'border-t border-hairline' : ''} p-5 transition hover:bg-canvas`}
               >
-                <div className="grid grid-cols-[1.2fr_2fr_1fr_1fr] items-center gap-4">
+                <div className="flex flex-col gap-2 sm:grid sm:grid-cols-[1.2fr_2fr_1fr_1fr] sm:items-center sm:gap-4">
                   <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
                     {e.number}
                   </div>
@@ -145,7 +145,7 @@ export default async function EstimatesListPage({ params }: Props) {
                         : formatDate(e.created_at)}
                     </div>
                   </div>
-                  <div className="text-right text-base font-extrabold text-ink">
+                  <div className="text-base font-extrabold text-ink sm:text-right">
                     {gbp(Number(e.total_pence))}
                   </div>
                 </div>

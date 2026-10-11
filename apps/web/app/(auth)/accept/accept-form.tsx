@@ -85,7 +85,7 @@ export function AcceptForm({ token, email }: { token: string; email: string }) {
           type="password"
           autoComplete="new-password"
           required
-          minLength={12}
+          minLength={8}
           maxLength={72}
           className="block w-full rounded-lg border border-hairline bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none"
         />

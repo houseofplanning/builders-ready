@@ -34,20 +34,6 @@ interface MoreItem {
 
 const ITEMS: MoreItem[] = [
   {
-    label: 'Find Work',
-    icon: 'briefcase-outline',
-    hint: 'Browse and bid on new jobs from customers',
-    route: '/find-work',
-    requiresTrade: true,
-  },
-  {
-    label: 'Marketplace messages',
-    icon: 'chatbubble-ellipses-outline',
-    hint: 'Chat with customers about posted jobs',
-    route: '/mkt-messages',
-    requiresTrade: true,
-  },
-  {
     label: 'Variations',
     icon: 'document-text-outline',
     hint: 'Change orders to review or propose',

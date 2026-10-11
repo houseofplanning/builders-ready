@@ -8,7 +8,7 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   PROJECT_TEMPLATES,
@@ -33,6 +33,7 @@ export function TemplatePicker({
   label?: string;
 }) {
   const { palette } = useTenant();
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -76,22 +77,28 @@ export function TemplatePicker({
       <Modal
         visible={open}
         animationType="slide"
+        statusBarTranslucent
         onRequestClose={() => setOpen(false)}
       >
-        <SafeAreaView
-          style={{ flex: 1, backgroundColor: palette.canvas }}
-          edges={['top', 'bottom']}
-        >
+        <View style={{ flex: 1, backgroundColor: palette.canvas }}>
           <View
             style={[
               styles.header,
-              { borderBottomColor: palette.hairline, backgroundColor: palette.card },
+              {
+                borderBottomColor: palette.hairline,
+                backgroundColor: palette.card,
+                paddingTop: insets.top + spacing.md,
+              },
             ]}
           >
             <Text style={[styles.headerTitle, { color: palette.ink }]}>
               Project type
             </Text>
-            <TouchableOpacity onPress={() => setOpen(false)} hitSlop={10}>
+            <TouchableOpacity
+              onPress={() => setOpen(false)}
+              hitSlop={16}
+              style={styles.closeBtn}
+            >
               <Ionicons name="close" size={26} color={palette.ink} />
             </TouchableOpacity>
           </View>
@@ -120,7 +127,7 @@ export function TemplatePicker({
             </View>
           </View>
 
-          <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl }}>
+          <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl + insets.bottom }}>
             {Object.keys(groups).length === 0 ? (
               <Text style={{ color: palette.inkMuted, textAlign: 'center', marginTop: spacing.xl }}>
                 No match. Pick “Custom” to build your own timeline.
@@ -175,7 +182,7 @@ export function TemplatePicker({
               ))
             )}
           </ScrollView>
-        </SafeAreaView>
+        </View>
       </Modal>
     </>
   );
@@ -204,8 +211,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingBottom: spacing.md,
     borderBottomWidth: 1,
+  },
+  closeBtn: {
+    padding: 4,
+    marginRight: -4,
   },
   headerTitle: {
     fontSize: typography.size.md,

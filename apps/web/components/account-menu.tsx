@@ -43,7 +43,7 @@ export function AccountMenu({
   }, [open]);
 
   return (
-    <div className="relative ml-auto" ref={ref}>
+    <div className="relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

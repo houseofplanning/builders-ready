@@ -39,19 +39,18 @@ async function nextEstimateNumber(
 ): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `EST-${year}-`;
+  // Numeric max — string ordering breaks past 999 and could repeat a number.
   const { data } = await supabase
     .from('estimates')
     .select('number')
     .eq('tenant_id', tenantId)
-    .like('number', `${prefix}%`)
-    .order('number', { ascending: false })
-    .limit(1);
-  let nextSeq = 1;
-  if (data && data[0]) {
-    const match = (data[0].number as string).match(/-(\d+)$/);
-    if (match) nextSeq = parseInt(match[1], 10) + 1;
+    .like('number', `${prefix}%`);
+  let maxSeq = 0;
+  for (const row of data ?? []) {
+    const match = (row.number as string).match(/-(\d+)$/);
+    if (match) maxSeq = Math.max(maxSeq, parseInt(match[1], 10));
   }
-  return `${prefix}${nextSeq.toString().padStart(3, '0')}`;
+  return `${prefix}${(maxSeq + 1).toString().padStart(3, '0')}`;
 }
 
 export async function createEstimateOnWeb(
@@ -683,4 +682,179 @@ export async function convertEstimateToProject(
   revalidatePath(`/${tenant.tenant.slug}/estimates/${estimateId}`);
   revalidatePath(`/${tenant.tenant.slug}/dashboard`);
   return { ok: true, projectId: project.id as string };
+}
+
+/**
+ * Decline a quote from the public shareable link. UNAUTHENTICATED — the
+ * accept_token is the capability. Marks the quote declined.
+ */
+export async function declineEstimateByToken(
+  token: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!token || token.length < 16) return { ok: false, error: 'Invalid link.' };
+  const admin = getSupabaseAdmin();
+  const { data: est } = await admin
+    .from('estimates')
+    .select('id, status')
+    .eq('accept_token', token)
+    .maybeSingle();
+  if (!est) return { ok: false, error: 'Quote not found.' };
+  if (est.status === 'accepted') {
+    return { ok: false, error: 'This quote has already been accepted.' };
+  }
+  if (est.status === 'declined') return { ok: true }; // idempotent
+  if (est.status !== 'sent' && est.status !== 'draft') {
+    return { ok: false, error: 'This quote can no longer be changed.' };
+  }
+  const { error } = await admin
+    .from('estimates')
+    .update({ status: 'declined' })
+    .eq('id', est.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export interface QuoteAccountResult {
+  ok: boolean;
+  error?: string;
+  /** Where the client form should navigate on success. */
+  redirectTo?: string;
+  /** True when the account already existed and they need to sign in manually. */
+  needsSignIn?: boolean;
+}
+
+/**
+ * After a prospect ACCEPTS a public quote, let them create a free account
+ * (no card) to follow the project. UNAUTHENTICATED — the accept_token is the
+ * capability. Ensures a project exists for the quote and links it to the new
+ * (or existing) account as the client, so the builder never has to re-invite
+ * them. If we create the account, they're signed in and sent to /me.
+ */
+export async function createClientAccountForQuote(
+  token: string,
+  raw: { full_name: string; email: string; password: string },
+): Promise<QuoteAccountResult> {
+  const fullName = (raw?.full_name ?? '').trim();
+  const email = (raw?.email ?? '').trim().toLowerCase();
+  const password = raw?.password ?? '';
+  if (fullName.length < 2) return { ok: false, error: 'Enter your full name.' };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: 'Enter a valid email address.' };
+  }
+  if (password.length < 8) return { ok: false, error: 'Password must be at least 8 characters.' };
+  if (!token || token.length < 16) return { ok: false, error: 'Invalid link.' };
+
+  const admin = getSupabaseAdmin();
+  const { data: est } = await admin
+    .from('estimates')
+    .select(
+      'id, tenant_id, created_by, title, total_pence, project_type, project_id, site_address_line1, site_address_line2, city, postcode, status',
+    )
+    .eq('accept_token', token)
+    .maybeSingle();
+  if (!est) return { ok: false, error: 'Quote not found.' };
+  if (est.status !== 'accepted') {
+    return { ok: false, error: 'Please accept the quote first.' };
+  }
+
+  // 1. Ensure a project exists for this quote (idempotent via estimates.project_id).
+  let projectId = est.project_id as string | null;
+  if (!projectId) {
+    const today = new Date();
+    const start = today.toISOString().slice(0, 10);
+    const end = new Date(today.getTime() + 56 * 86_400_000).toISOString().slice(0, 10);
+    const { data: proj, error: projErr } = await admin
+      .from('projects')
+      .insert({
+        tenant_id: est.tenant_id,
+        name: est.title,
+        address_line1: est.site_address_line1 ?? est.postcode ?? '—',
+        address_line2: est.site_address_line2 ?? null,
+        city: est.city ?? est.postcode ?? '—',
+        postcode: (est.postcode ?? '').toUpperCase() || 'UNKNOWN',
+        client_id: est.created_by, // temporary; set to the real client below
+        pm_id: est.created_by,
+        start_date: start,
+        estimated_end_date: end,
+        quoted_amount_pence:
+          Number(est.total_pence) > 0 ? Number(est.total_pence) : null,
+        project_type: est.project_type ?? null,
+      })
+      .select('id')
+      .single();
+    if (projErr) {
+      const m = projErr.message.toLowerCase();
+      if (m.includes('limit') || projErr.code === 'check_violation') {
+        return {
+          ok: false,
+          error:
+            "Your builder has reached their plan limit — they'll add you to the project once a slot frees up.",
+        };
+      }
+      return { ok: false, error: projErr.message };
+    }
+    projectId = proj.id as string;
+    await admin.from('estimates').update({ project_id: projectId }).eq('id', est.id);
+    const stageRows = distributeStages(
+      start,
+      end,
+      stagesForTemplate(est.project_type as string | null),
+    ).map((s) => ({
+      tenant_id: est.tenant_id,
+      project_id: projectId as string,
+      position: s.position,
+      name: s.name,
+      start_date: s.start_date,
+      target_end_date: s.target_end_date,
+      status: 'not_started' as const,
+    }));
+    if (stageRows.length > 0) await admin.from('project_stages').insert(stageRows);
+  }
+  if (!projectId) return { ok: false, error: 'Could not create the project.' };
+
+  // 2. Resolve the client user — reuse an existing account for this email, else create one.
+  const { data: existingProfile } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+  let userId: string | null = (existingProfile?.id as string | undefined) ?? null;
+  let created = false;
+  if (!userId) {
+    const { data: newUser, error: cErr } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: fullName },
+    });
+    if (cErr || !newUser?.user) {
+      // Possible race: a profile may now exist — re-check before giving up.
+      const { data: p2 } = await admin
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+      if (p2?.id) {
+        userId = p2.id as string;
+      } else {
+        return { ok: false, error: cErr?.message ?? 'Could not create account.' };
+      }
+    } else {
+      userId = newUser.user.id;
+      created = true;
+    }
+  }
+  if (!userId) return { ok: false, error: 'Could not create account.' };
+
+  // 3. Link the project to this client so it shows on their account immediately.
+  await admin.from('projects').update({ client_id: userId }).eq('id', projectId);
+
+  // 4. Sign the new account in; an existing account must sign in manually.
+  if (created) {
+    const supabase = await createSupabaseServer();
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInErr) return { ok: true, needsSignIn: true, redirectTo: '/login' };
+    return { ok: true, redirectTo: '/me' };
+  }
+  return { ok: true, needsSignIn: true, redirectTo: '/login' };
 }
