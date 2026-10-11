@@ -115,7 +115,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
   const backLabel = invitedClient ? 'Your projects' : 'Your jobs';
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="w-full">
       {showBack && (
         <Link href="/me" className="text-sm font-bold text-primary hover:underline">
           ‹ {backLabel}
@@ -135,10 +135,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
         {trade?.name ?? 'Your trade'} · est. completion {formatDate(project.estimated_end_date)}
       </p>
 
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-
-      <div className="rounded-card border border-hairline bg-white p-5">
+      <div className="mt-4 rounded-card border border-hairline bg-white p-5">
         <div className="flex items-center justify-between">
           <span className="text-sm font-bold text-ink">Progress</span>
           <span className="text-sm font-extrabold text-primary">{project.progress_percent}%</span>
@@ -203,8 +200,9 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
         </Section>
       )}
 
+      <div className="mt-7 grid items-start gap-6 lg:grid-cols-2">
       {/* Timeline */}
-      <Section title="Timeline">
+      <Section title="Timeline" flush>
         {stages.length === 0 ? (
           <p className="text-sm text-ink-muted">The timeline will appear here.</p>
         ) : (
@@ -227,7 +225,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
       </Section>
 
       {/* Updates */}
-      <Section title="Updates">
+      <Section title="Updates" flush>
         {updates.length === 0 ? (
           <p className="text-sm text-ink-muted">No updates yet.</p>
         ) : (
@@ -245,7 +243,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
 
       {/* Handover */}
       {handoverUrl && (
-        <Section title="Project handover">
+        <Section title="Project handover" flush>
           <a
             href={handoverUrl}
             target="_blank"
@@ -259,7 +257,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
 
       {/* All invoices */}
       {invoices.length > 0 && (
-        <Section title="Payments">
+        <Section title="Payments" flush>
           <ul className="space-y-2">
             {invoices.map((i) => (
               <li
@@ -286,32 +284,22 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
           </ul>
         </Section>
       )}
-
-        </div>
-
-        {/* Right rail — talk to the builder */}
-        <aside className="lg:sticky lg:top-6">
-          <div className="rounded-card border border-hairline bg-white p-5">
-            <h2 className="text-sm font-bold text-ink">Messages</h2>
-            <p className="mt-1 text-xs text-ink-muted">
-              Questions about this project? Message {trade?.name ?? 'your builder'} directly.
-            </p>
-            <Link
-              href={`/me/jobs/${project.id}/chat`}
-              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-bold text-primary hover:bg-canvas"
-            >
-              Message your builder →
-            </Link>
-          </div>
-        </aside>
       </div>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  children,
+  flush,
+}: {
+  title: string;
+  children: React.ReactNode;
+  flush?: boolean;
+}) {
   return (
-    <section className="mt-7">
+    <section className={flush ? '' : 'mt-7'}>
       <h2 className="mb-3 text-lg font-extrabold text-ink">{title}</h2>
       {children}
     </section>
