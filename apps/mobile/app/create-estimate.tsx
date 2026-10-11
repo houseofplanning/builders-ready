@@ -27,6 +27,7 @@ import {
   ESTIMATE_LINE_KIND_DEFAULT_UNIT,
   VAT_MODE_LABELS,
   CLIENT_DETAIL_LABELS,
+  formatDate,
 } from '@br/shared';
 import type {
   EstimateClientDetail,
@@ -170,7 +171,7 @@ export default function CreateEstimateScreen() {
       pending.indicative
         ? 'Indicative guideline pre-filled — review and adjust every line and your margin before you send.'
         : pending.pricedOn
-          ? `Pre-filled from a template · materials priced as of ${pending.pricedOn}. Edit any line and your margin.`
+          ? `Pre-filled from a template · materials priced as of ${formatDate(pending.pricedOn, { short: true })}. Edit any line and your margin.`
           : 'Pre-filled from a template. Edit any line and your margin.',
     );
   }, [id]);

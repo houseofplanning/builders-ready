@@ -754,7 +754,7 @@ export async function createClientAccountForQuote(
   const { data: est } = await admin
     .from('estimates')
     .select(
-      'id, tenant_id, created_by, title, total_pence, project_type, project_id, site_address_line1, site_address_line2, city, postcode, status',
+      'id, tenant_id, created_by, title, total_pence, project_type, project_id, site_address_line1, site_address_line2, city, postcode, status, client_email',
     )
     .eq('accept_token', token)
     .maybeSingle();
@@ -853,7 +853,15 @@ export async function createClientAccountForQuote(
   if (!userId) return { ok: false, error: 'Could not create account.' };
 
   // 3. Link the project to this client so it shows on their account immediately.
-  await admin.from('projects').update({ client_id: userId }).eq('id', projectId);
+  // SECURITY: only auto-link to a PRE-EXISTING account when the email entered
+  // matches the address the builder actually sent the quote to — otherwise a
+  // stranger using the public link could attach the project to someone else's
+  // account by typing their email. Accounts we create here are always fine.
+  const intendedRecipient =
+    !!est.client_email && String(est.client_email).trim().toLowerCase() === email;
+  if (created || intendedRecipient) {
+    await admin.from('projects').update({ client_id: userId }).eq('id', projectId);
+  }
 
   // 4. Sign the new account in; an existing account must sign in manually.
   if (created) {

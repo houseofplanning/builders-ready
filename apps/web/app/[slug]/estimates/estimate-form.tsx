@@ -53,12 +53,14 @@ export interface EstimateFormInitial {
   client_email: string | null;
   client_phone: string | null;
   site_address_line1: string | null;
+  site_address_line2: string | null;
   city: string | null;
   postcode: string | null;
   vat_mode: VatMode;
   client_detail_level: EstimateClientDetail;
   valid_until: string | null;
   notes: string | null;
+  terms: string | null;
   lines: {
     kind: EstimateLineKind;
     saved_rate_id: string | null;
@@ -235,7 +237,7 @@ export function EstimateForm({
       client_email: clientEmail.trim() || null,
       client_phone: clientPhone.trim() || null,
       site_address_line1: addr1.trim() || null,
-      site_address_line2: null,
+      site_address_line2: initial?.site_address_line2 ?? null,
       city: city.trim() || null,
       postcode: postcode.trim() || null,
       vat_mode: vatMode,
@@ -248,7 +250,7 @@ export function EstimateForm({
             ? daysFromNowISO(validityDays)
             : null,
       notes: notes.trim() || null,
-      terms: null,
+      terms: initial?.terms ?? null,
       lines: meaningful.map((r) => ({
         kind: r.kind,
         saved_rate_id: r.saved_rate_id,
@@ -292,7 +294,7 @@ export function EstimateForm({
             {seed.indicative
               ? 'Indicative guideline pre-filled — review and adjust every line and your margin before you send. The figures are a ballpark, not a fixed price.'
               : `✨ Pre-filled from a template${
-                  seed.priced_on ? ` · materials priced as of ${seed.priced_on}` : ''
+                  seed.priced_on ? ` · materials priced as of ${formatDate(seed.priced_on)}` : ''
                 }. Edit any line and your margin, then save.`}
           </div>
         )}

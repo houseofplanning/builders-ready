@@ -85,7 +85,7 @@ export function RateBookManager({
       {/* Labour */}
       <section className="overflow-hidden rounded-card border border-hairline bg-white shadow-card">
         <div className="border-b border-hairline px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
-          Labour day rates
+          Labour rates
         </div>
         {initialLabour.map((l, i) => {
           const key = `${l.trade}|${l.unit}`;

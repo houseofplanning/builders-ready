@@ -512,10 +512,10 @@ export function TemplateQuoteBuilder({
                 <span className="text-sm font-extrabold text-ink">Client (ex-VAT)</span>
                 <span className="text-xl font-extrabold text-ink">{gbp(totals.price)}</span>
               </div>
-              {result.uncertainty ? (
+              {result.uncertainty && selected.basis === 'indicative' ? (
                 <p className="mt-1 text-xs font-bold text-ink">
                   Indicative range {gbp(Math.round(totals.price * (1 - result.uncertainty)))}–
-                  {gbp(Math.round(totals.price * (1 + result.uncertainty)))}
+                  {gbp(Math.round(totals.price * (1 + result.uncertainty)))} (ex-VAT)
                 </p>
               ) : null}
               {result.priced_on && (

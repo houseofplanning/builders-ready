@@ -552,7 +552,7 @@ export default function QuoteTemplateScreen() {
                     </Text>
                   </View>
                 ))}
-                {result.uncertainty ? (
+                {result.uncertainty && selected.basis === 'indicative' ? (
                   <Text style={[styles.pricedOn, { color: palette.ink, fontWeight: '700' }]}>
                     Indicative range {gbp(Math.round(totals.price * (1 - result.uncertainty)))}–
                     {gbp(Math.round(totals.price * (1 + result.uncertainty)))} (ex-VAT)
@@ -565,6 +565,11 @@ export default function QuoteTemplateScreen() {
                   </Text>
                 )}
               </View>
+            )}
+            {result && result.lines.length === 0 && (
+              <Text style={[styles.hint, { color: palette.inkMuted, marginTop: spacing.lg }]}>
+                {result.warnings[0] ?? 'Enter the job details to see a draft.'}
+              </Text>
             )}
 
             <View style={{ height: 150 }} />
@@ -643,7 +648,7 @@ function GenericFields({
             ) : f.type === 'bool' ? (
               <View style={styles.switchRow}>
                 <Text style={[styles.hint, { color: palette.inkMuted, flex: 1 }]}>
-                  {f.hint ?? ''}
+                  {f.hint ?? 'Yes'}
                 </Text>
                 <Switch
                   value={!!val}

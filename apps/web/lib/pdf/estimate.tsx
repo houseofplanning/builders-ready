@@ -215,6 +215,9 @@ function EstimateDocument({ data }: { data: EstimatePdfData }) {
             {tenant.vat_number ? (
               <Text style={s.metaValue}>VAT: {tenant.vat_number}</Text>
             ) : null}
+            {tenant.company_number ? (
+              <Text style={s.metaValue}>Company no: {tenant.company_number}</Text>
+            ) : null}
           </View>
         </View>
 
