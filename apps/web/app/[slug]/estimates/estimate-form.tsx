@@ -12,6 +12,7 @@ import {
   ESTIMATE_LINE_KIND_DEFAULT_UNIT,
   VAT_MODE_LABELS,
   CLIENT_DETAIL_LABELS,
+  formatDate,
 } from '@br/shared';
 import type {
   EstimateClientDetail,
