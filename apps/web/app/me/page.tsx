@@ -37,6 +37,24 @@ export default async function CustomerHome() {
 
   const rows = (data ?? []) as Row[];
 
+  // Builder-managed projects where this user is the client. Covers invited
+  // clients (who never posted a marketplace job) and marketplace customers
+  // whose job became a project. RLS lets a client read their own project.
+  const { data: projectRows } = await supabase
+    .from('projects')
+    .select('id, name, status, progress_percent, city, postcode')
+    .eq('client_id', me.user_id)
+    .neq('status', 'archived')
+    .order('updated_at', { ascending: false });
+  const projects = (projectRows ?? []) as {
+    id: string;
+    name: string;
+    status: string;
+    progress_percent: number | null;
+    city: string | null;
+    postcode: string | null;
+  }[];
+
   const quotesById = new Map<string, number>();
   if (rows.length) {
     const { data: bidRows } = await supabase
@@ -52,6 +70,59 @@ export default async function CustomerHome() {
 
   return (
     <div>
+      {projects.length > 0 && (
+        <section className="mb-8">
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Your projects</h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            Live work your builder is managing. Tap in to follow the timeline,
+            approve decisions and pay invoices.
+          </p>
+          <ul className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {projects.map((p) => {
+              const pct = Math.max(0, Math.min(100, Math.round(p.progress_percent ?? 0)));
+              const statusLabel =
+                p.status === 'on_hold'
+                  ? 'On hold'
+                  : p.status === 'completed'
+                    ? 'Completed'
+                    : 'Active';
+              return (
+                <li key={p.id}>
+                  <Link
+                    href={`/me/jobs/${p.id}`}
+                    className="flex h-full flex-col rounded-card border border-hairline bg-white p-5 transition hover:border-primary/40"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="text-base font-extrabold text-ink">{p.name}</div>
+                      <span className="whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+                        {statusLabel}
+                      </span>
+                    </div>
+                    {(p.city || p.postcode) && (
+                      <div className="mt-0.5 text-sm text-ink-muted">
+                        {[p.city, p.postcode].filter(Boolean).join(', ')}
+                      </div>
+                    )}
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-ink-muted">
+                        <span>Progress</span>
+                        <span>{pct}%</span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full rounded-full bg-canvas">
+                        <div
+                          className="h-1.5 rounded-full bg-primary"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">Your requests</h1>

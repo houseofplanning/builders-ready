@@ -5,7 +5,7 @@ import { createSupabaseServer } from '@/lib/supabase-server';
 import { formatDate } from '@br/shared';
 import { InviteForm } from './invite-form';
 import { RevokeButton } from './revoke-button';
-import { ReassignControl } from './reassign-controls';
+import { ReassignControl, AssignClientControl } from './reassign-controls';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -325,9 +325,21 @@ export default async function TeamPage({ params }: Props) {
                     </ul>
                   ) : (
                     <p className="mt-3 border-l border-hairline pl-4 text-[11px] italic text-ink-muted">
-                      No projects assigned to {m.profile?.full_name ?? 'them'}.
+                      No projects assigned to {m.profile?.full_name ?? 'them'} yet.
                     </p>
                   )}
+                  <div className="mt-3 border-l border-hairline pl-4">
+                    <AssignClientControl
+                      clientUserId={m.user_id}
+                      projects={projects
+                        .filter((p) => p.client_id !== m.user_id)
+                        .map((p) => ({
+                          id: p.id,
+                          name: p.name,
+                          status: p.status,
+                        }))}
+                    />
+                  </div>
                 </li>
               );
             })}

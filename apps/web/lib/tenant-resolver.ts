@@ -69,6 +69,14 @@ export async function requireTenantBySlug(
 ): Promise<ResolvedTenant> {
   const resolved = await resolveCurrentTenant();
   if (!resolved) redirect('/login');
+  // Clients never see the builder app. Every `/[slug]/*` page (dashboard,
+  // projects, team, estimates, financials…) is owner/PM territory; a tenant
+  // member with role 'client' is sent to their own read-only portal instead.
+  // This runs before the slug and subscription checks so a client can never
+  // load a builder page regardless of which tenant/subscription state.
+  if (resolved.role === 'client') {
+    redirect('/me');
+  }
   if (resolved.tenant.slug !== slug) {
     // User exists but is logged into a different tenant — send them home.
     redirect(`/${resolved.tenant.slug}/dashboard`);

@@ -51,14 +51,22 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Logged-in users hitting /login or /signup get sent to their dashboard.
+  // Logged-in users hitting /login or /signup get sent to their home.
+  // Owners/PMs → their builder dashboard; clients → their read-only portal
+  // (/me). Marketplace customers have no membership and also land on /me.
   if (isAuthPage && user) {
     const { data: membership } = await supabase
       .from('tenant_members')
-      .select('tenant:tenants(slug)')
+      .select('role, tenant:tenants(slug)')
       .eq('user_id', user.id)
       .maybeSingle();
+    const role = (membership as { role?: string } | null)?.role;
     const slug = (membership?.tenant as { slug?: string } | null)?.slug;
+    if (role === 'client') {
+      url.pathname = '/me';
+      url.searchParams.delete('next');
+      return NextResponse.redirect(url);
+    }
     if (slug) {
       url.pathname = `/${slug}/dashboard`;
       url.searchParams.delete('next');
