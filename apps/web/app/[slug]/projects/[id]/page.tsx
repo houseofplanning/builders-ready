@@ -11,7 +11,7 @@ import {
 import type { CostCategory } from '@br/shared';
 import { ProjectStatusPill } from '@/components/status-pill';
 import { HandoverCard } from '@/components/handover-card';
-import { StageRow } from './stage-row';
+import { TimelineSection } from './timeline-section';
 import { UpdateComposer } from './update-composer';
 import { DecisionsSection, type DecisionListRow } from './decisions-section';
 import { VariationsSection, type VariationRow } from './variations-section';
@@ -416,24 +416,7 @@ export default async function ProjectDetail({ params }: Props) {
       </section>
 
       {/* TIMELINE */}
-      <section className="mt-6 rounded-card border border-hairline bg-white shadow-card">
-        <header className="flex items-center px-5 py-3">
-          <h2 className="text-sm font-bold">Timeline</h2>
-          <span className="ml-2 text-xs text-ink-muted">
-            {stages?.length ?? 0} stages
-          </span>
-        </header>
-        <ol>
-          {stages?.map((s, idx) => (
-            <StageRow
-              key={s.id}
-              stage={s}
-              isLast={idx === (stages?.length ?? 0) - 1}
-              canWrite={canWrite}
-            />
-          ))}
-        </ol>
-      </section>
+      <TimelineSection projectId={project.id} stages={stages ?? []} canWrite={canWrite} />
 
       {/* UPDATES */}
       <section className="mt-6 rounded-card border border-hairline bg-white shadow-card">

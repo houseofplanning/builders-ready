@@ -58,6 +58,46 @@ export async function updateStageStatus(
   return { ok: true };
 }
 
+const saveStagesSchema = z.object({
+  project_id: z.string().uuid(),
+  stages: z
+    .array(
+      z.object({
+        id: z.string().uuid().nullable().optional(),
+        name: z.string().min(1).max(80),
+        start_date: z.string().nullable().optional(),
+        target_end_date: z.string().nullable().optional(),
+      }),
+    )
+    .min(1)
+    .max(40),
+});
+
+/**
+ * Full timeline edit — add / remove / reorder / rename / re-date stages in one
+ * atomic transaction (DB function preserves each existing stage's status and
+ * blocks removing a stage that has updates posted against it).
+ */
+export async function saveProjectStages(
+  raw: Record<string, unknown>,
+): Promise<StageActionResult> {
+  const parsed = saveStagesSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Invalid input.' };
+  const tenant = await resolveCurrentTenant();
+  if (!tenant) return { ok: false, error: 'Not signed in.' };
+  if (tenant.role !== 'owner' && tenant.role !== 'pm') {
+    return { ok: false, error: 'Only owners and PMs can edit the timeline.' };
+  }
+  const supabase = await createSupabaseServer();
+  const { error } = await supabase.rpc('save_project_stages', {
+    p_project: parsed.data.project_id,
+    p_stages: parsed.data.stages,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/${tenant.tenant.slug}/projects/${parsed.data.project_id}`);
+  return { ok: true };
+}
+
 const renameStageSchema = z.object({
   stage_id: z.string().uuid(),
   name: z.string().min(1).max(80),
