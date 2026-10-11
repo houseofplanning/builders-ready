@@ -91,21 +91,32 @@ function blankRow(kind: EstimateLineKind = 'material'): LineRow {
   };
 }
 
+/** Prefill for a NEW quote (e.g. generated from a template) — unlike `initial`
+ *  it does not flip the form into edit/update mode. */
+export interface EstimateFormSeed {
+  title?: string;
+  project_type?: string | null;
+  priced_on?: string | null;
+  lines: EstimateFormInitial['lines'];
+}
+
 export function EstimateForm({
   slug,
   savedRates,
   initial,
+  seed,
 }: {
   slug: string;
   savedRates: SavedRate[];
   initial?: EstimateFormInitial;
+  seed?: EstimateFormSeed;
 }) {
   const router = useRouter();
   const editing = !!initial;
 
-  const [title, setTitle] = useState(initial?.title ?? '');
+  const [title, setTitle] = useState(initial?.title ?? seed?.title ?? '');
   const [projectType, setProjectType] = useState(
-    initial?.project_type ?? 'full_renovation',
+    initial?.project_type ?? seed?.project_type ?? 'full_renovation',
   );
   const [clientName, setClientName] = useState(initial?.client_name ?? '');
   const [clientEmail, setClientEmail] = useState(initial?.client_email ?? '');
@@ -118,9 +129,10 @@ export function EstimateForm({
   // When editing, keep the stored valid_until unless the user picks a preset.
   const [validityTouched, setValidityTouched] = useState(false);
   const [notes, setNotes] = useState(initial?.notes ?? '');
+  const seededLines = initial?.lines ?? seed?.lines ?? null;
   const [rows, setRows] = useState<LineRow[]>(
-    initial
-      ? initial.lines.map((l) => ({
+    seededLines && seededLines.length
+      ? seededLines.map((l) => ({
           key: newKey(),
           kind: l.kind,
           saved_rate_id: l.saved_rate_id,
@@ -250,6 +262,13 @@ export function EstimateForm({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       {/* MAIN */}
       <div className="space-y-6">
+        {!editing && seed && (
+          <div className="rounded-card border border-[#B7E3D2] bg-[#E1F5EE] px-4 py-3 text-xs font-semibold text-[#0F6E56]">
+            ✨ Pre-filled from a template
+            {seed.priced_on ? ` · materials priced as of ${seed.priced_on}` : ''}. Edit
+            any line and your margin, then save.
+          </div>
+        )}
         <section className="rounded-card border border-hairline bg-white p-5 shadow-card">
           <label className={miniLabel}>What&apos;s the job?</label>
           <input

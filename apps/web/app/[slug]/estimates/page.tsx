@@ -61,6 +61,12 @@ export default async function EstimatesListPage({ params }: Props) {
               Saved rates
             </Link>
             <Link
+              href={`/${slug}/estimates/templates`}
+              className="rounded-lg border border-primary bg-white px-4 py-2 text-sm font-semibold text-primary hover:bg-canvas"
+            >
+              ✨ From a template
+            </Link>
+            <Link
               href={`/${slug}/estimates/new`}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
             >
@@ -105,12 +111,20 @@ export default async function EstimatesListPage({ params }: Props) {
             project — you can also quote on site from the mobile app.
           </p>
           {canCreate && (
-            <Link
-              href={`/${slug}/estimates/new`}
-              className="mt-5 inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white"
-            >
-              Create your first quote
-            </Link>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              <Link
+                href={`/${slug}/estimates/templates`}
+                className="inline-block rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white"
+              >
+                ✨ Start from a template
+              </Link>
+              <Link
+                href={`/${slug}/estimates/new`}
+                className="inline-block rounded-lg border border-hairline bg-white px-5 py-2.5 text-sm font-semibold text-ink hover:bg-canvas"
+              >
+                Blank quote
+              </Link>
+            </div>
           )}
         </div>
       ) : (

@@ -36,6 +36,7 @@ import {
   listSavedRates,
   type EstimateLineDraft,
 } from '../lib/estimates';
+import { consumePendingTemplateQuote } from '../lib/quote-templates';
 
 const KINDS: EstimateLineKind[] = [
   'material',
@@ -126,10 +127,40 @@ export default function CreateEstimateScreen() {
 
   const [savedRates, setSavedRates] = useState<SavedRate[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [templateNote, setTemplateNote] = useState<string | null>(null);
 
   useEffect(() => {
     listSavedRates().then(setSavedRates).catch(() => setSavedRates([]));
   }, []);
+
+  // New-quote-from-template: a template screen may have stashed a generated,
+  // pre-priced draft. Consume it once on mount (never in edit mode).
+  useEffect(() => {
+    if (id) return;
+    const pending = consumePendingTemplateQuote();
+    if (!pending) return;
+    setTitle(pending.title);
+    setProjectType(pending.projectType);
+    if (pending.lines.length) {
+      setRows(
+        pending.lines.map((l) => ({
+          key: newKey(),
+          kind: l.kind,
+          saved_rate_id: l.saved_rate_id,
+          description: l.description,
+          quantityText: String(l.quantity),
+          unit: l.unit,
+          unitCostText: (l.unit_cost_pence / 100).toString(),
+          markupText: l.markup_percent ? String(l.markup_percent) : '',
+        })),
+      );
+    }
+    setTemplateNote(
+      pending.pricedOn
+        ? `Pre-filled from a template · materials priced as of ${pending.pricedOn}. Edit any line and your margin.`
+        : 'Pre-filled from a template. Edit any line and your margin.',
+    );
+  }, [id]);
 
   // Edit mode: load the draft and prefill everything.
   useEffect(() => {
@@ -375,6 +406,20 @@ export default function CreateEstimateScreen() {
             placeholderTextColor={palette.inkMuted}
             style={field(palette)}
           />
+
+          {templateNote && (
+            <View
+              style={[
+                styles.tplNote,
+                { backgroundColor: palette.successSoft, borderColor: palette.hairline },
+              ]}
+            >
+              <Ionicons name="sparkles-outline" size={15} color={palette.success} />
+              <Text style={[styles.tplNoteText, { color: palette.ink }]}>
+                {templateNote}
+              </Text>
+            </View>
+          )}
 
           <TemplatePicker value={projectType} onChange={setProjectType} />
 
@@ -863,6 +908,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
+  tplNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  tplNoteText: {
+    flex: 1,
+    fontSize: typography.size.xs,
+    lineHeight: 16,
+    fontWeight: typography.weightSemibold as '600',
+  },
   row2: { flexDirection: 'row', gap: spacing.sm },
   rowItem: { flex: 1 },
   lineCard: {

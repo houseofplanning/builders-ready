@@ -199,6 +199,10 @@ function AuthGate() {
         options={{ presentation: 'modal', headerShown: false }}
       />
       <Stack.Screen
+        name="quote-template"
+        options={{ presentation: 'modal', headerShown: false }}
+      />
+      <Stack.Screen
         name="estimate-rates"
         options={{ headerShown: false }}
       />

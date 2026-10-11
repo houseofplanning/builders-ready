@@ -12,3 +12,4 @@ export * from './slug';
 export * from './stages';
 export * from './documents';
 export * from './marketplace';
+export * from './templates';

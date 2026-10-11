@@ -80,6 +80,12 @@ export default function EstimatesScreen() {
               <Ionicons name="pricetags-outline" size={22} color={palette.ink} />
             </TouchableOpacity>
             <TouchableOpacity
+              onPress={() => router.push('/quote-template')}
+              hitSlop={10}
+            >
+              <Ionicons name="sparkles-outline" size={22} color={palette.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => router.push('/create-estimate')}
               hitSlop={10}
             >
@@ -117,14 +123,26 @@ export default function EstimatesScreen() {
                 into a project automatically.
               </Text>
               {canCreate && (
-                <TouchableOpacity
-                  onPress={() => router.push('/create-estimate')}
-                  activeOpacity={0.85}
-                  style={[styles.emptyCta, { backgroundColor: palette.primary }]}
-                >
-                  <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={styles.emptyCtaText}>New quote</Text>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity
+                    onPress={() => router.push('/quote-template')}
+                    activeOpacity={0.85}
+                    style={[styles.emptyCta, { backgroundColor: palette.primary }]}
+                  >
+                    <Ionicons name="sparkles-outline" size={18} color="#fff" />
+                    <Text style={styles.emptyCtaText}>Start from a template</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => router.push('/create-estimate')}
+                    activeOpacity={0.85}
+                    style={[styles.emptyCtaGhost, { borderColor: palette.hairline }]}
+                  >
+                    <Ionicons name="add" size={18} color={palette.ink} />
+                    <Text style={[styles.emptyCtaGhostText, { color: palette.ink }]}>
+                      Blank quote
+                    </Text>
+                  </TouchableOpacity>
+                </>
               )}
             </View>
           ) : (
@@ -219,6 +237,20 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: {
     color: '#fff',
+    fontSize: typography.size.body,
+    fontWeight: typography.weightBold as '700',
+  },
+  emptyCtaGhost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginTop: spacing.sm,
+  },
+  emptyCtaGhostText: {
     fontSize: typography.size.body,
     fontWeight: typography.weightBold as '700',
   },
