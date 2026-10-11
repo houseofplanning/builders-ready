@@ -292,9 +292,13 @@ function VariationCard({ v, userId, onDone }: { v: ProposedVariation; userId: st
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   async function sign() {
+    if (name.trim().length < 2) {
+      Alert.alert('Type your name', 'Please type your full name to approve this change.');
+      return;
+    }
     setBusy(true);
     try {
-      await signVariation(v.id, name, userId);
+      await signVariation(v.id, name.trim(), userId);
       onDone();
     } catch (e) {
       Alert.alert('Error', e instanceof Error ? e.message : 'Could not sign.');
@@ -320,7 +324,11 @@ function VariationCard({ v, userId, onDone }: { v: ProposedVariation; userId: st
         placeholderTextColor={palette.inkMuted}
         style={styles.input}
       />
-      <TouchableOpacity disabled={busy} onPress={sign} style={styles.solidBtn}>
+      <TouchableOpacity
+        disabled={busy || name.trim().length < 2}
+        onPress={sign}
+        style={[styles.solidBtn, (busy || name.trim().length < 2) && { opacity: 0.5 }]}
+      >
         <Text style={styles.solidBtnText}>Approve &amp; sign</Text>
       </TouchableOpacity>
     </View>

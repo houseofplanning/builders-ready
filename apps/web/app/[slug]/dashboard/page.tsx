@@ -396,7 +396,7 @@ export default async function Dashboard({ params }: Props) {
                 const atRisk =
                   p.estimated_end_date &&
                   new Date(p.estimated_end_date).getTime() < nowMs &&
-                  p.status !== 'complete' &&
+                  p.status !== 'completed' &&
                   p.status !== 'archived';
                 return (
                   <li key={p.id} className={i > 0 ? 'border-t border-hairline' : ''}>
