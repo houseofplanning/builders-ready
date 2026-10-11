@@ -55,6 +55,12 @@ export default async function EstimatesListPage({ params }: Props) {
         {canCreate && (
           <div className="ml-auto flex items-center gap-2">
             <Link
+              href={`/${slug}/estimates/rate-book`}
+              className="rounded-lg border border-hairline bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
+            >
+              Rate book
+            </Link>
+            <Link
               href={`/${slug}/estimates/rates`}
               className="rounded-lg border border-hairline bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas"
             >

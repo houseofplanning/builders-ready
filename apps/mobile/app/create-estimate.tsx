@@ -167,9 +167,11 @@ export default function CreateEstimateScreen() {
       );
     }
     setTemplateNote(
-      pending.pricedOn
-        ? `Pre-filled from a template · materials priced as of ${pending.pricedOn}. Edit any line and your margin.`
-        : 'Pre-filled from a template. Edit any line and your margin.',
+      pending.indicative
+        ? 'Indicative guideline pre-filled — review and adjust every line and your margin before you send.'
+        : pending.pricedOn
+          ? `Pre-filled from a template · materials priced as of ${pending.pricedOn}. Edit any line and your margin.`
+          : 'Pre-filled from a template. Edit any line and your margin.',
     );
   }, [id]);
 

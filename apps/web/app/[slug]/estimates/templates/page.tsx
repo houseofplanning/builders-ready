@@ -9,7 +9,10 @@ import type {
   MaterialItem,
   LabourRate,
   TemplateField,
+  MaterialOverride,
+  LabourOverride,
 } from '@br/shared';
+import { mergePriceBook } from '@br/shared';
 import { TemplateQuoteBuilder } from './template-quote-builder';
 
 interface Props {
@@ -22,11 +25,11 @@ export default async function EstimateTemplatesPage({ params }: Props) {
   if (role !== 'owner' && role !== 'pm') redirect(`/${slug}/estimates`);
 
   const supabase = await createSupabaseServer();
-  const [tplRes, matRes, labRes, rateRes] = await Promise.all([
+  const [tplRes, matRes, labRes, rateRes, matOvrRes, labOvrRes] = await Promise.all([
     supabase
       .from('quote_templates')
       .select(
-        'id, key, name, summary, trade_category, project_type, engine_key, inputs_schema, version',
+        'id, key, name, summary, trade_category, project_type, engine_key, inputs_schema, version, basis',
       )
       .eq('active', true)
       .order('name', { ascending: true }),
@@ -45,6 +48,8 @@ export default async function EstimateTemplatesPage({ params }: Props) {
       .select('*')
       .eq('active', true)
       .order('position', { ascending: true }),
+    supabase.from('tenant_material_prices').select('material_code, unit_cost_pence, updated_at'),
+    supabase.from('tenant_labour_rates').select('trade, unit, rate_pence, updated_at'),
   ]);
 
   const templates: QuoteTemplate[] = (tplRes.data ?? []).map((r) => ({
@@ -59,9 +64,22 @@ export default async function EstimateTemplatesPage({ params }: Props) {
       ? r.inputs_schema
       : []) as TemplateField[],
     version: Number(r.version),
+    basis: r.basis === 'indicative' ? 'indicative' : 'measured',
   }));
 
-  const priceBook: PriceBook = {
+  const materialOverrides: MaterialOverride[] = (matOvrRes.data ?? []).map((r) => ({
+    code: r.material_code as string,
+    unit_cost_pence: Number(r.unit_cost_pence),
+    priced_on: String(r.updated_at).slice(0, 10),
+  }));
+  const labourOverrides: LabourOverride[] = (labOvrRes.data ?? []).map((r) => ({
+    trade: r.trade as string,
+    unit: r.unit as string,
+    base_rate_pence: Number(r.rate_pence),
+    priced_on: String(r.updated_at).slice(0, 10),
+  }));
+
+  const basePriceBook: PriceBook = {
     materials: (matRes.data ?? []).map(
       (m): MaterialItem => ({
         code: m.code as string,
@@ -86,6 +104,7 @@ export default async function EstimateTemplatesPage({ params }: Props) {
       }),
     ),
   };
+  const priceBook = mergePriceBook(basePriceBook, materialOverrides, labourOverrides);
 
   return (
     <div>
@@ -102,7 +121,10 @@ export default async function EstimateTemplatesPage({ params }: Props) {
         <p className="mt-1 max-w-2xl text-sm text-ink-muted">
           Answer a few questions and we&apos;ll build a costed draft with suggested,
           data-grounded prices. Every figure stays editable, and you add your margin
-          on top.
+          on top.{' '}
+          <Link href={`/${slug}/estimates/rate-book`} className="font-semibold text-primary hover:underline">
+            Set your own prices →
+          </Link>
         </p>
       </header>
       <TemplateQuoteBuilder

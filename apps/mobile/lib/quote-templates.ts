@@ -1,11 +1,14 @@
 import { supabase } from './supabase';
 import {
   generateQuoteFromTemplate,
+  mergePriceBook,
   type QuoteTemplate,
   type MaterialItem,
   type LabourRate,
   type PriceBook,
   type GenerateResult,
+  type MaterialOverride,
+  type LabourOverride,
 } from '@br/shared';
 import type { EstimateLineDraft } from './estimates';
 
@@ -22,7 +25,7 @@ export async function listQuoteTemplates(): Promise<QuoteTemplate[]> {
   const { data, error } = await supabase
     .from('quote_templates')
     .select(
-      'id, key, name, summary, trade_category, project_type, engine_key, inputs_schema, version',
+      'id, key, name, summary, trade_category, project_type, engine_key, inputs_schema, version, basis',
     )
     .eq('active', true)
     .order('name', { ascending: true });
@@ -37,6 +40,7 @@ export async function listQuoteTemplates(): Promise<QuoteTemplate[]> {
     engine_key: r.engine_key,
     inputs_schema: Array.isArray(r.inputs_schema) ? r.inputs_schema : [],
     version: Number(r.version),
+    basis: r.basis === 'indicative' ? 'indicative' : 'measured',
   }));
 }
 
@@ -56,7 +60,7 @@ function normalizeMaterial(r: Record<string, unknown>): MaterialItem {
 }
 
 export async function loadPriceBook(): Promise<PriceBook> {
-  const [materialsRes, labourRes] = await Promise.all([
+  const [materialsRes, labourRes, matOvrRes, labOvrRes] = await Promise.all([
     supabase
       .from('material_items')
       .select(
@@ -67,6 +71,9 @@ export async function loadPriceBook(): Promise<PriceBook> {
       .from('labour_rates')
       .select('trade, unit, base_rate_pence, source, priced_on')
       .eq('active', true),
+    // RLS scopes these to the signed-in builder's tenant; empty for customers.
+    supabase.from('tenant_material_prices').select('material_code, unit_cost_pence, updated_at'),
+    supabase.from('tenant_labour_rates').select('trade, unit, rate_pence, updated_at'),
   ]);
   const materials = (materialsRes.data ?? []).map(normalizeMaterial);
   const labour: LabourRate[] = (labourRes.data ?? []).map((r) => ({
@@ -76,7 +83,18 @@ export async function loadPriceBook(): Promise<PriceBook> {
     source: (r.source as string | null) ?? null,
     priced_on: r.priced_on as string,
   }));
-  return { materials, labour };
+  const materialOverrides: MaterialOverride[] = (matOvrRes.data ?? []).map((r) => ({
+    code: r.material_code as string,
+    unit_cost_pence: Number(r.unit_cost_pence),
+    priced_on: String(r.updated_at).slice(0, 10),
+  }));
+  const labourOverrides: LabourOverride[] = (labOvrRes.data ?? []).map((r) => ({
+    trade: r.trade as string,
+    unit: r.unit as string,
+    base_rate_pence: Number(r.rate_pence),
+    priced_on: String(r.updated_at).slice(0, 10),
+  }));
+  return mergePriceBook({ materials, labour }, materialOverrides, labourOverrides);
 }
 
 export function runTemplate(
@@ -96,6 +114,7 @@ export interface PendingTemplateQuote {
   projectType: string;
   lines: EstimateLineDraft[];
   pricedOn: string | null;
+  indicative?: boolean;
 }
 
 let pending: PendingTemplateQuote | null = null;

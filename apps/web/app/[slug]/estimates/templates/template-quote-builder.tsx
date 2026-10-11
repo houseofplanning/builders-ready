@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   gbp,
   formatDate,
@@ -73,6 +73,23 @@ export function TemplateQuoteBuilder({
   const [surface, setSurface] = useState<Surface>('patch');
   const [woodwork, setWoodwork] = useState<Woodwork>('some');
   const [margin, setMargin] = useState('20');
+  // Generic (non-painter) templates are driven by their inputs_schema.
+  const [values, setValues] = useState<Record<string, string | number | boolean>>({});
+  const isPainter = selected?.engine_key === 'painting_decorating';
+
+  useEffect(() => {
+    if (!selected || selected.engine_key === 'painting_decorating') return;
+    const init: Record<string, string | number | boolean> = {};
+    for (const f of selected.inputs_schema) {
+      init[f.key] =
+        f.default !== undefined && f.default !== null
+          ? (f.default as string | number | boolean)
+          : f.type === 'bool'
+            ? false
+            : '';
+    }
+    setValues(init);
+  }, [selected]);
 
   const areas = useMemo(() => {
     if (mode === 'area') {
@@ -93,20 +110,19 @@ export function TemplateQuoteBuilder({
 
   const result = useMemo(() => {
     if (!selected) return null;
-    return generateQuoteFromTemplate(
-      selected.engine_key,
-      {
-        wall_area_m2: areas.wall_area_m2,
-        paint_ceiling: areas.ceiling_area_m2 > 0,
-        ceiling_area_m2: areas.ceiling_area_m2,
-        coats,
-        surface,
-        woodwork,
-        margin_percent: num(margin),
-      },
-      priceBook,
-    );
-  }, [selected, areas, coats, surface, woodwork, margin, priceBook]);
+    const inputs = isPainter
+      ? {
+          wall_area_m2: areas.wall_area_m2,
+          paint_ceiling: areas.ceiling_area_m2 > 0,
+          ceiling_area_m2: areas.ceiling_area_m2,
+          coats,
+          surface,
+          woodwork,
+          margin_percent: num(margin),
+        }
+      : values;
+    return generateQuoteFromTemplate(selected.engine_key, inputs, priceBook);
+  }, [selected, isPainter, areas, coats, surface, woodwork, margin, values, priceBook]);
 
   function updateRoom(key: string, patch: Partial<RoomRow>) {
     setRooms((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -155,7 +171,8 @@ export function TemplateQuoteBuilder({
           <p className="text-sm text-ink-muted">No templates available yet.</p>
         )}
         {templates.map((t) => {
-          const supported = t.engine_key === 'painting_decorating';
+          const supported =
+            t.engine_key === 'painting_decorating' || t.inputs_schema.length > 0;
           return (
             <button
               key={t.id}
@@ -201,6 +218,7 @@ export function TemplateQuoteBuilder({
       title: selected.name,
       project_type: selected.project_type ?? 'painting',
       priced_on: result.priced_on,
+      indicative: selected.basis === 'indicative',
       lines: result.lines.map((l) => ({
         kind: l.kind,
         saved_rate_id: null,
@@ -225,9 +243,18 @@ export function TemplateQuoteBuilder({
           ← All templates
         </button>
 
+        {selected.basis === 'indicative' && (
+          <div className="rounded-card border border-[#E7D9A6] bg-[#FBF6E7] px-4 py-3 text-xs font-semibold text-[#7A5E00]">
+            Indicative guideline from typical UK costs — review and adjust every line
+            before you send. The range is a ballpark, not a fixed price.
+          </div>
+        )}
+
         <section className="space-y-4 rounded-card border border-hairline bg-white p-5 shadow-card">
           <h2 className="text-sm font-extrabold">{selected.name}</h2>
 
+          {isPainter ? (
+            <>
           {/* mode toggle */}
           <div className="flex gap-2">
             <button
@@ -399,6 +426,64 @@ export function TemplateQuoteBuilder({
               Applied to every line on top of cost.
             </p>
           </div>
+            </>
+          ) : (
+            <>
+              {selected.inputs_schema.map((f) => {
+                if (f.showIf && !values[f.showIf]) return null;
+                const val = values[f.key];
+                return (
+                  <div key={f.key}>
+                    <label className={miniLabel}>
+                      {f.label}
+                      {f.unit ? ` (${f.unit})` : ''}
+                    </label>
+                    {f.type === 'number' ? (
+                      <input
+                        className={`${inputCls} max-w-[200px]`}
+                        inputMode="decimal"
+                        value={val === undefined || val === null ? '' : String(val)}
+                        onChange={(e) =>
+                          setValues((p) => ({ ...p, [f.key]: onlyNum(e.target.value) }))
+                        }
+                      />
+                    ) : f.type === 'bool' ? (
+                      <label className="flex items-center gap-2 text-sm text-ink">
+                        <input
+                          type="checkbox"
+                          checked={!!val}
+                          onChange={(e) =>
+                            setValues((p) => ({ ...p, [f.key]: e.target.checked }))
+                          }
+                        />
+                        {f.hint ?? 'Yes'}
+                      </label>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {(f.options ?? []).map((o) => {
+                          const ov = typeof o === 'object' ? o.value : o;
+                          const ol = typeof o === 'object' ? o.label : String(o);
+                          return (
+                            <button
+                              key={String(ov)}
+                              type="button"
+                              onClick={() => setValues((p) => ({ ...p, [f.key]: ov }))}
+                              className={chip(val === ov)}
+                            >
+                              {ol}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {f.type !== 'bool' && f.hint ? (
+                      <p className="mt-1 text-[11px] text-ink-muted">{f.hint}</p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </>
+          )}
         </section>
       </div>
 
@@ -427,6 +512,12 @@ export function TemplateQuoteBuilder({
                 <span className="text-sm font-extrabold text-ink">Client (ex-VAT)</span>
                 <span className="text-xl font-extrabold text-ink">{gbp(totals.price)}</span>
               </div>
+              {result.uncertainty ? (
+                <p className="mt-1 text-xs font-bold text-ink">
+                  Indicative range {gbp(Math.round(totals.price * (1 - result.uncertainty)))}–
+                  {gbp(Math.round(totals.price * (1 + result.uncertainty)))}
+                </p>
+              ) : null}
               {result.priced_on && (
                 <p className="mt-2 text-[11px] text-ink-muted">
                   Materials priced as of {formatDate(result.priced_on)} · editable

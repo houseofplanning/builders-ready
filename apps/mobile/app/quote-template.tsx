@@ -90,6 +90,8 @@ export default function QuoteTemplateScreen() {
   const [surface, setSurface] = useState<Surface>('patch');
   const [woodwork, setWoodwork] = useState<Woodwork>('some');
   const [margin, setMargin] = useState('20');
+  // Generic (non-painter) templates are driven by their inputs_schema.
+  const [values, setValues] = useState<Record<string, string | number | boolean>>({});
 
   const areas = useMemo(() => {
     if (mode === 'area') {
@@ -135,17 +137,36 @@ export default function QuoteTemplateScreen() {
     };
   }, []);
 
+  // Seed generic values from the template's schema defaults when one is picked.
+  useEffect(() => {
+    if (!selected || selected.engine_key === 'painting_decorating') return;
+    const init: Record<string, string | number | boolean> = {};
+    for (const f of selected.inputs_schema) {
+      if (f.default !== undefined && f.default !== null) {
+        init[f.key] = f.default as string | number | boolean;
+      } else {
+        init[f.key] = f.type === 'bool' ? false : '';
+      }
+    }
+    setValues(init);
+  }, [selected]);
+
+  const isPainter = selected?.engine_key === 'painting_decorating';
+
   const inputs = useMemo(
-    () => ({
-      wall_area_m2: areas.wall_area_m2,
-      paint_ceiling: areas.ceiling_area_m2 > 0,
-      ceiling_area_m2: areas.ceiling_area_m2,
-      coats,
-      surface,
-      woodwork,
-      margin_percent: num(margin),
-    }),
-    [areas, coats, surface, woodwork, margin],
+    () =>
+      isPainter
+        ? {
+            wall_area_m2: areas.wall_area_m2,
+            paint_ceiling: areas.ceiling_area_m2 > 0,
+            ceiling_area_m2: areas.ceiling_area_m2,
+            coats,
+            surface,
+            woodwork,
+            margin_percent: num(margin),
+          }
+        : values,
+    [isPainter, areas, coats, surface, woodwork, margin, values],
   );
 
   const result: GenerateResult | null = useMemo(() => {
@@ -170,6 +191,7 @@ export default function QuoteTemplateScreen() {
       title: selected.name,
       projectType: selected.project_type ?? 'painting',
       pricedOn: result.priced_on,
+      indicative: selected.basis === 'indicative',
       lines: result.lines.map((l) => ({
         kind: l.kind,
         saved_rate_id: null,
@@ -227,7 +249,8 @@ export default function QuoteTemplateScreen() {
             </Text>
           ) : (
             templates.map((t) => {
-              const supported = t.engine_key === 'painting_decorating';
+              const supported =
+                t.engine_key === 'painting_decorating' || t.inputs_schema.length > 0;
               return (
                 <TouchableOpacity
                   key={t.id}
@@ -276,6 +299,26 @@ export default function QuoteTemplateScreen() {
             contentContainerStyle={styles.scroll}
             keyboardShouldPersistTaps="handled"
           >
+            {selected.basis === 'indicative' && (
+              <View
+                style={[
+                  styles.indicative,
+                  { backgroundColor: palette.infoSoft, borderColor: palette.hairline },
+                ]}
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={16}
+                  color={palette.info}
+                />
+                <Text style={[styles.indicativeText, { color: palette.ink }]}>
+                  Indicative guideline from typical UK costs — review and adjust every
+                  line before you send.
+                </Text>
+              </View>
+            )}
+            {isPainter ? (
+              <>
             {/* mode toggle */}
             <View style={styles.modeRow}>
               <TouchableOpacity
@@ -475,6 +518,15 @@ export default function QuoteTemplateScreen() {
             <Text style={[styles.hint, { color: palette.inkMuted }]}>
               Applied to every line on top of cost. Change it to your usual margin.
             </Text>
+              </>
+            ) : (
+              <GenericFields
+                fields={selected.inputs_schema}
+                values={values}
+                onChange={(k, v) => setValues((p) => ({ ...p, [k]: v }))}
+                palette={palette}
+              />
+            )}
 
             {/* live preview of generated lines */}
             {result && result.lines.length > 0 && (
@@ -500,6 +552,12 @@ export default function QuoteTemplateScreen() {
                     </Text>
                   </View>
                 ))}
+                {result.uncertainty ? (
+                  <Text style={[styles.pricedOn, { color: palette.ink, fontWeight: '700' }]}>
+                    Indicative range {gbp(Math.round(totals.price * (1 - result.uncertainty)))}–
+                    {gbp(Math.round(totals.price * (1 + result.uncertainty)))} (ex-VAT)
+                  </Text>
+                ) : null}
                 {result.priced_on && (
                   <Text style={[styles.pricedOn, { color: palette.inkMuted }]}>
                     Materials priced as of {formatDate(result.priced_on, { short: true })} ·
@@ -546,6 +604,77 @@ export default function QuoteTemplateScreen() {
         </KeyboardAvoidingView>
       )}
     </SafeAreaView>
+  );
+}
+
+function GenericFields({
+  fields,
+  values,
+  onChange,
+  palette,
+}: {
+  fields: import('@br/shared').TemplateField[];
+  values: Record<string, string | number | boolean>;
+  onChange: (key: string, value: string | number | boolean) => void;
+  palette: ReturnType<typeof useTenant>['palette'];
+}) {
+  return (
+    <>
+      {fields.map((f) => {
+        if (f.showIf && !values[f.showIf]) return null;
+        const val = values[f.key];
+        return (
+          <View key={f.key}>
+            <Text style={[styles.qLabel, { color: palette.ink }]}>{f.label}</Text>
+            {f.type === 'number' ? (
+              <View style={styles.inlineField}>
+                <TextInput
+                  value={val === undefined || val === null ? '' : String(val)}
+                  onChangeText={(t) => onChange(f.key, onlyNum(t))}
+                  keyboardType="decimal-pad"
+                  placeholder="0"
+                  placeholderTextColor={palette.inkMuted}
+                  style={field(palette)}
+                />
+                {f.unit ? (
+                  <Text style={[styles.unit, { color: palette.inkMuted }]}>{f.unit}</Text>
+                ) : null}
+              </View>
+            ) : f.type === 'bool' ? (
+              <View style={styles.switchRow}>
+                <Text style={[styles.hint, { color: palette.inkMuted, flex: 1 }]}>
+                  {f.hint ?? ''}
+                </Text>
+                <Switch
+                  value={!!val}
+                  onValueChange={(v) => onChange(f.key, v)}
+                  trackColor={{ true: palette.primary, false: palette.hairline }}
+                />
+              </View>
+            ) : (
+              <View style={styles.chipWrap}>
+                {(f.options ?? []).map((o) => {
+                  const ov = typeof o === 'object' ? o.value : o;
+                  const ol = typeof o === 'object' ? o.label : String(o);
+                  return (
+                    <Chip
+                      key={String(ov)}
+                      label={ol}
+                      active={val === ov}
+                      onPress={() => onChange(f.key, ov)}
+                      palette={palette}
+                    />
+                  );
+                })}
+              </View>
+            )}
+            {f.type !== 'bool' && f.hint ? (
+              <Text style={[styles.hint, { color: palette.inkMuted }]}>{f.hint}</Text>
+            ) : null}
+          </View>
+        );
+      })}
+    </>
   );
 }
 
@@ -634,6 +763,22 @@ const styles = StyleSheet.create({
     fontWeight: typography.weightExtraBold as '800',
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
+  },
+  indicative: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  indicativeText: {
+    flex: 1,
+    fontSize: typography.size.xs,
+    lineHeight: 16,
+    fontWeight: typography.weightSemibold as '600',
   },
   modeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
   modeTab: {

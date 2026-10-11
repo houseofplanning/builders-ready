@@ -107,6 +107,7 @@ export interface EstimateFormSeed {
   title?: string;
   project_type?: string | null;
   priced_on?: string | null;
+  indicative?: boolean;
   lines: EstimateFormInitial['lines'];
 }
 
@@ -281,10 +282,18 @@ export function EstimateForm({
       {/* MAIN */}
       <div className="space-y-6">
         {!editing && seed && (
-          <div className="rounded-card border border-[#B7E3D2] bg-[#E1F5EE] px-4 py-3 text-xs font-semibold text-[#0F6E56]">
-            ✨ Pre-filled from a template
-            {seed.priced_on ? ` · materials priced as of ${seed.priced_on}` : ''}. Edit
-            any line and your margin, then save.
+          <div
+            className={`rounded-card border px-4 py-3 text-xs font-semibold ${
+              seed.indicative
+                ? 'border-[#E7D9A6] bg-[#FBF6E7] text-[#7A5E00]'
+                : 'border-[#B7E3D2] bg-[#E1F5EE] text-[#0F6E56]'
+            }`}
+          >
+            {seed.indicative
+              ? 'Indicative guideline pre-filled — review and adjust every line and your margin before you send. The figures are a ballpark, not a fixed price.'
+              : `✨ Pre-filled from a template${
+                  seed.priced_on ? ` · materials priced as of ${seed.priced_on}` : ''
+                }. Edit any line and your margin, then save.`}
           </div>
         )}
         <section className="rounded-card border border-hairline bg-white p-5 shadow-card">
