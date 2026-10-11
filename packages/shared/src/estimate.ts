@@ -10,13 +10,15 @@
  * All money is integer pence. Quantities/markups are plain numbers.
  */
 
-import type { EstimateLineKind, VatMode } from './types';
+import type { EstimateClientDetail, EstimateLineKind, VatMode } from './types';
 
 /** The minimum a line needs for the maths — the editor row satisfies this. */
 export interface EstimateLineMathInput {
   quantity: number;
   unit_cost_pence: number;
   markup_percent: number;
+  /** Provided by the client — excluded from cost and price. */
+  client_supplied?: boolean;
 }
 
 export interface EstimateTotals {
@@ -64,6 +66,7 @@ export function computeEstimateTotals(
   let cost = 0;
   let price = 0;
   for (const line of lines) {
+    if (line.client_supplied) continue; // provided by the client — not charged
     cost += lineCostPence(line);
     price += linePricePence(line);
   }
@@ -106,6 +109,87 @@ export const VAT_MODE_LABELS: Record<VatMode, string> = {
   standard: 'Standard VAT',
   reverse_charge: 'CIS domestic reverse charge',
 };
+
+export const CLIENT_DETAIL_LABELS: Record<EstimateClientDetail, string> = {
+  itemised: 'Every line',
+  grouped: 'Materials & labour subtotals',
+  total: 'Single total only',
+};
+
+/** A line as the CLIENT sees it. */
+export interface ClientLineInput {
+  description: string;
+  kind: EstimateLineKind;
+  line_price_pence: number;
+  client_supplied?: boolean;
+}
+
+export interface ClientBreakdownRow {
+  label: string;
+  price_pence: number;
+}
+
+export interface ClientBreakdown {
+  /** The priced rows to show the client (shape depends on detail level). */
+  rows: ClientBreakdownRow[];
+  /** Descriptions of lines the client is providing themselves (no price). */
+  client_supplied: string[];
+}
+
+/** Which group a line falls into for the 'grouped' client view. */
+function lineGroup(kind: EstimateLineKind): 'Materials' | 'Labour' | 'Other' {
+  if (kind === 'material') return 'Materials';
+  if (kind === 'labour_day_rate' || kind === 'labour_hourly') return 'Labour';
+  return 'Other';
+}
+
+/**
+ * Build the breakdown the CLIENT sees, honouring the quote's detail level.
+ * Client-supplied lines never carry a price; they're listed separately as
+ * provided-by-client. The VAT/total block is unaffected (it comes from the
+ * stored estimate totals, which already exclude client-supplied lines).
+ */
+export function clientFacingBreakdown(
+  lines: ClientLineInput[],
+  level: EstimateClientDetail,
+): ClientBreakdown {
+  const client_supplied = lines
+    .filter((l) => l.client_supplied)
+    .map((l) => l.description);
+  const charged = lines.filter((l) => !l.client_supplied);
+
+  if (level === 'itemised') {
+    return {
+      rows: charged.map((l) => ({
+        label: l.description,
+        price_pence: l.line_price_pence,
+      })),
+      client_supplied,
+    };
+  }
+
+  if (level === 'grouped') {
+    const order: ('Materials' | 'Labour' | 'Other')[] = ['Materials', 'Labour', 'Other'];
+    const sums: Record<string, number> = {};
+    for (const l of charged) {
+      const g = lineGroup(l.kind);
+      sums[g] = (sums[g] ?? 0) + l.line_price_pence;
+    }
+    return {
+      rows: order
+        .filter((g) => (sums[g] ?? 0) > 0)
+        .map((g) => ({ label: g, price_pence: sums[g] })),
+      client_supplied,
+    };
+  }
+
+  // 'total' — a single all-in figure.
+  const total = charged.reduce((a, l) => a + l.line_price_pence, 0);
+  return {
+    rows: [{ label: 'Works — all-in (ex-VAT)', price_pence: total }],
+    client_supplied,
+  };
+}
 
 /** Wording to print on the estimate/PDF for each VAT mode. */
 export const VAT_MODE_NOTE: Record<VatMode, string | null> = {

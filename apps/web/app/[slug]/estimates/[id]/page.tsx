@@ -8,6 +8,7 @@ import {
   marginPercent,
   ESTIMATE_LINE_KIND_LABELS,
   VAT_MODE_NOTE,
+  CLIENT_DETAIL_LABELS,
 } from '@br/shared';
 import type { Estimate, EstimateLineItem, EstimateStatus } from '@br/shared';
 import { DeleteEstimateButton } from './delete-estimate-button';
@@ -81,6 +82,9 @@ export default async function EstimateDetailPage({ params }: Props) {
             >
               {s.label}
             </span>
+            <span className="inline-block rounded-full border border-hairline bg-canvas px-2.5 py-0.5 text-[10px] font-semibold text-ink-muted">
+              Client sees: {CLIENT_DETAIL_LABELS[estimate.client_detail_level]}
+            </span>
           </div>
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight">
             {estimate.title}
@@ -122,7 +126,14 @@ export default async function EstimateDetailPage({ params }: Props) {
               }`}
             >
               <div className="flex-1">
-                <div className="text-sm font-bold text-ink">{l.description}</div>
+                <div className="text-sm font-bold text-ink">
+                  {l.description}
+                  {l.client_supplied ? (
+                    <span className="ml-2 rounded bg-canvas px-1.5 py-0.5 text-[10px] font-semibold text-ink-muted">
+                      Client supplies
+                    </span>
+                  ) : null}
+                </div>
                 <div className="mt-0.5 text-[11px] text-ink-muted">
                   {ESTIMATE_LINE_KIND_LABELS[l.kind]} · {Number(l.quantity)}{' '}
                   {l.unit}
@@ -132,7 +143,7 @@ export default async function EstimateDetailPage({ params }: Props) {
                 </div>
               </div>
               <div className="text-sm font-extrabold text-ink">
-                {gbp(Number(l.line_price_pence))}
+                {l.client_supplied ? '—' : gbp(Number(l.line_price_pence))}
               </div>
             </div>
           ))

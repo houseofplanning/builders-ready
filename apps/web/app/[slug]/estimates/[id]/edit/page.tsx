@@ -49,6 +49,7 @@ export default async function EditEstimatePage({ params }: Props) {
     city: estimate.city,
     postcode: estimate.postcode,
     vat_mode: estimate.vat_mode,
+    client_detail_level: estimate.client_detail_level,
     valid_until: estimate.valid_until,
     notes: estimate.notes,
     lines: lines.map((l) => ({
@@ -59,6 +60,7 @@ export default async function EditEstimatePage({ params }: Props) {
       unit: l.unit,
       unit_cost_pence: Number(l.unit_cost_pence),
       markup_percent: Number(l.markup_percent),
+      client_supplied: l.client_supplied,
     })),
   };
 

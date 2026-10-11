@@ -94,6 +94,7 @@ export async function createEstimateOnWeb(
         status: 'draft',
         vat_mode: d.vat_mode,
         vat_rate_bp: d.vat_rate_bp,
+        client_detail_level: d.client_detail_level,
         cost_subtotal_pence: totals.cost_subtotal_pence,
         subtotal_pence: totals.subtotal_pence,
         vat_pence: totals.vat_pence,
@@ -123,6 +124,7 @@ export async function createEstimateOnWeb(
         unit: l.unit,
         unit_cost_pence: l.unit_cost_pence,
         markup_percent: l.markup_percent,
+        client_supplied: l.client_supplied,
       }));
       const { error: lineErr } = await supabase
         .from('estimate_line_items')
@@ -186,6 +188,7 @@ export async function updateEstimateOnWeb(
       postcode: d.postcode ?? null,
       vat_mode: d.vat_mode,
       vat_rate_bp: d.vat_rate_bp,
+      client_detail_level: d.client_detail_level,
       cost_subtotal_pence: totals.cost_subtotal_pence,
       subtotal_pence: totals.subtotal_pence,
       vat_pence: totals.vat_pence,
@@ -215,6 +218,7 @@ export async function updateEstimateOnWeb(
       unit: l.unit,
       unit_cost_pence: l.unit_cost_pence,
       markup_percent: l.markup_percent,
+      client_supplied: l.client_supplied,
     }));
     const { error: insErr } = await supabase
       .from('estimate_line_items')
@@ -298,6 +302,7 @@ export async function duplicateEstimateOnWeb(
         status: 'draft',
         vat_mode: source.vat_mode,
         vat_rate_bp: source.vat_rate_bp,
+        client_detail_level: source.client_detail_level,
         cost_subtotal_pence: source.cost_subtotal_pence,
         subtotal_pence: source.subtotal_pence,
         vat_pence: source.vat_pence,
@@ -325,6 +330,7 @@ export async function duplicateEstimateOnWeb(
         unit: l.unit,
         unit_cost_pence: l.unit_cost_pence,
         markup_percent: l.markup_percent,
+        client_supplied: l.client_supplied,
       }));
       const { error: lineErr } = await supabase
         .from('estimate_line_items')

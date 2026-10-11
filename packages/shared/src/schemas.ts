@@ -169,6 +169,8 @@ export const estimateLineInput = z.object({
   unit_cost_pence: z.number().int().nonnegative().default(0),
   /** Markup on cost, percent. 20 => client price is cost x 1.20. */
   markup_percent: z.number().nonnegative().max(1000).default(0),
+  /** Provided by the client — excluded from the price. */
+  client_supplied: z.boolean().default(false),
 });
 export type EstimateLineInput = z.infer<typeof estimateLineInput>;
 
@@ -187,6 +189,8 @@ export const estimateCreate = z.object({
   // at project conversion, where the address becomes authoritative.
   postcode: z.string().max(12).nullable().optional(),
   vat_mode: vatMode.default('none'),
+  /** What the client sees: every line, grouped subtotals, or a single total. */
+  client_detail_level: z.enum(['itemised', 'grouped', 'total']).default('itemised'),
   /** Basis points; 2000 = 20.00%. Only applied when vat_mode is 'standard'. */
   vat_rate_bp: z.number().int().min(0).max(10000).default(2000),
   valid_until: isoDate.nullable().optional(),

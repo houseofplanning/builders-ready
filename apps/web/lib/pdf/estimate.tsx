@@ -12,7 +12,13 @@ import type {
   EstimateLineItem,
   Tenant,
 } from '@br/shared';
-import { gbp, formatDate, ESTIMATE_LINE_KIND_LABELS, VAT_MODE_NOTE } from '@br/shared';
+import {
+  gbp,
+  formatDate,
+  ESTIMATE_LINE_KIND_LABELS,
+  VAT_MODE_NOTE,
+  clientFacingBreakdown,
+} from '@br/shared';
 
 /**
  * Builders Ready — Quote / Estimate PDF.
@@ -155,6 +161,17 @@ function EstimateDocument({ data }: { data: EstimatePdfData }) {
     .filter(Boolean)
     .join(', ');
   const vatNote = VAT_MODE_NOTE[estimate.vat_mode];
+  const level = estimate.client_detail_level;
+  const chargedLines = lines.filter((l) => !l.client_supplied);
+  const breakdown = clientFacingBreakdown(
+    lines.map((l) => ({
+      description: l.description,
+      kind: l.kind,
+      line_price_pence: Number(l.line_price_pence),
+      client_supplied: l.client_supplied,
+    })),
+    level,
+  );
 
   return (
     <Document>
@@ -203,23 +220,55 @@ function EstimateDocument({ data }: { data: EstimatePdfData }) {
 
         <Text style={s.title}>{estimate.title}</Text>
 
-        <View style={s.tableHead}>
-          <Text style={[s.th, s.cDesc]}>Description</Text>
-          <Text style={[s.th, s.cQty]}>Qty</Text>
-          <Text style={[s.th, s.cPrice]}>Amount</Text>
-        </View>
-        {lines.map((l) => (
-          <View style={s.row} key={l.id} wrap={false}>
-            <View style={s.cDesc}>
-              <Text style={s.lineDesc}>{l.description}</Text>
-              <Text style={s.lineKind}>{ESTIMATE_LINE_KIND_LABELS[l.kind]}</Text>
+        {level === 'itemised' ? (
+          <>
+            <View style={s.tableHead}>
+              <Text style={[s.th, s.cDesc]}>Description</Text>
+              <Text style={[s.th, s.cQty]}>Qty</Text>
+              <Text style={[s.th, s.cPrice]}>Amount</Text>
             </View>
-            <Text style={[s.cell, s.cQty]}>
-              {Number(l.quantity)} {l.unit}
-            </Text>
-            <Text style={[s.cell, s.cPrice]}>{gbp(Number(l.line_price_pence))}</Text>
+            {chargedLines.map((l) => (
+              <View style={s.row} key={l.id} wrap={false}>
+                <View style={s.cDesc}>
+                  <Text style={s.lineDesc}>{l.description}</Text>
+                  <Text style={s.lineKind}>{ESTIMATE_LINE_KIND_LABELS[l.kind]}</Text>
+                </View>
+                <Text style={[s.cell, s.cQty]}>
+                  {Number(l.quantity)} {l.unit}
+                </Text>
+                <Text style={[s.cell, s.cPrice]}>{gbp(Number(l.line_price_pence))}</Text>
+              </View>
+            ))}
+          </>
+        ) : level === 'grouped' ? (
+          <>
+            <View style={s.tableHead}>
+              <Text style={[s.th, s.cDesc]}>Description</Text>
+              <Text style={[s.th, s.cPrice]}>Amount</Text>
+            </View>
+            {breakdown.rows.map((r) => (
+              <View style={s.row} key={r.label} wrap={false}>
+                <View style={{ width: '72%', paddingRight: 8 }}>
+                  <Text style={s.lineDesc}>{r.label}</Text>
+                </View>
+                <Text style={[s.cell, { width: '28%', textAlign: 'right' }]}>
+                  {gbp(r.price_pence)}
+                </Text>
+              </View>
+            ))}
+          </>
+        ) : null}
+
+        {breakdown.client_supplied.length > 0 ? (
+          <View style={{ marginTop: 10 }}>
+            <Text style={s.metaLabel}>Materials you&apos;re providing (not charged)</Text>
+            {breakdown.client_supplied.map((d, i) => (
+              <Text key={i} style={[s.lineKind, { marginTop: 2 }]}>
+                • {d}
+              </Text>
+            ))}
           </View>
-        ))}
+        ) : null}
 
         <View style={s.totals}>
           <View style={s.totalRow}>

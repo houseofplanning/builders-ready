@@ -212,6 +212,7 @@ export async function createQuoteForBid(params: {
     postcode: params.postcode,
     vat_mode: 'none',
     vat_rate_bp: 2000,
+    client_detail_level: 'itemised',
     valid_until: null,
     notes: null,
     terms: null,

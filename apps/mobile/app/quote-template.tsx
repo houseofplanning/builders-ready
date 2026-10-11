@@ -178,6 +178,7 @@ export default function QuoteTemplateScreen() {
         unit: l.unit,
         unit_cost_pence: l.unit_cost_pence,
         markup_percent: l.markup_percent,
+        client_supplied: false,
       })),
     });
     router.replace('/create-estimate');

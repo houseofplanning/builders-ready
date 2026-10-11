@@ -26,8 +26,14 @@ import {
   ESTIMATE_LINE_KIND_LABELS,
   ESTIMATE_LINE_KIND_DEFAULT_UNIT,
   VAT_MODE_LABELS,
+  CLIENT_DETAIL_LABELS,
 } from '@br/shared';
-import type { EstimateLineKind, SavedRate, VatMode } from '@br/shared';
+import type {
+  EstimateClientDetail,
+  EstimateLineKind,
+  SavedRate,
+  VatMode,
+} from '@br/shared';
 import { useTenant } from '../lib/tenant-provider';
 import {
   createEstimate,
@@ -56,6 +62,7 @@ interface LineRow {
   unit: string;
   unitCostText: string; // pounds, as typed
   markupText: string; // percent, as typed
+  clientSupplied: boolean; // provided by the client — excluded from price
 }
 
 let keySeq = 0;
@@ -74,6 +81,7 @@ function blankRow(kind: EstimateLineKind = 'material'): LineRow {
     unit: ESTIMATE_LINE_KIND_DEFAULT_UNIT[kind],
     unitCostText: '',
     markupText: '',
+    clientSupplied: false,
   };
 }
 
@@ -122,6 +130,8 @@ export default function CreateEstimateScreen() {
 
   const [rows, setRows] = useState<LineRow[]>([blankRow()]);
   const [vatMode, setVatMode] = useState<VatMode>('none');
+  const [clientDetailLevel, setClientDetailLevel] =
+    useState<EstimateClientDetail>('itemised');
   const [validityDays, setValidityDays] = useState<number | null>(14);
   const [notes, setNotes] = useState('');
 
@@ -152,6 +162,7 @@ export default function CreateEstimateScreen() {
           unit: l.unit,
           unitCostText: (l.unit_cost_pence / 100).toString(),
           markupText: l.markup_percent ? String(l.markup_percent) : '',
+          clientSupplied: l.client_supplied,
         })),
       );
     }
@@ -188,6 +199,7 @@ export default function CreateEstimateScreen() {
       setCity(est.city ?? '');
       setPostcode(est.postcode ?? '');
       setVatMode(est.vat_mode);
+      setClientDetailLevel(est.client_detail_level);
       setKeepValidUntil(est.valid_until);
       setNotes(est.notes ?? '');
       setRows(
@@ -201,6 +213,7 @@ export default function CreateEstimateScreen() {
               unit: l.unit,
               unitCostText: (l.unit_cost_pence / 100).toString(),
               markupText: l.markup_percent ? String(l.markup_percent) : '',
+              clientSupplied: l.client_supplied,
             }))
           : [blankRow()],
       );
@@ -218,6 +231,7 @@ export default function CreateEstimateScreen() {
           quantity: num(r.quantityText, 0),
           unit_cost_pence: poundsToPence(r.unitCostText),
           markup_percent: num(r.markupText, 0),
+          client_supplied: r.clientSupplied,
         })),
         vatMode,
         2000,
@@ -266,6 +280,7 @@ export default function CreateEstimateScreen() {
         markupText: rate.default_markup_percent
           ? rate.default_markup_percent.toString()
           : '',
+        clientSupplied: false,
       },
     ]);
   }
@@ -298,6 +313,7 @@ export default function CreateEstimateScreen() {
       unit: r.unit.trim() || ESTIMATE_LINE_KIND_DEFAULT_UNIT[r.kind],
       unit_cost_pence: poundsToPence(r.unitCostText),
       markup_percent: num(r.markupText, 0),
+      client_supplied: r.clientSupplied,
     }));
     if (lines.length === 0) {
       Alert.alert('Add at least one line', 'A quote needs something in it.');
@@ -323,6 +339,7 @@ export default function CreateEstimateScreen() {
       postcode: postcode.trim() || null,
       vat_mode: vatMode,
       vat_rate_bp: 2000,
+      client_detail_level: clientDetailLevel,
       valid_until: validUntil,
       notes: notes.trim() || null,
       terms: null,
@@ -622,12 +639,27 @@ export default function CreateEstimateScreen() {
                   </View>
                 </View>
 
+                <TouchableOpacity
+                  style={styles.suppliedToggle}
+                  onPress={() => updateRow(r.key, { clientSupplied: !r.clientSupplied })}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={r.clientSupplied ? 'checkbox' : 'square-outline'}
+                    size={18}
+                    color={r.clientSupplied ? palette.primary : palette.inkMuted}
+                  />
+                  <Text style={[styles.suppliedText, { color: palette.inkMuted }]}>
+                    Client supplies this (not charged)
+                  </Text>
+                </TouchableOpacity>
+
                 <View style={styles.linePriceRow}>
                   <Text style={[styles.linePriceLabel, { color: palette.inkMuted }]}>
                     Client price
                   </Text>
                   <Text style={[styles.linePriceValue, { color: palette.ink }]}>
-                    {gbp(preview)}
+                    {r.clientSupplied ? 'Provided by client' : gbp(preview)}
                   </Text>
                 </View>
               </View>
@@ -717,6 +749,38 @@ export default function CreateEstimateScreen() {
               for it.
             </Text>
           )}
+
+          {/* what the client sees */}
+          <Text style={[styles.sectionTitle, { color: palette.ink }]}>
+            What the client sees
+          </Text>
+          <View style={styles.chipWrap}>
+            {(['itemised', 'grouped', 'total'] as EstimateClientDetail[]).map((lvl) => {
+              const active = clientDetailLevel === lvl;
+              return (
+                <TouchableOpacity
+                  key={lvl}
+                  onPress={() => setClientDetailLevel(lvl)}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: active ? palette.primary : palette.card,
+                      borderColor: active ? palette.primary : palette.hairline,
+                    },
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.chipText, { color: active ? '#fff' : palette.ink }]}>
+                    {CLIENT_DETAIL_LABELS[lvl]}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <Text style={[styles.help, { color: palette.inkMuted }]}>
+            You always see the full breakdown. This only changes what&apos;s shown on
+            the client&apos;s quote &amp; PDF.
+          </Text>
 
           {/* validity */}
           <Text style={[styles.sectionTitle, { color: palette.ink }]}>
@@ -964,6 +1028,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
+  },
+  suppliedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.sm,
+    marginBottom: 2,
+  },
+  suppliedText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weightSemibold as '600',
   },
   linePriceRow: {
     flexDirection: 'row',

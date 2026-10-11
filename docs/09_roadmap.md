@@ -6,7 +6,7 @@ below the line is planned, not built.
 ---
 
 ## ✅ Shipped / live
-Marketplace (homeowner ↔ trade, no per-lead fee) · on-site quoting & estimates (costs + margin, branded PDF, emailed to client, sign on phone) · public quote page with Accept/Decline + free client account that links the project automatically · project templates v1 (timeline/stages) · accepted quote → managed project · cost & margin tracking · contracts & staged invoices · Stripe Connect payments (receipts, refunds, retention) · "paid in cash" flow · handover PDF · unified messaging · two-way reviews · customer portal (web + mobile) · dashboard · Owner invite role + comped/Unlimited accounts + trade branding · marketing site (builder + homeowner).
+Marketplace (homeowner ↔ trade, no per-lead fee) · on-site quoting & estimates (costs + margin, branded PDF, emailed to client, sign on phone) · quote client-view control — what the client sees on the PDF/public page: every line, Materials & Labour subtotals, or a single total (builder always sees full detail), plus per-line "client supplies this" (shown as provided-by-client, excluded from price) · public quote page with Accept/Decline + free client account that links the project automatically · project templates v1 (timeline/stages) · accepted quote → managed project · cost & margin tracking · contracts & staged invoices · Stripe Connect payments (receipts, refunds, retention) · "paid in cash" flow · handover PDF · unified messaging · two-way reviews · customer portal (web + mobile) · dashboard · Owner invite role + comped/Unlimited accounts + trade branding · marketing site (builder + homeowner).
 
 ---
 

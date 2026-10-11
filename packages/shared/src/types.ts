@@ -302,6 +302,10 @@ export type EstimateLineKind =
 
 export type VatMode = 'none' | 'standard' | 'reverse_charge';
 
+/** What the CLIENT sees on the PDF / public quote page (builder always sees
+ *  full detail in-app). */
+export type EstimateClientDetail = 'itemised' | 'grouped' | 'total';
+
 export interface Estimate {
   id: UUID;
   tenant_id: UUID;
@@ -321,6 +325,8 @@ export interface Estimate {
   /** NULL until the estimate is won and converted into a project. */
   project_id: UUID | null;
   status: EstimateStatus;
+  /** What the client sees: every line, grouped subtotals, or a single total. */
+  client_detail_level: EstimateClientDetail;
   vat_mode: VatMode;
   /** Basis points; 2000 = 20.00%. Applied only when vat_mode === 'standard'. */
   vat_rate_bp: number;
@@ -354,6 +360,9 @@ export interface EstimateLineItem {
   /** Builder's cost per unit, integer pence. */
   unit_cost_pence: number;
   markup_percent: number;
+  /** Line the customer provides themselves — shown as provided-by-client and
+   *  excluded from the price/cost totals. */
+  client_supplied: boolean;
   /** DB-generated: round(quantity * unit_cost_pence). */
   line_cost_pence: number;
   /** DB-generated: round(quantity * unit_cost_pence * (1 + markup_percent/100)). */

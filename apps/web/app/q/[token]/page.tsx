@@ -5,6 +5,7 @@ import {
   formatDate,
   ESTIMATE_LINE_KIND_LABELS,
   VAT_MODE_NOTE,
+  clientFacingBreakdown,
 } from '@br/shared';
 import type { Estimate, EstimateLineItem, Tenant } from '@br/shared';
 import { AcceptQuoteForm } from './accept-quote-form';
@@ -36,7 +37,7 @@ export default async function PublicQuotePage({ params }: Props) {
     admin
       .from('estimate_line_items')
       .select(
-        'id, kind, description, quantity, unit, line_price_pence, position',
+        'id, kind, description, quantity, unit, line_price_pence, client_supplied, position',
       )
       .eq('estimate_id', estimate.id)
       .order('position', { ascending: true }),
@@ -48,8 +49,25 @@ export default async function PublicQuotePage({ params }: Props) {
   ]);
   const lines = (lineRows ?? []) as Pick<
     EstimateLineItem,
-    'id' | 'kind' | 'description' | 'quantity' | 'unit' | 'line_price_pence'
+    | 'id'
+    | 'kind'
+    | 'description'
+    | 'quantity'
+    | 'unit'
+    | 'line_price_pence'
+    | 'client_supplied'
   >[];
+  const level = estimate.client_detail_level;
+  const chargedLines = lines.filter((l) => !l.client_supplied);
+  const breakdown = clientFacingBreakdown(
+    lines.map((l) => ({
+      description: l.description,
+      kind: l.kind,
+      line_price_pence: Number(l.line_price_pence),
+      client_supplied: l.client_supplied,
+    })),
+    level,
+  );
   const tenant = (tenantRow ?? { name: 'Your builder' }) as Partial<Tenant>;
   const primary = tenant.brand_primary || '#0F4C5C';
 
@@ -128,27 +146,55 @@ export default async function PublicQuotePage({ params }: Props) {
             </p>
           </div>
 
-          {/* Lines */}
+          {/* Lines — shown at the detail level the builder chose */}
           <div className="border-t border-hairline">
-            {lines.map((l) => (
-              <div
-                key={l.id}
-                className="flex items-center gap-4 border-b border-hairline px-6 py-3 sm:px-8"
-              >
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-ink">
-                    {l.description}
+            {level === 'itemised'
+              ? chargedLines.map((l) => (
+                  <div
+                    key={l.id}
+                    className="flex items-center gap-4 border-b border-hairline px-6 py-3 sm:px-8"
+                  >
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-ink">
+                        {l.description}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-ink-muted">
+                        {ESTIMATE_LINE_KIND_LABELS[l.kind]} · {Number(l.quantity)}{' '}
+                        {l.unit}
+                      </div>
+                    </div>
+                    <div className="text-sm font-bold text-ink">
+                      {gbp(Number(l.line_price_pence))}
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-[11px] text-ink-muted">
-                    {ESTIMATE_LINE_KIND_LABELS[l.kind]} · {Number(l.quantity)}{' '}
-                    {l.unit}
-                  </div>
+                ))
+              : level === 'grouped'
+                ? breakdown.rows.map((r) => (
+                    <div
+                      key={r.label}
+                      className="flex items-center gap-4 border-b border-hairline px-6 py-3 sm:px-8"
+                    >
+                      <div className="flex-1 text-sm font-semibold text-ink">
+                        {r.label}
+                      </div>
+                      <div className="text-sm font-bold text-ink">
+                        {gbp(r.price_pence)}
+                      </div>
+                    </div>
+                  ))
+                : null}
+            {breakdown.client_supplied.length > 0 && (
+              <div className="border-b border-hairline px-6 py-3 sm:px-8">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                  Materials you&apos;re providing (not charged)
                 </div>
-                <div className="text-sm font-bold text-ink">
-                  {gbp(Number(l.line_price_pence))}
-                </div>
+                <ul className="mt-1 list-disc pl-5 text-sm text-ink">
+                  {breakdown.client_supplied.map((d, i) => (
+                    <li key={i}>{d}</li>
+                  ))}
+                </ul>
               </div>
-            ))}
+            )}
           </div>
 
           {/* Totals */}

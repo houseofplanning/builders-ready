@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import { computeEstimateTotals } from '@br/shared';
 import type {
   Estimate,
+  EstimateClientDetail,
   EstimateLineItem,
   EstimateLineKind,
   EstimateStatus,
@@ -65,6 +66,7 @@ function normalizeLine(l: Record<string, unknown>): EstimateLineItem {
     unit: l.unit as string,
     unit_cost_pence: Number(l.unit_cost_pence),
     markup_percent: Number(l.markup_percent),
+    client_supplied: Boolean(l.client_supplied),
     line_cost_pence: Number(l.line_cost_pence),
     line_price_pence: Number(l.line_price_pence),
     created_at: l.created_at as string,
@@ -125,6 +127,7 @@ export interface EstimateLineDraft {
   unit: string;
   unit_cost_pence: number;
   markup_percent: number;
+  client_supplied: boolean;
 }
 
 export interface CreateEstimateInput {
@@ -141,6 +144,7 @@ export interface CreateEstimateInput {
   postcode: string | null;
   vat_mode: VatMode;
   vat_rate_bp: number;
+  client_detail_level: EstimateClientDetail;
   valid_until: string | null;
   notes: string | null;
   terms: string | null;
@@ -174,6 +178,7 @@ export async function createEstimate(input: CreateEstimateInput): Promise<UUID> 
         status: 'draft' as EstimateStatus,
         vat_mode: input.vat_mode,
         vat_rate_bp: input.vat_rate_bp,
+        client_detail_level: input.client_detail_level,
         cost_subtotal_pence: totals.cost_subtotal_pence,
         subtotal_pence: totals.subtotal_pence,
         vat_pence: totals.vat_pence,
@@ -203,6 +208,7 @@ export async function createEstimate(input: CreateEstimateInput): Promise<UUID> 
         unit: l.unit,
         unit_cost_pence: l.unit_cost_pence,
         markup_percent: l.markup_percent,
+        client_supplied: l.client_supplied,
       }));
       const { error: lineErr } = await supabase
         .from('estimate_line_items')
@@ -238,6 +244,7 @@ export async function updateEstimate(input: UpdateEstimateInput): Promise<void> 
       postcode: input.postcode,
       vat_mode: input.vat_mode,
       vat_rate_bp: input.vat_rate_bp,
+      client_detail_level: input.client_detail_level,
       cost_subtotal_pence: totals.cost_subtotal_pence,
       subtotal_pence: totals.subtotal_pence,
       vat_pence: totals.vat_pence,
@@ -268,6 +275,7 @@ export async function updateEstimate(input: UpdateEstimateInput): Promise<void> 
       unit: l.unit,
       unit_cost_pence: l.unit_cost_pence,
       markup_percent: l.markup_percent,
+      client_supplied: l.client_supplied,
     }));
     const { error: insErr } = await supabase
       .from('estimate_line_items')
@@ -424,6 +432,7 @@ export async function duplicateEstimate(
     postcode: src.postcode,
     vat_mode: src.vat_mode,
     vat_rate_bp: src.vat_rate_bp,
+    client_detail_level: src.client_detail_level,
     valid_until: src.valid_until,
     notes: src.notes,
     terms: src.terms,
@@ -435,6 +444,7 @@ export async function duplicateEstimate(
       unit: l.unit,
       unit_cost_pence: l.unit_cost_pence,
       markup_percent: l.markup_percent,
+      client_supplied: l.client_supplied,
     })),
   });
 }

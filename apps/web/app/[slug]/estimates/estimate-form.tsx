@@ -11,8 +11,14 @@ import {
   ESTIMATE_LINE_KIND_LABELS,
   ESTIMATE_LINE_KIND_DEFAULT_UNIT,
   VAT_MODE_LABELS,
+  CLIENT_DETAIL_LABELS,
 } from '@br/shared';
-import type { EstimateLineKind, SavedRate, VatMode } from '@br/shared';
+import type {
+  EstimateClientDetail,
+  EstimateLineKind,
+  SavedRate,
+  VatMode,
+} from '@br/shared';
 import {
   createEstimateOnWeb,
   updateEstimateOnWeb,
@@ -36,6 +42,7 @@ interface LineRow {
   unit: string;
   unitCostText: string;
   markupText: string;
+  clientSupplied: boolean;
 }
 
 export interface EstimateFormInitial {
@@ -49,6 +56,7 @@ export interface EstimateFormInitial {
   city: string | null;
   postcode: string | null;
   vat_mode: VatMode;
+  client_detail_level: EstimateClientDetail;
   valid_until: string | null;
   notes: string | null;
   lines: {
@@ -59,6 +67,7 @@ export interface EstimateFormInitial {
     unit: string;
     unit_cost_pence: number;
     markup_percent: number;
+    client_supplied: boolean;
   }[];
 }
 
@@ -88,6 +97,7 @@ function blankRow(kind: EstimateLineKind = 'material'): LineRow {
     unit: ESTIMATE_LINE_KIND_DEFAULT_UNIT[kind],
     unitCostText: '',
     markupText: '',
+    clientSupplied: false,
   };
 }
 
@@ -125,6 +135,9 @@ export function EstimateForm({
   const [city, setCity] = useState(initial?.city ?? '');
   const [postcode, setPostcode] = useState(initial?.postcode ?? '');
   const [vatMode, setVatMode] = useState<VatMode>(initial?.vat_mode ?? 'none');
+  const [clientDetailLevel, setClientDetailLevel] = useState<EstimateClientDetail>(
+    initial?.client_detail_level ?? 'itemised',
+  );
   const [validityDays, setValidityDays] = useState<number | null>(14);
   // When editing, keep the stored valid_until unless the user picks a preset.
   const [validityTouched, setValidityTouched] = useState(false);
@@ -141,6 +154,7 @@ export function EstimateForm({
           unit: l.unit,
           unitCostText: (l.unit_cost_pence / 100).toString(),
           markupText: l.markup_percent ? String(l.markup_percent) : '',
+          clientSupplied: l.client_supplied,
         }))
       : [blankRow()],
   );
@@ -154,6 +168,7 @@ export function EstimateForm({
           quantity: num(r.quantityText, 0),
           unit_cost_pence: poundsToPence(r.unitCostText),
           markup_percent: num(r.markupText, 0),
+          client_supplied: r.clientSupplied,
         })),
         vatMode,
         2000,
@@ -192,6 +207,7 @@ export function EstimateForm({
         markupText: rate.default_markup_percent
           ? String(rate.default_markup_percent)
           : '',
+        clientSupplied: false,
       },
     ]);
   }
@@ -222,6 +238,7 @@ export function EstimateForm({
       city: city.trim() || null,
       postcode: postcode.trim() || null,
       vat_mode: vatMode,
+      client_detail_level: clientDetailLevel,
       vat_rate_bp: 2000,
       valid_until:
         editing && !validityTouched
@@ -239,6 +256,7 @@ export function EstimateForm({
         unit: r.unit.trim() || ESTIMATE_LINE_KIND_DEFAULT_UNIT[r.kind],
         unit_cost_pence: poundsToPence(r.unitCostText),
         markup_percent: num(r.markupText, 0),
+        client_supplied: r.clientSupplied,
       })),
     };
     const res = editing
@@ -456,12 +474,20 @@ export function EstimateForm({
                       />
                     </div>
                   </div>
+                  <label className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
+                    <input
+                      type="checkbox"
+                      checked={r.clientSupplied}
+                      onChange={(e) => patch(r.key, { clientSupplied: e.target.checked })}
+                    />
+                    Client supplies this (not charged)
+                  </label>
                   <div className="mt-2 flex items-center justify-between text-xs">
                     <span className="font-semibold uppercase tracking-wide text-ink-muted">
                       Client price
                     </span>
                     <span className="text-sm font-extrabold text-ink">
-                      {gbp(price)}
+                      {r.clientSupplied ? 'Provided by client' : gbp(price)}
                     </span>
                   </div>
                 </div>
@@ -552,6 +578,28 @@ export function EstimateForm({
               </button>
             ))}
           </div>
+
+          <label className={`${miniLabel} mt-4`}>What the client sees</label>
+          <div className="flex flex-wrap gap-1.5">
+            {(['itemised', 'grouped', 'total'] as EstimateClientDetail[]).map((lvl) => (
+              <button
+                key={lvl}
+                type="button"
+                onClick={() => setClientDetailLevel(lvl)}
+                className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                  clientDetailLevel === lvl
+                    ? 'border-primary bg-primary text-white'
+                    : 'border-hairline bg-white text-ink'
+                }`}
+              >
+                {CLIENT_DETAIL_LABELS[lvl]}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-[11px] text-ink-muted">
+            You always see the full breakdown — this only changes the client&apos;s
+            quote &amp; PDF.
+          </p>
         </section>
 
         <section className="rounded-card border border-hairline bg-white p-5 shadow-card">
