@@ -37,3 +37,27 @@ export async function requireCustomer(): Promise<CurrentCustomer> {
   if (!customer) redirect('/login');
   return customer;
 }
+
+/**
+ * Is the signed-in user an *invited project client* (a tenant member with
+ * role 'client') rather than a marketplace customer (no membership)?
+ *
+ * This mirrors the mobile app, where membership is the discriminator: a user
+ * with no tenant membership gets the marketplace (`/customer`); a project
+ * client gets the project-only shell with no marketplace. On web we use this
+ * to strip the marketplace chrome (Post a job / Browse) for invited clients
+ * and land them on their project instead.
+ *
+ * Returns false for marketplace customers and for anyone not signed in.
+ */
+export async function isInvitedClient(): Promise<boolean> {
+  const supabase = await createSupabaseServer();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return false;
+  const { data: membership } = await supabase
+    .from('tenant_members')
+    .select('role')
+    .eq('user_id', auth.user.id)
+    .maybeSingle();
+  return membership?.role === 'client';
+}

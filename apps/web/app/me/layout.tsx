@@ -1,36 +1,63 @@
 import Link from 'next/link';
-import { requireCustomer } from '@/lib/customer-resolver';
+import { requireCustomer, isInvitedClient } from '@/lib/customer-resolver';
 
 export default async function CustomerLayout({ children }: { children: React.ReactNode }) {
   await requireCustomer();
+  // Invited project clients get a project-only shell with no marketplace
+  // chrome (no "Post a job" / "Browse"), mirroring the mobile app where a
+  // tenant member never sees the marketplace.
+  const invitedClient = await isInvitedClient();
+
   return (
     <div className="min-h-screen bg-canvas">
       <header className="border-b border-hairline bg-white">
         <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-10">
-          {/* Top row: logo + Post a job (nav shows inline here on sm+). */}
+          {/* Top row: logo + nav (+ Post a job for marketplace customers). */}
           <div className="flex items-center gap-4 py-3">
             <Link href="/me" className="text-sm font-extrabold tracking-[0.2em] text-ink">
               BUILDERS <span className="text-primary">READY</span>
             </Link>
             <nav className="ml-2 hidden items-center gap-1 text-sm sm:flex">
-              <NavLink href="/me">My jobs</NavLink>
-              <NavLink href="/me/browse">Browse</NavLink>
-              <NavLink href="/me/messages">Messages</NavLink>
-              <NavLink href="/me/account">Account</NavLink>
+              {invitedClient ? (
+                <>
+                  <NavLink href="/me">My project</NavLink>
+                  <NavLink href="/me/messages">Messages</NavLink>
+                  <NavLink href="/me/account">Account</NavLink>
+                </>
+              ) : (
+                <>
+                  <NavLink href="/me">My jobs</NavLink>
+                  <NavLink href="/me/browse">Browse</NavLink>
+                  <NavLink href="/me/messages">Messages</NavLink>
+                  <NavLink href="/me/account">Account</NavLink>
+                </>
+              )}
             </nav>
-            <Link
-              href="/me/post"
-              className="ml-auto whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-bold text-white"
-            >
-              + Post a job
-            </Link>
+            {!invitedClient && (
+              <Link
+                href="/me/post"
+                className="ml-auto whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-bold text-white"
+              >
+                + Post a job
+              </Link>
+            )}
           </div>
           {/* Mobile nav: its own scrollable row so it never wraps cramped. */}
           <nav className="-mx-1 flex items-center gap-1 overflow-x-auto pb-2 text-sm sm:hidden">
-            <NavLink href="/me">My jobs</NavLink>
-            <NavLink href="/me/browse">Browse</NavLink>
-            <NavLink href="/me/messages">Messages</NavLink>
-            <NavLink href="/me/account">Account</NavLink>
+            {invitedClient ? (
+              <>
+                <NavLink href="/me">My project</NavLink>
+                <NavLink href="/me/messages">Messages</NavLink>
+                <NavLink href="/me/account">Account</NavLink>
+              </>
+            ) : (
+              <>
+                <NavLink href="/me">My jobs</NavLink>
+                <NavLink href="/me/browse">Browse</NavLink>
+                <NavLink href="/me/messages">Messages</NavLink>
+                <NavLink href="/me/account">Account</NavLink>
+              </>
+            )}
           </nav>
         </div>
       </header>

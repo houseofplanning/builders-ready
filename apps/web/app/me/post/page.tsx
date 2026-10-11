@@ -1,7 +1,11 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { isInvitedClient } from '@/lib/customer-resolver';
 import { PostJobForm } from './post-form';
 
-export default function PostJobPage() {
+export default async function PostJobPage() {
+  // Invited project clients have no marketplace — send them to their project.
+  if (await isInvitedClient()) redirect('/me');
   return (
     <div>
       <Link href="/me" className="text-sm font-bold text-primary hover:underline">

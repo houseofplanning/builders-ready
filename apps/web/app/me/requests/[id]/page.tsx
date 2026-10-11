@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { requireCustomer } from '@/lib/customer-resolver';
+import { notFound, redirect } from 'next/navigation';
+import { requireCustomer, isInvitedClient } from '@/lib/customer-resolver';
 import { createSupabaseServer } from '@/lib/supabase-server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import {
@@ -32,6 +32,7 @@ interface BidRow {
 }
 
 export default async function RequestDetailPage({ params }: Props) {
+  if (await isInvitedClient()) redirect('/me');
   const { id } = await params;
   const me = await requireCustomer();
   const supabase = await createSupabaseServer();

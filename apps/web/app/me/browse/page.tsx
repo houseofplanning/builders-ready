@@ -1,7 +1,8 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { budgetLabel, relativeTime, TRADE_CATEGORIES, postcodeMatches } from '@br/shared';
 import { createSupabaseServer } from '@/lib/supabase-server';
-import { requireCustomer } from '@/lib/customer-resolver';
+import { requireCustomer, isInvitedClient } from '@/lib/customer-resolver';
 
 interface Props {
   searchParams: Promise<{ category?: string; area?: string }>;
@@ -22,6 +23,7 @@ interface FeedRow {
 
 export default async function BrowsePage({ searchParams }: Props) {
   const me = await requireCustomer();
+  if (await isInvitedClient()) redirect('/me');
   const { category, area } = await searchParams;
   const supabase = await createSupabaseServer();
 
