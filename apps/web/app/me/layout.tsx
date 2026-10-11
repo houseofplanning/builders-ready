@@ -1,63 +1,87 @@
 import Link from 'next/link';
 import { requireCustomer, isInvitedClient } from '@/lib/customer-resolver';
+import { createSupabaseServer } from '@/lib/supabase-server';
+import { CustomerAccountMenu } from '@/components/customer-account-menu';
+
+function initialsOf(name: string, email: string): string {
+  const n = name.trim();
+  if (n) {
+    const parts = n.split(/\s+/);
+    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase();
+  }
+  return (email.trim()[0] ?? '').toUpperCase();
+}
 
 export default async function CustomerLayout({ children }: { children: React.ReactNode }) {
-  await requireCustomer();
+  const me = await requireCustomer();
   // Invited project clients get a project-only shell with no marketplace
   // chrome (no "Post a job" / "Browse"), mirroring the mobile app where a
   // tenant member never sees the marketplace.
   const invitedClient = await isInvitedClient();
 
+  // For an invited client, "Messages" should open the thread with their
+  // builder/PM (the project `messages` thread), not the marketplace inbox.
+  // With one project we deep-link straight to its chat; with several we send
+  // them to the project list to pick one first.
+  let clientMessagesHref = '/me';
+  if (invitedClient) {
+    const supabase = await createSupabaseServer();
+    const { data: projs } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('client_id', me.user_id)
+      .neq('status', 'archived')
+      .order('updated_at', { ascending: false });
+    clientMessagesHref =
+      projs && projs.length === 1 ? `/me/jobs/${projs[0].id}/chat` : '/me';
+  }
+
+  const initials = initialsOf(me.full_name ?? '', me.email);
+
+  const navLinks = invitedClient ? (
+    <>
+      <NavLink href="/me">My project</NavLink>
+      <NavLink href={clientMessagesHref}>Messages</NavLink>
+      <NavLink href="/me/account">Account</NavLink>
+    </>
+  ) : (
+    <>
+      <NavLink href="/me">My jobs</NavLink>
+      <NavLink href="/me/browse">Browse</NavLink>
+      <NavLink href="/me/messages">Messages</NavLink>
+      <NavLink href="/me/account">Account</NavLink>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-canvas">
       <header className="border-b border-hairline bg-white">
         <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-10">
-          {/* Top row: logo + nav (+ Post a job for marketplace customers). */}
+          {/* Top row: logo + nav (+ Post a job for customers) + account. */}
           <div className="flex items-center gap-4 py-3">
             <Link href="/me" className="text-sm font-extrabold tracking-[0.2em] text-ink">
               BUILDERS <span className="text-primary">READY</span>
             </Link>
-            <nav className="ml-2 hidden items-center gap-1 text-sm sm:flex">
-              {invitedClient ? (
-                <>
-                  <NavLink href="/me">My project</NavLink>
-                  <NavLink href="/me/messages">Messages</NavLink>
-                  <NavLink href="/me/account">Account</NavLink>
-                </>
-              ) : (
-                <>
-                  <NavLink href="/me">My jobs</NavLink>
-                  <NavLink href="/me/browse">Browse</NavLink>
-                  <NavLink href="/me/messages">Messages</NavLink>
-                  <NavLink href="/me/account">Account</NavLink>
-                </>
+            <nav className="ml-2 hidden items-center gap-1 text-sm sm:flex">{navLinks}</nav>
+            <div className="ml-auto flex items-center gap-3">
+              {!invitedClient && (
+                <Link
+                  href="/me/post"
+                  className="whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-bold text-white"
+                >
+                  + Post a job
+                </Link>
               )}
-            </nav>
-            {!invitedClient && (
-              <Link
-                href="/me/post"
-                className="ml-auto whitespace-nowrap rounded-lg bg-primary px-3 py-1.5 text-sm font-bold text-white"
-              >
-                + Post a job
-              </Link>
-            )}
+              <CustomerAccountMenu
+                name={me.full_name ?? ''}
+                email={me.email}
+                initials={initials}
+              />
+            </div>
           </div>
           {/* Mobile nav: its own scrollable row so it never wraps cramped. */}
           <nav className="-mx-1 flex items-center gap-1 overflow-x-auto pb-2 text-sm sm:hidden">
-            {invitedClient ? (
-              <>
-                <NavLink href="/me">My project</NavLink>
-                <NavLink href="/me/messages">Messages</NavLink>
-                <NavLink href="/me/account">Account</NavLink>
-              </>
-            ) : (
-              <>
-                <NavLink href="/me">My jobs</NavLink>
-                <NavLink href="/me/browse">Browse</NavLink>
-                <NavLink href="/me/messages">Messages</NavLink>
-                <NavLink href="/me/account">Account</NavLink>
-              </>
-            )}
+            {navLinks}
           </nav>
         </div>
       </header>

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { gbp, formatDate, relativeTime } from '@br/shared';
-import { requireCustomer } from '@/lib/customer-resolver';
+import { requireCustomer, isInvitedClient } from '@/lib/customer-resolver';
 import { createSupabaseServer } from '@/lib/supabase-server';
 import { DecisionAccept, VariationSign, PayButton } from './portal-actions';
 
@@ -102,24 +102,43 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
 
   const unpaid = invoices.filter((i) => i.status === 'sent' || i.status === 'overdue');
 
+  // Back link: for an invited client with a single project, "/me" just
+  // redirects straight back here — so hide the link rather than show a dead
+  // one. Marketplace customers (and multi-project clients) keep it.
+  const invitedClient = await isInvitedClient();
+  const { count: myProjectCount } = await supabase
+    .from('projects')
+    .select('id', { count: 'exact', head: true })
+    .eq('client_id', me.user_id)
+    .neq('status', 'archived');
+  const showBack = !(invitedClient && (myProjectCount ?? 0) <= 1);
+  const backLabel = invitedClient ? 'Your projects' : 'Your jobs';
+
   return (
-    <div className="mx-auto max-w-2xl">
-      <Link href="/me" className="text-sm font-bold text-primary hover:underline">
-        ‹ Your jobs
-      </Link>
+    <div className="mx-auto max-w-5xl">
+      {showBack && (
+        <Link href="/me" className="text-sm font-bold text-primary hover:underline">
+          ‹ {backLabel}
+        </Link>
+      )}
 
       {pay === 'success' && (
-        <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+        <div className={`${showBack ? 'mt-3 ' : ''}rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800`}>
           Payment received — thank you.
         </div>
       )}
 
-      <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-ink">{project.name}</h1>
+      <h1 className={`${showBack || pay === 'success' ? 'mt-3 ' : ''}text-2xl font-extrabold tracking-tight text-ink`}>
+        {project.name}
+      </h1>
       <p className="mt-1 text-sm text-ink-muted">
         {trade?.name ?? 'Your trade'} · est. completion {formatDate(project.estimated_end_date)}
       </p>
 
-      <div className="mt-4 rounded-card border border-hairline bg-white p-5">
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+
+      <div className="rounded-card border border-hairline bg-white p-5">
         <div className="flex items-center justify-between">
           <span className="text-sm font-bold text-ink">Progress</span>
           <span className="text-sm font-extrabold text-primary">{project.progress_percent}%</span>
@@ -267,6 +286,25 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
           </ul>
         </Section>
       )}
+
+        </div>
+
+        {/* Right rail — talk to the builder */}
+        <aside className="lg:sticky lg:top-6">
+          <div className="rounded-card border border-hairline bg-white p-5">
+            <h2 className="text-sm font-bold text-ink">Messages</h2>
+            <p className="mt-1 text-xs text-ink-muted">
+              Questions about this project? Message {trade?.name ?? 'your builder'} directly.
+            </p>
+            <Link
+              href={`/me/jobs/${project.id}/chat`}
+              className="mt-3 inline-flex items-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-bold text-primary hover:bg-canvas"
+            >
+              Message your builder →
+            </Link>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
