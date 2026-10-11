@@ -45,25 +45,73 @@ export default function InvoiceDetailScreen() {
 
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [reference, setReference] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const i = await getInvoice(id);
-    setInvoice(i);
-    setLoading(false);
+    try {
+      const i = await getInvoice(id);
+      setInvoice(i);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  if (loading || !invoice || !tenant) {
+  if (loading || !tenant) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: palette.canvas }]}>
         <ActivityIndicator color={palette.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError || !invoice) {
+    return (
+      <SafeAreaView
+        style={[styles.shell, { backgroundColor: palette.canvas }]}
+        edges={['top', 'bottom']}
+      >
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: palette.card, borderBottomColor: palette.hairline },
+          ]}
+        >
+          <TouchableOpacity onPress={() => router.back()} hitSlop={10}>
+            <Ionicons name="chevron-back" size={28} color={palette.ink} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: palette.ink }]}>Invoice</Text>
+          <View style={{ width: 28 }} />
+        </View>
+        <View style={styles.center}>
+          <Ionicons name="alert-circle-outline" size={40} color={palette.inkMuted} />
+          <Text style={[styles.title, { color: palette.ink, textAlign: 'center', marginTop: spacing.md }]}>
+            Invoice not found
+          </Text>
+          <Text style={[styles.description, { color: palette.inkMuted, textAlign: 'center', paddingHorizontal: spacing.lg }]}>
+            This invoice may have been removed, or it couldn&apos;t be loaded.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+            style={[styles.payBtn, { backgroundColor: palette.primary, flex: 0, paddingHorizontal: spacing.xl, marginTop: spacing.lg }]}
+          >
+            <Text style={styles.payBtnText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -152,7 +200,7 @@ export default function InvoiceDetailScreen() {
               >
                 <Ionicons name="checkmark-circle" size={14} color={palette.success} />
                 <Text style={[styles.statusLabel, { color: palette.success }]}>
-                  Paid · {invoice.paid_at && formatDate(invoice.paid_at)}
+                  Paid{invoice.paid_at ? ` · ${formatDate(invoice.paid_at)}` : ''}
                 </Text>
               </View>
             ) : overdue ? (

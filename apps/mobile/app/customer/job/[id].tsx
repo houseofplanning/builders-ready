@@ -14,27 +14,37 @@ export default function FeedJobDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [job, setJob] = useState<FeedJob | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
   const load = useCallback(async () => {
-    if (!id) return;
-    // If this is the customer's OWN job, send them to their job view —
-    // the feed detail is only for other people's jobs.
-    if (user_id) {
-      const { data: own } = await supabase
-        .from('job_requests')
-        .select('id')
-        .eq('id', id)
-        .eq('customer_id', user_id)
-        .maybeSingle();
-      if (own) {
-        setRedirecting(true);
-        router.replace(`/customer/request/${id}`);
-        return;
-      }
+    if (!id) {
+      setLoading(false);
+      return;
     }
-    setJob(await getFeedJob(id));
-    setLoading(false);
+    try {
+      // If this is the customer's OWN job, send them to their job view —
+      // the feed detail is only for other people's jobs.
+      if (user_id) {
+        const { data: own } = await supabase
+          .from('job_requests')
+          .select('id')
+          .eq('id', id)
+          .eq('customer_id', user_id)
+          .maybeSingle();
+        if (own) {
+          setRedirecting(true);
+          router.replace(`/customer/request/${id}`);
+          return;
+        }
+      }
+      setJob(await getFeedJob(id));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [id, user_id, router]);
 
   useEffect(() => {
@@ -53,10 +63,17 @@ export default function FeedJobDetail() {
       </SafeAreaView>
     );
   }
-  if (!job) {
+  if (loadError || !job) {
     return (
       <SafeAreaView edges={['top']} style={styles.center}>
-        <Text style={{ color: palette.inkMuted }}>This job is no longer open.</Text>
+        <Text style={{ color: palette.inkMuted, textAlign: 'center', paddingHorizontal: spacing.lg }}>
+          {loadError
+            ? "Couldn't load this job. Please try again."
+            : 'This job is no longer open.'}
+        </Text>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.postBtn, { paddingHorizontal: spacing.xl, marginTop: spacing.lg }]}>
+          <Text style={styles.postBtnText}>Go back</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }

@@ -19,11 +19,21 @@ export default function CustomerMessages() {
   const { user_id } = useTenant();
   const [convos, setConvos] = useState<CustomerConversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
-    if (!user_id) return;
-    setConvos(await listCustomerConversations(user_id));
-    setLoading(false);
+    if (!user_id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setConvos(await listCustomerConversations(user_id));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [user_id]);
 
   useEffect(() => {
@@ -45,6 +55,19 @@ export default function CustomerMessages() {
       <Text style={styles.title}>Messages</Text>
       {loading ? (
         <ActivityIndicator style={{ marginTop: spacing.xl }} color={palette.primary} />
+      ) : loadError ? (
+        <View style={styles.emptyWrap}>
+          <Ionicons name="alert-circle-outline" size={46} color={palette.inkMuted} />
+          <Text style={styles.emptyTitle}>Couldn&apos;t load messages</Text>
+          <Text style={styles.empty}>Something went wrong. Please try again.</Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+            style={styles.errorBtn}
+          >
+            <Text style={styles.errorBtnText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           {convos.length === 0 ? (
@@ -106,6 +129,14 @@ const styles = StyleSheet.create({
   emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl * 2, paddingHorizontal: spacing.lg },
   emptyTitle: { fontSize: typography.size.lg, fontWeight: typography.weightExtraBold as '800', color: palette.ink, marginTop: spacing.md },
   empty: { textAlign: 'center', marginTop: spacing.sm, fontSize: typography.size.sm, color: palette.inkMuted, lineHeight: 20 },
+  errorBtn: {
+    backgroundColor: palette.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    marginTop: spacing.lg,
+  },
+  errorBtnText: { color: '#fff', fontSize: typography.size.body, fontWeight: typography.weightBold as '700' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

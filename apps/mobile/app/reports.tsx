@@ -31,6 +31,7 @@ export default function ReportsScreen() {
 
   const [items, setItems] = useState<ReportListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     if (!current) {
@@ -39,8 +40,14 @@ export default function ReportsScreen() {
       return;
     }
     setLoading(true);
-    setItems(await listReportsForProject(current.project.id));
-    setLoading(false);
+    try {
+      setItems(await listReportsForProject(current.project.id));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [current]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
@@ -78,6 +85,24 @@ export default function ReportsScreen() {
         <View style={{ width: 28 }} />
       </View>
 
+      {!loading && loadError ? (
+        <View style={styles.emptyBox}>
+          <Ionicons name="alert-circle-outline" size={42} color={palette.inkMuted} />
+          <Text style={[styles.emptyTitle, { color: palette.ink }]}>
+            Couldn&apos;t load reports
+          </Text>
+          <Text style={[styles.emptyBody, { color: palette.inkMuted }]}>
+            Something went wrong. Please try again.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+            style={[styles.backBtn, { backgroundColor: palette.primary }]}
+          >
+            <Text style={styles.backBtnText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
       <FlatList
         data={sections}
         keyExtractor={(s, i) =>
@@ -130,6 +155,7 @@ export default function ReportsScreen() {
           items.length === 0 ? styles.flexGrow : { paddingBottom: spacing.xxl }
         }
       />
+      )}
 
       {canCreate && (
         <TouchableOpacity
@@ -195,6 +221,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   flexGrow: { flexGrow: 1 },
+  backBtn: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 999,
+  },
+  backBtnText: {
+    color: '#fff',
+    fontSize: typography.size.body,
+    fontWeight: typography.weightBold as '700',
+  },
   fab: {
     position: 'absolute',
     right: spacing.lg,

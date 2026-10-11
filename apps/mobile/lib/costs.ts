@@ -156,8 +156,11 @@ export async function getProjectMargin(projectId: UUID): Promise<ProjectMargin> 
   let total = 0;
   (costs ?? []).forEach((c) => {
     const amt = Number(c.amount_pence);
+    if (!Number.isFinite(amt)) return;
     total += amt;
-    by_category[c.category as CostCategory] += amt;
+    const cat = c.category as CostCategory;
+    if (cat in by_category) by_category[cat] += amt;
+    else by_category.other += amt;
   });
 
   const budgeted =

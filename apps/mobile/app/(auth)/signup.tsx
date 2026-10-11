@@ -21,10 +21,12 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit() {
     setError(null);
+    setNotice(null);
     if (name.trim().length < 2 || !email.trim() || password.length < 8) {
       setError('Enter your name, email and a password (8+ characters).');
       return;
@@ -35,7 +37,15 @@ export default function SignupScreen() {
       // On success the root layout sees the new session + no tenant and
       // routes to /customer.
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not create account.');
+      const msg = e instanceof Error ? e.message : '';
+      // Email-confirmation path: the account was created but no session is
+      // issued until the address is confirmed. Don't leave the button
+      // spinning — tell them to check their inbox.
+      if (/confirm/i.test(msg)) {
+        setNotice('Check your email to confirm your account, then sign in.');
+      } else {
+        setError(msg || 'Could not create account.');
+      }
       setSubmitting(false);
     }
   }
@@ -90,6 +100,7 @@ export default function SignupScreen() {
             />
 
             {error && <Text style={styles.error}>{error}</Text>}
+            {notice && <Text style={styles.notice}>{notice}</Text>}
 
             <TouchableOpacity
               onPress={onSubmit}
@@ -180,6 +191,16 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     marginTop: spacing.md,
     backgroundColor: palette.errorSoft,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+  },
+  notice: {
+    color: palette.primary,
+    fontSize: typography.size.sm,
+    marginTop: spacing.md,
+    backgroundColor: palette.primarySoft,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,

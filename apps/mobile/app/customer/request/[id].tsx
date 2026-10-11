@@ -39,13 +39,23 @@ export default function CustomerRequestDetail() {
   const { user_id } = useTenant();
   const [detail, setDetail] = useState<MyRequestDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!id || !user_id) return;
-    setDetail(await getMyRequestWithBids(id, user_id));
-    setLoading(false);
+    if (!id || !user_id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setDetail(await getMyRequestWithBids(id, user_id));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [id, user_id]);
 
   useEffect(() => {
@@ -100,10 +110,18 @@ export default function CustomerRequestDetail() {
       </SafeAreaView>
     );
   }
-  if (!detail) {
+  if (loadError || !detail) {
     return (
       <SafeAreaView edges={['top']} style={styles.center}>
-        <Text style={{ color: palette.inkMuted }}>Request not found.</Text>
+        <Text style={{ color: palette.inkMuted, textAlign: 'center', paddingHorizontal: spacing.lg }}>
+          {loadError ? "Couldn't load this request. Please try again." : 'Request not found.'}
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[styles.btn, { backgroundColor: palette.primary, marginTop: spacing.lg }]}
+        >
+          <Text style={styles.btnSolidText}>Go back</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }

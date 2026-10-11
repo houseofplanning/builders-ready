@@ -36,6 +36,7 @@ export default function MessagesScreen() {
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
@@ -45,9 +46,15 @@ export default function MessagesScreen() {
       return;
     }
     setLoading(true);
-    const data = await listMessagesForProject(current.project.id);
-    setMessages(data);
-    setLoading(false);
+    try {
+      const data = await listMessagesForProject(current.project.id);
+      setMessages(data);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
     // Best-effort mark read once we've loaded.
     markThreadRead({
       project_id: current.project.id,
@@ -163,6 +170,23 @@ export default function MessagesScreen() {
         {loading ? (
           <View style={styles.center}>
             <ActivityIndicator color={palette.primary} />
+          </View>
+        ) : loadError ? (
+          <View style={styles.center}>
+            <Ionicons name="alert-circle-outline" size={42} color={palette.inkMuted} />
+            <Text style={[styles.emptyTitle, { color: palette.ink }]}>
+              Couldn&apos;t load messages
+            </Text>
+            <Text style={[styles.emptyBody, { color: palette.inkMuted }]}>
+              Something went wrong. Please try again.
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              activeOpacity={0.85}
+              style={[styles.backBtn, { backgroundColor: palette.primary }]}
+            >
+              <Text style={styles.backBtnText}>Go back</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <FlatList
@@ -340,6 +364,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: typography.size.body,
     lineHeight: 22,
+  },
+  backBtn: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 999,
+  },
+  backBtnText: {
+    color: '#fff',
+    fontSize: typography.size.body,
+    fontWeight: typography.weightBold as '700',
   },
   bubbleRow: {
     flexDirection: 'row',

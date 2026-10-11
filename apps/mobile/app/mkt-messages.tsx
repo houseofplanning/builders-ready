@@ -19,11 +19,21 @@ export default function MarketplaceMessagesScreen() {
   const { tenant, palette } = useTenant();
   const [threads, setThreads] = useState<ThreadListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
-    if (!tenant) return;
-    setThreads(await listTradeThreads(tenant.id));
-    setLoading(false);
+    if (!tenant) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setThreads(await listTradeThreads(tenant.id));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [tenant]);
 
   useEffect(() => {
@@ -42,6 +52,20 @@ export default function MarketplaceMessagesScreen() {
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: spacing.xl }} color={palette.primary} />
+      ) : loadError ? (
+        <View style={styles.center}>
+          <Ionicons name="alert-circle-outline" size={42} color={palette.inkMuted} />
+          <Text style={[styles.empty, { color: palette.inkMuted }]}>
+            Couldn&apos;t load messages. Please try again.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+            style={[styles.backBtn, { backgroundColor: palette.primary }]}
+          >
+            <Text style={styles.backBtnText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           {threads.length === 0 ? (
@@ -73,6 +97,7 @@ export default function MarketplaceMessagesScreen() {
 }
 
 const styles = StyleSheet.create({
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -84,6 +109,17 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: typography.size.lg, fontWeight: typography.weightExtraBold as '800' },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
   empty: { textAlign: 'center', marginTop: spacing.xl, fontSize: typography.size.sm },
+  backBtn: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 999,
+  },
+  backBtnText: {
+    color: '#fff',
+    fontSize: typography.size.body,
+    fontWeight: typography.weightBold as '700',
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

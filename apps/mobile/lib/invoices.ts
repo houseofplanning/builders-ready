@@ -41,7 +41,10 @@ function isVisuallyOverdue(invoice: { status: Invoice['status']; due_at: string 
   if (invoice.status !== 'sent') return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const due = new Date(invoice.due_at + 'T00:00:00');
+  // due_at may be a date ('YYYY-MM-DD') or a full ISO timestamp — take the date
+  // part so appending 'T00:00:00' always yields a valid Date.
+  const due = new Date(String(invoice.due_at).slice(0, 10) + 'T00:00:00');
+  if (Number.isNaN(due.getTime())) return false;
   return due.getTime() < today.getTime();
 }
 

@@ -27,11 +27,21 @@ export default function MyJobs() {
   const { user_id } = useTenant();
   const [rows, setRows] = useState<MyRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
-    if (!user_id) return;
-    setRows(await listMyRequests(user_id));
-    setLoading(false);
+    if (!user_id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setRows(await listMyRequests(user_id));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [user_id]);
 
   useEffect(() => {
@@ -51,6 +61,19 @@ export default function MyJobs() {
       <Text style={styles.title}>My jobs</Text>
       {loading ? (
         <ActivityIndicator style={{ marginTop: spacing.xl }} color={palette.primary} />
+      ) : loadError ? (
+        <View style={styles.emptyWrap}>
+          <Ionicons name="alert-circle-outline" size={46} color={palette.inkMuted} />
+          <Text style={styles.emptyTitle}>Couldn&apos;t load your jobs</Text>
+          <Text style={styles.empty}>Something went wrong. Please try again.</Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+            style={styles.emptyBtn}
+          >
+            <Text style={styles.emptyBtnText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           {rows.length === 0 ? (

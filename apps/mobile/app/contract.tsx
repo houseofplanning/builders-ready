@@ -42,6 +42,7 @@ export default function ContractScreen() {
 
   const [contract, setContract] = useState<ProjectContract | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [signName, setSignName] = useState('');
   const [busy, setBusy] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -61,11 +62,20 @@ export default function ContractScreen() {
   }
 
   const load = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const c = await getContract(projectId);
-    setContract(c);
-    setLoading(false);
+    try {
+      const c = await getContract(projectId);
+      setContract(c);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [projectId]);
 
   useFocusEffect(
@@ -151,6 +161,19 @@ export default function ContractScreen() {
       {loading && !contract ? (
         <View style={styles.center}>
           <ActivityIndicator color={palette.primary} />
+        </View>
+      ) : loadError && !contract ? (
+        <View style={styles.center}>
+          <Ionicons name="alert-circle-outline" size={40} color={palette.inkMuted} />
+          <Text style={[styles.emptyBody, { color: palette.inkMuted }]}>
+            Couldn&apos;t load the contract. Please try again.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.primaryBtn, { backgroundColor: palette.primary, paddingHorizontal: spacing.xl }]}
+          >
+            <Text style={styles.primaryBtnText}>Go back</Text>
+          </TouchableOpacity>
         </View>
       ) : !contract ? (
         <View style={styles.center}>

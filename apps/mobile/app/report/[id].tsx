@@ -28,13 +28,23 @@ export default function ReportDetailScreen() {
 
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [acking, setAcking] = useState(false);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    setReport(await getReport(id));
-    setLoading(false);
+    try {
+      setReport(await getReport(id));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
@@ -68,10 +78,47 @@ export default function ReportDetailScreen() {
     Linking.openURL(url);
   }
 
-  if (loading || !report) {
+  if (loading) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: palette.canvas }]}>
         <ActivityIndicator color={palette.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError || !report) {
+    return (
+      <SafeAreaView
+        style={[styles.shell, { backgroundColor: palette.canvas }]}
+        edges={['top', 'bottom']}
+      >
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: palette.card, borderBottomColor: palette.hairline },
+          ]}
+        >
+          <TouchableOpacity onPress={() => router.back()} hitSlop={10}>
+            <Ionicons name="chevron-back" size={28} color={palette.ink} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: palette.ink }]}>Report</Text>
+          <View style={{ width: 28 }} />
+        </View>
+        <View style={styles.center}>
+          <Text style={[styles.title, { color: palette.ink }]}>
+            Report not found
+          </Text>
+          <Text style={[styles.meta, { color: palette.inkMuted, textAlign: 'center' }]}>
+            This report may have been removed, or it couldn&apos;t be loaded.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+            style={[styles.openBtn, { backgroundColor: palette.primary, marginTop: spacing.lg }]}
+          >
+            <Text style={styles.openBtnText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -122,7 +169,7 @@ export default function ReportDetailScreen() {
             {report.title}
           </Text>
           <Text style={[styles.meta, { color: palette.inkMuted }]}>
-            Posted by {report.posted_by_profile.full_name} ·{' '}
+            Posted by {report.posted_by_profile?.full_name ?? 'Unknown'} ·{' '}
             {formatDate(report.posted_at)}
           </Text>
         </View>

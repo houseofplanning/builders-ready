@@ -28,17 +28,24 @@ export default function CustomerBrowse() {
   const [jobs, setJobs] = useState<JobListItem[]>([]);
   const [mineIds, setMineIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const [feed, mine] = await Promise.all([
-      browseOpenJobs({}),
-      user_id ? listMyRequests(user_id) : Promise.resolve([]),
-    ]);
-    setJobs(feed);
-    setMineIds(new Set(mine.map((m) => m.id)));
-    setLoading(false);
-    setRefreshing(false);
+    try {
+      const [feed, mine] = await Promise.all([
+        browseOpenJobs({}),
+        user_id ? listMyRequests(user_id) : Promise.resolve([]),
+      ]);
+      setJobs(feed);
+      setMineIds(new Set(mine.map((m) => m.id)));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [user_id]);
 
   const visible = area.trim() ? jobs.filter((j) => postcodeMatches(j.postcode, area)) : jobs;
@@ -96,6 +103,18 @@ export default function CustomerBrowse() {
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: spacing.xl }} color={palette.primary} />
+      ) : loadError ? (
+        <View style={styles.errorWrap}>
+          <Ionicons name="alert-circle-outline" size={46} color={palette.inkMuted} />
+          <Text style={styles.empty}>Couldn&apos;t load the marketplace. Please try again.</Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+            style={styles.errorBtn}
+          >
+            <Text style={styles.errorBtnText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -194,6 +213,15 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: typography.size.body, color: palette.ink, padding: 0 },
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl },
   empty: { textAlign: 'center', marginTop: spacing.xl, fontSize: typography.size.sm, color: palette.inkMuted },
+  errorWrap: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl * 2, paddingHorizontal: spacing.lg },
+  errorBtn: {
+    backgroundColor: palette.primary,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 12,
+    borderRadius: radius.md,
+    marginTop: spacing.lg,
+  },
+  errorBtnText: { color: '#fff', fontSize: typography.size.body, fontWeight: typography.weightBold as '700' },
   card: {
     borderWidth: 1,
     borderColor: palette.hairline,

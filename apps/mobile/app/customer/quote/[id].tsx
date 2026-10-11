@@ -11,11 +11,21 @@ export default function CustomerQuoteView() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [quote, setQuote] = useState<CustomerQuote | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
-    if (!id) return;
-    setQuote(await getCustomerQuote(id));
-    setLoading(false);
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setQuote(await getCustomerQuote(id));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -29,10 +39,18 @@ export default function CustomerQuoteView() {
       </SafeAreaView>
     );
   }
-  if (!quote) {
+  if (loadError || !quote) {
     return (
       <SafeAreaView edges={['top']} style={styles.center}>
-        <Text style={{ color: palette.inkMuted }}>This quote isn&rsquo;t available.</Text>
+        <Text style={{ color: palette.inkMuted, textAlign: 'center', paddingHorizontal: spacing.lg }}>
+          {loadError ? "Couldn't load this quote. Please try again." : "This quote isn’t available."}
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}
+        >
+          <Text style={styles.backBtnText}>Go back</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -146,4 +164,12 @@ const styles = StyleSheet.create({
   },
   body: { fontSize: typography.size.sm, color: palette.ink, lineHeight: 20 },
   foot: { fontSize: typography.size.xs, color: palette.inkMuted, marginTop: spacing.xl, lineHeight: 18 },
+  backBtn: {
+    backgroundColor: palette.primary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: 12,
+    marginTop: spacing.lg,
+  },
+  backBtnText: { color: '#fff', fontSize: typography.size.body, fontWeight: typography.weightBold as '700' },
 });

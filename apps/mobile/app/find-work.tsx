@@ -40,6 +40,7 @@ export default function FindWorkScreen() {
   const [jobs, setJobs] = useState<JobListItem[]>([]);
   const [won, setWon] = useState<TradeWonJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -47,13 +48,19 @@ export default function FindWorkScreen() {
       setLoading(false);
       return;
     }
-    if (segment === 'open') {
-      setJobs(await listOpenJobRequests({}));
-    } else {
-      setWon(await listTradeWonJobs(tenant.id));
+    try {
+      if (segment === 'open') {
+        setJobs(await listOpenJobRequests({}));
+      } else {
+        setWon(await listTradeWonJobs(tenant.id));
+      }
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    setLoading(false);
-    setRefreshing(false);
   }, [tenant, segment]);
 
   useEffect(() => {
@@ -130,6 +137,20 @@ export default function FindWorkScreen() {
 
           {loading ? (
             <ActivityIndicator style={{ marginTop: spacing.xl }} color={palette.primary} />
+          ) : loadError ? (
+            <View style={styles.center}>
+              <Ionicons name="alert-circle-outline" size={42} color={palette.inkMuted} />
+              <Text style={[styles.empty, { color: palette.inkMuted }]}>
+                Couldn&apos;t load the marketplace. Pull to refresh or try again.
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.back()}
+                activeOpacity={0.85}
+                style={[styles.backBtn, { backgroundColor: palette.primary }]}
+              >
+                <Text style={styles.backBtnText}>Go back</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <ScrollView
               contentContainerStyle={styles.scroll}
@@ -283,4 +304,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   openCta: { fontSize: typography.size.xs, fontWeight: typography.weightBold as '700', marginTop: spacing.sm },
+  backBtn: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    borderRadius: 999,
+  },
+  backBtnText: {
+    color: '#fff',
+    fontSize: typography.size.body,
+    fontWeight: typography.weightBold as '700',
+  },
 });

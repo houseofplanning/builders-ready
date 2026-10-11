@@ -37,25 +37,73 @@ export default function VariationDetailScreen() {
 
   const [variation, setVariation] = useState<VariationDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [signature, setSignature] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const v = await getVariation(id);
-    setVariation(v);
-    setLoading(false);
+    try {
+      const v = await getVariation(id);
+      setVariation(v);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  if (loading || !variation) {
+  if (loading) {
     return (
       <SafeAreaView style={[styles.center, { backgroundColor: palette.canvas }]}>
         <ActivityIndicator color={palette.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError || !variation) {
+    return (
+      <SafeAreaView
+        style={[styles.shell, { backgroundColor: palette.canvas }]}
+        edges={['top', 'bottom']}
+      >
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: palette.card, borderBottomColor: palette.hairline },
+          ]}
+        >
+          <TouchableOpacity onPress={() => router.back()} hitSlop={10}>
+            <Ionicons name="chevron-back" size={28} color={palette.ink} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: palette.ink }]}>Variation</Text>
+          <View style={{ width: 28 }} />
+        </View>
+        <View style={styles.center}>
+          <Ionicons name="alert-circle-outline" size={40} color={palette.inkMuted} />
+          <Text style={[styles.title, { color: palette.ink, textAlign: 'center', marginTop: spacing.md }]}>
+            Variation not found
+          </Text>
+          <Text style={[styles.description, { color: palette.inkMuted, textAlign: 'center', paddingHorizontal: spacing.lg }]}>
+            This variation may have been removed, or it couldn&apos;t be loaded.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.8}
+            style={[styles.acceptBtn, { backgroundColor: palette.primary, flex: 0, paddingHorizontal: spacing.xl, marginTop: spacing.lg }]}
+          >
+            <Text style={styles.acceptText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }

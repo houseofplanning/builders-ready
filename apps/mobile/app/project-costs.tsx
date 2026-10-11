@@ -43,19 +43,29 @@ export default function ProjectCostsScreen() {
   const [margin, setMargin] = useState<ProjectMargin | null>(null);
   const [costs, setCosts] = useState<CostListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const canManage = role === 'owner' || role === 'pm';
 
   const load = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const [m, c] = await Promise.all([
-      getProjectMargin(projectId),
-      listCosts(projectId),
-    ]);
-    setMargin(m);
-    setCosts(c);
-    setLoading(false);
+    try {
+      const [m, c] = await Promise.all([
+        getProjectMargin(projectId),
+        listCosts(projectId),
+      ]);
+      setMargin(m);
+      setCosts(c);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [projectId]);
 
   useFocusEffect(
@@ -92,7 +102,12 @@ export default function ProjectCostsScreen() {
 
   async function openReceipt(path: string) {
     const url = await getReceiptUrl(path);
-    if (url) Linking.openURL(url);
+    if (!url) return;
+    try {
+      await Linking.openURL(url);
+    } catch (err) {
+      Alert.alert('Could not open receipt', err instanceof Error ? err.message : 'Error');
+    }
   }
 
   const marginPositive = (margin?.margin_pence ?? 0) >= 0;
@@ -120,6 +135,20 @@ export default function ProjectCostsScreen() {
       {loading && !margin ? (
         <View style={styles.center}>
           <ActivityIndicator color={palette.primary} />
+        </View>
+      ) : loadError ? (
+        <View style={styles.center}>
+          <Ionicons name="alert-circle-outline" size={42} color={palette.inkMuted} />
+          <Text style={[styles.emptyBody, { color: palette.inkMuted, marginTop: spacing.md }]}>
+            Couldn&apos;t load costs. Please try again.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.85}
+            style={[styles.addBtn, { backgroundColor: palette.primary }]}
+          >
+            <Text style={styles.addBtnText}>Go back</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView

@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,6 +63,8 @@ export function MarketplaceThread() {
       await sendMarketplaceMessage({ thread_id: id, sender_id: user_id, body });
       setValue('');
       await load();
+    } catch (err) {
+      Alert.alert('Could not send', err instanceof Error ? err.message : 'Please try again.');
     } finally {
       setSending(false);
     }
@@ -78,6 +81,8 @@ export function MarketplaceThread() {
       const url = await uploadChatPhoto(user_id, res.assets[0].uri);
       await sendMarketplaceMessage({ thread_id: id, sender_id: user_id, body: '', image_url: url });
       await load();
+    } catch (err) {
+      Alert.alert('Could not send photo', err instanceof Error ? err.message : 'Please try again.');
     } finally {
       setSending(false);
     }

@@ -36,6 +36,7 @@ export default function CustomerAccount() {
   const [acct, setAcct] = useState<AccountProfile | null>(null);
   const [reviews, setReviews] = useState<MyReviews | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   // Editable fields
@@ -50,17 +51,27 @@ export default function CustomerAccount() {
   const [pwBusy, setPwBusy] = useState(false);
 
   const load = useCallback(async () => {
-    if (!user_id) return;
-    const [a, r] = await Promise.all([getMyAccount(user_id), listMyReviews(user_id)]);
-    if (a) {
-      setAcct(a);
-      setAvatarBroken(false);
-      setName(a.full_name);
-      setPhone(a.phone ?? '');
+    if (!user_id) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
     }
-    setReviews(r);
-    setLoading(false);
-    setRefreshing(false);
+    try {
+      const [a, r] = await Promise.all([getMyAccount(user_id), listMyReviews(user_id)]);
+      if (a) {
+        setAcct(a);
+        setAvatarBroken(false);
+        setName(a.full_name);
+        setPhone(a.phone ?? '');
+      }
+      setReviews(r);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, [user_id]);
 
   useEffect(() => {
@@ -162,6 +173,28 @@ export default function CustomerAccount() {
     return (
       <SafeAreaView edges={['top']} style={styles.center}>
         <ActivityIndicator color={palette.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError || !acct) {
+    return (
+      <SafeAreaView edges={['top']} style={styles.center}>
+        <Ionicons name="alert-circle-outline" size={46} color={palette.inkMuted} />
+        <Text style={[styles.htitle, { marginTop: spacing.md }]}>Couldn&apos;t load your account</Text>
+        <Text style={[styles.emptyNote, { textAlign: 'center', marginTop: spacing.sm, paddingHorizontal: spacing.lg }]}>
+          Something went wrong. Please try again.
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            setLoading(true);
+            void load();
+          }}
+          activeOpacity={0.85}
+          style={[styles.saveBtn, { paddingHorizontal: spacing.xl, marginTop: spacing.lg }]}
+        >
+          <Text style={styles.saveBtnText}>Try again</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }

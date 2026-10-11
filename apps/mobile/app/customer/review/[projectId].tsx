@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,15 +23,25 @@ export default function CustomerReview() {
   const { user_id } = useTenant();
   const [project, setProject] = useState<ProjectHeader | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!projectId) return;
-    setProject(await getCustomerProject(projectId));
-    setLoading(false);
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setProject(await getCustomerProject(projectId));
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, [projectId]);
 
   useEffect(() => {
@@ -67,6 +80,30 @@ export default function CustomerReview() {
     );
   }
 
+  if (loadError || !project) {
+    return (
+      <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.canvas }}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.back}>
+            <Ionicons name="chevron-back" size={22} color={palette.primary} />
+          </TouchableOpacity>
+          <Text style={styles.htitle}>Leave a review</Text>
+        </View>
+        <View style={styles.center}>
+          <Ionicons name="alert-circle-outline" size={44} color={palette.inkMuted} />
+          <Text style={[styles.sub, { textAlign: 'center', marginTop: spacing.md, paddingHorizontal: spacing.lg }]}>
+            {loadError
+              ? "Couldn't load this project. Please try again."
+              : 'This project is no longer available.'}
+          </Text>
+          <TouchableOpacity onPress={() => router.back()} style={[styles.submit, { paddingHorizontal: spacing.xl, marginTop: spacing.lg }]}>
+            <Text style={styles.submitText}>Go back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.canvas }}>
       <View style={styles.header}>
@@ -76,37 +113,46 @@ export default function CustomerReview() {
         <Text style={styles.htitle}>Leave a review</Text>
       </View>
 
-      <View style={styles.body}>
-        <Text style={styles.q}>How was {project?.trade_name ?? 'the trade'}?</Text>
-        <Text style={styles.sub}>Your review helps other homeowners.</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.body}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
+          <Text style={styles.q}>How was {project?.trade_name ?? 'the trade'}?</Text>
+          <Text style={styles.sub}>Your review helps other homeowners.</Text>
 
-        <View style={styles.stars}>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <TouchableOpacity key={n} onPress={() => setRating(n)} hitSlop={6}>
-              <Ionicons
-                name={n <= rating ? 'star' : 'star-outline'}
-                size={34}
-                color={n <= rating ? palette.accent : palette.hairline}
-              />
-            </TouchableOpacity>
-          ))}
-        </View>
+          <View style={styles.stars}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <TouchableOpacity key={n} onPress={() => setRating(n)} hitSlop={6}>
+                <Ionicons
+                  name={n <= rating ? 'star' : 'star-outline'}
+                  size={34}
+                  color={n <= rating ? palette.accent : palette.hairline}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
 
-        <TextInput
-          value={body}
-          onChangeText={setBody}
-          placeholder="Quality, timekeeping, tidiness…"
-          multiline
-          placeholderTextColor={palette.inkMuted}
-          style={styles.input}
-        />
+          <TextInput
+            value={body}
+            onChangeText={setBody}
+            placeholder="Quality, timekeeping, tidiness…"
+            multiline
+            placeholderTextColor={palette.inkMuted}
+            style={styles.input}
+          />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <TouchableOpacity disabled={busy} onPress={submit} style={styles.submit}>
-          <Text style={styles.submitText}>{busy ? 'Submitting…' : 'Submit review'}</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity disabled={busy} onPress={submit} style={styles.submit}>
+            <Text style={styles.submitText}>{busy ? 'Submitting…' : 'Submit review'}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

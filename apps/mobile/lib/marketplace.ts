@@ -196,6 +196,7 @@ export async function createQuoteForBid(params: {
   job_title: string;
   city: string | null;
   postcode: string;
+  customer_name?: string | null;
 }): Promise<UUID> {
   const { createEstimate } = await import('./estimates');
   const estimateId = await createEstimate({
@@ -203,7 +204,7 @@ export async function createQuoteForBid(params: {
     created_by: params.created_by,
     title: params.job_title,
     project_type: null,
-    client_name: 'Marketplace customer',
+    client_name: params.customer_name?.trim() || 'Customer',
     client_email: null,
     client_phone: null,
     site_address_line1: null,
