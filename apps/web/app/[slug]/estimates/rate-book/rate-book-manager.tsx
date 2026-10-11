@@ -30,11 +30,9 @@ const poundsToPence = (s: string): number | null => {
 const tradeLabel = (t: string) => t.charAt(0).toUpperCase() + t.slice(1).replace(/_/g, ' ');
 
 export function RateBookManager({
-  slug,
   initialMaterials,
   initialLabour,
 }: {
-  slug: string;
   initialMaterials: RbMaterial[];
   initialLabour: RbLabour[];
 }) {

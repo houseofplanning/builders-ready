@@ -68,7 +68,7 @@ export default async function RateBookPage({ params }: Props) {
           our price.
         </p>
       </header>
-      <RateBookManager slug={slug} initialMaterials={materials} initialLabour={labour} />
+      <RateBookManager initialMaterials={materials} initialLabour={labour} />
     </div>
   );
 }
