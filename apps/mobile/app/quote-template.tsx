@@ -22,6 +22,7 @@ import {
   formatDate,
   lineCostPence,
   linePricePence,
+  paintingAreasFromRooms,
   type QuoteTemplate,
   type PriceBook,
   type GenerateResult,
@@ -49,6 +50,19 @@ const WOODWORK: { key: Woodwork; label: string }[] = [
 ];
 const COATS = [1, 2, 3];
 
+interface RoomRow {
+  key: string;
+  length: string;
+  width: string;
+  height: string;
+  ceiling: boolean;
+}
+let roomSeq = 0;
+function blankRoom(): RoomRow {
+  roomSeq += 1;
+  return { key: `r${roomSeq}`, length: '4', width: '3', height: '2.4', ceiling: true };
+}
+
 function onlyNum(s: string): string {
   return s.replace(/[^0-9.]/g, '');
 }
@@ -66,14 +80,43 @@ export default function QuoteTemplateScreen() {
   const [book, setBook] = useState<PriceBook | null>(null);
   const [selected, setSelected] = useState<QuoteTemplate | null>(null);
 
-  // painter inputs
-  const [wallArea, setWallArea] = useState('40');
-  const [paintCeiling, setPaintCeiling] = useState(true);
-  const [ceilingArea, setCeilingArea] = useState('14');
+  // painter inputs — measure by rooms (auto m²) with a direct-m² fallback
+  const [mode, setMode] = useState<'rooms' | 'area'>('rooms');
+  const [rooms, setRooms] = useState<RoomRow[]>([blankRoom()]);
+  const [directWall, setDirectWall] = useState('40');
+  const [directCeilingOn, setDirectCeilingOn] = useState(true);
+  const [directCeiling, setDirectCeiling] = useState('14');
   const [coats, setCoats] = useState(2);
   const [surface, setSurface] = useState<Surface>('patch');
   const [woodwork, setWoodwork] = useState<Woodwork>('some');
   const [margin, setMargin] = useState('20');
+
+  const areas = useMemo(() => {
+    if (mode === 'area') {
+      return {
+        wall_area_m2: num(directWall),
+        ceiling_area_m2: directCeilingOn ? num(directCeiling) : 0,
+      };
+    }
+    return paintingAreasFromRooms(
+      rooms.map((r) => ({
+        length_m: num(r.length),
+        width_m: num(r.width),
+        height_m: num(r.height),
+        paint_ceiling: r.ceiling,
+      })),
+    );
+  }, [mode, rooms, directWall, directCeilingOn, directCeiling]);
+
+  function updateRoom(key: string, patch: Partial<RoomRow>) {
+    setRooms((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  }
+  function addRoom() {
+    setRooms((prev) => [...prev, blankRoom()]);
+  }
+  function removeRoom(key: string) {
+    setRooms((prev) => (prev.length <= 1 ? prev : prev.filter((r) => r.key !== key)));
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -94,15 +137,15 @@ export default function QuoteTemplateScreen() {
 
   const inputs = useMemo(
     () => ({
-      wall_area_m2: num(wallArea),
-      paint_ceiling: paintCeiling,
-      ceiling_area_m2: num(ceilingArea),
+      wall_area_m2: areas.wall_area_m2,
+      paint_ceiling: areas.ceiling_area_m2 > 0,
+      ceiling_area_m2: areas.ceiling_area_m2,
       coats,
       surface,
       woodwork,
       margin_percent: num(margin),
     }),
-    [wallArea, paintCeiling, ceilingArea, coats, surface, woodwork, margin],
+    [areas, coats, surface, woodwork, margin],
   );
 
   const result: GenerateResult | null = useMemo(() => {
@@ -232,44 +275,149 @@ export default function QuoteTemplateScreen() {
             contentContainerStyle={styles.scroll}
             keyboardShouldPersistTaps="handled"
           >
-            <Text style={[styles.qLabel, { color: palette.ink }]}>Wall area</Text>
-            <View style={styles.inlineField}>
-              <TextInput
-                value={wallArea}
-                onChangeText={(t) => setWallArea(onlyNum(t))}
-                keyboardType="decimal-pad"
-                placeholder="0"
-                placeholderTextColor={palette.inkMuted}
-                style={field(palette)}
-              />
-              <Text style={[styles.unit, { color: palette.inkMuted }]}>m²</Text>
+            {/* mode toggle */}
+            <View style={styles.modeRow}>
+              <TouchableOpacity
+                onPress={() => setMode('rooms')}
+                style={[
+                  styles.modeTab,
+                  {
+                    backgroundColor: mode === 'rooms' ? palette.primary : palette.card,
+                    borderColor: mode === 'rooms' ? palette.primary : palette.hairline,
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.modeText, { color: mode === 'rooms' ? '#fff' : palette.ink }]}
+                >
+                  By room
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setMode('area')}
+                style={[
+                  styles.modeTab,
+                  {
+                    backgroundColor: mode === 'area' ? palette.primary : palette.card,
+                    borderColor: mode === 'area' ? palette.primary : palette.hairline,
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.modeText, { color: mode === 'area' ? '#fff' : palette.ink }]}
+                >
+                  I know the m²
+                </Text>
+              </TouchableOpacity>
             </View>
-            <Text style={[styles.hint, { color: palette.inkMuted }]}>
-              Rough wall area to paint. Tip: perimeter × height.
-            </Text>
 
-            <View style={styles.switchRow}>
-              <Text style={[styles.qLabel, { color: palette.ink, marginBottom: 0 }]}>
-                Paint the ceiling(s)?
-              </Text>
-              <Switch
-                value={paintCeiling}
-                onValueChange={setPaintCeiling}
-                trackColor={{ true: palette.primary, false: palette.hairline }}
-              />
-            </View>
-            {paintCeiling && (
-              <View style={styles.inlineField}>
-                <TextInput
-                  value={ceilingArea}
-                  onChangeText={(t) => setCeilingArea(onlyNum(t))}
-                  keyboardType="decimal-pad"
-                  placeholder="0"
-                  placeholderTextColor={palette.inkMuted}
-                  style={field(palette)}
-                />
-                <Text style={[styles.unit, { color: palette.inkMuted }]}>m²</Text>
-              </View>
+            {mode === 'rooms' ? (
+              <>
+                {rooms.map((r, idx) => (
+                  <View
+                    key={r.key}
+                    style={[
+                      styles.roomCard,
+                      { backgroundColor: palette.card, borderColor: palette.hairline },
+                    ]}
+                  >
+                    <View style={styles.roomHeader}>
+                      <Text style={[styles.roomTitle, { color: palette.ink }]}>
+                        Room {idx + 1}
+                      </Text>
+                      {rooms.length > 1 && (
+                        <TouchableOpacity onPress={() => removeRoom(r.key)} hitSlop={8}>
+                          <Ionicons name="trash-outline" size={18} color={palette.error} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <View style={styles.roomDims}>
+                      {(['length', 'width', 'height'] as const).map((dim) => (
+                        <View key={dim} style={styles.roomDim}>
+                          <Text style={[styles.miniLabel, { color: palette.inkMuted }]}>
+                            {dim === 'length' ? 'Length' : dim === 'width' ? 'Width' : 'Height'} (m)
+                          </Text>
+                          <TextInput
+                            value={r[dim]}
+                            onChangeText={(t) => updateRoom(r.key, { [dim]: onlyNum(t) })}
+                            keyboardType="decimal-pad"
+                            placeholder="0"
+                            placeholderTextColor={palette.inkMuted}
+                            style={field(palette)}
+                          />
+                        </View>
+                      ))}
+                    </View>
+                    <TouchableOpacity
+                      style={styles.ceilToggle}
+                      onPress={() => updateRoom(r.key, { ceiling: !r.ceiling })}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={r.ceiling ? 'checkbox' : 'square-outline'}
+                        size={20}
+                        color={r.ceiling ? palette.primary : palette.inkMuted}
+                      />
+                      <Text style={[styles.ceilText, { color: palette.ink }]}>
+                        Paint this ceiling
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  onPress={addRoom}
+                  activeOpacity={0.7}
+                  style={[styles.addRoom, { borderColor: palette.primary }]}
+                >
+                  <Ionicons name="add" size={18} color={palette.primary} />
+                  <Text style={[styles.addRoomText, { color: palette.primary }]}>
+                    Add a room
+                  </Text>
+                </TouchableOpacity>
+                <Text style={[styles.hint, { color: palette.inkMuted }]}>
+                  ≈ {areas.wall_area_m2} m² walls
+                  {areas.ceiling_area_m2 > 0 ? ` + ${areas.ceiling_area_m2} m² ceiling` : ''} ·
+                  10% knocked off walls for doors & windows.
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.qLabel, { color: palette.ink }]}>Wall area</Text>
+                <View style={styles.inlineField}>
+                  <TextInput
+                    value={directWall}
+                    onChangeText={(t) => setDirectWall(onlyNum(t))}
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    placeholderTextColor={palette.inkMuted}
+                    style={field(palette)}
+                  />
+                  <Text style={[styles.unit, { color: palette.inkMuted }]}>m²</Text>
+                </View>
+                <View style={styles.switchRow}>
+                  <Text style={[styles.qLabel, { color: palette.ink, marginBottom: 0 }]}>
+                    Paint the ceiling(s)?
+                  </Text>
+                  <Switch
+                    value={directCeilingOn}
+                    onValueChange={setDirectCeilingOn}
+                    trackColor={{ true: palette.primary, false: palette.hairline }}
+                  />
+                </View>
+                {directCeilingOn && (
+                  <View style={styles.inlineField}>
+                    <TextInput
+                      value={directCeiling}
+                      onChangeText={(t) => setDirectCeiling(onlyNum(t))}
+                      keyboardType="decimal-pad"
+                      placeholder="0"
+                      placeholderTextColor={palette.inkMuted}
+                      style={field(palette)}
+                    />
+                    <Text style={[styles.unit, { color: palette.inkMuted }]}>m²</Text>
+                  </View>
+                )}
+              </>
             )}
 
             <Text style={[styles.qLabel, { color: palette.ink }]}>Coats</Text>
@@ -486,6 +634,61 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
+  modeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  modeTab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    borderWidth: 1,
+  },
+  modeText: { fontSize: typography.size.sm, fontWeight: typography.weightSemibold as '600' },
+  roomCard: {
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
+  roomHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  roomTitle: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weightExtraBold as '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  roomDims: { flexDirection: 'row', gap: spacing.sm },
+  roomDim: { flex: 1 },
+  miniLabel: {
+    fontSize: 10,
+    fontWeight: typography.weightSemibold as '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  ceilToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: spacing.sm,
+  },
+  ceilText: { fontSize: typography.size.sm, fontWeight: typography.weightSemibold as '600' },
+  addRoom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    marginTop: spacing.md,
+  },
+  addRoomText: { fontSize: typography.size.body, fontWeight: typography.weightBold as '700' },
   inlineField: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   unit: { fontSize: typography.size.body, fontWeight: typography.weightSemibold as '600' },
   field: {

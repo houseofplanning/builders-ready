@@ -155,6 +155,47 @@ function findLabour(book: PriceBook, trade: string, unit = 'day'): LabourRate | 
   return book.labour.find((l) => l.trade === trade && l.unit === unit);
 }
 
+/** A room measured by its dimensions, so the app can derive paintable area
+ *  instead of asking the builder to work out m² in their head. */
+export interface PaintingRoom {
+  length_m: number;
+  width_m: number;
+  height_m: number;
+  paint_ceiling: boolean;
+}
+
+/** Flat allowance knocked off WALL area for doors/windows (ceilings unaffected). */
+export const WALL_OPENINGS_DEDUCTION = 0.1;
+/** Typical UK ceiling height used when a room's height is left blank. */
+export const DEFAULT_CEILING_HEIGHT_M = 2.4;
+
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
+}
+
+/**
+ * Turn room dimensions into paintable wall + ceiling area.
+ *   wall    = perimeter × height × (1 − openings allowance)   [2·(L+W)·H]
+ *   ceiling = L × W, only for rooms whose ceiling is being painted
+ * This is the input-layer maths shared by mobile + web so both agree; the
+ * priced generator still works purely on the aggregate m².
+ */
+export function paintingAreasFromRooms(rooms: PaintingRoom[]): {
+  wall_area_m2: number;
+  ceiling_area_m2: number;
+} {
+  let wall = 0;
+  let ceiling = 0;
+  for (const r of rooms) {
+    const L = Math.max(0, num(r.length_m));
+    const W = Math.max(0, num(r.width_m));
+    const H = Math.max(0, num(r.height_m) || DEFAULT_CEILING_HEIGHT_M);
+    wall += 2 * (L + W) * H * (1 - WALL_OPENINGS_DEDUCTION);
+    if (r.paint_ceiling) ceiling += L * W;
+  }
+  return { wall_area_m2: round2(wall), ceiling_area_m2: round2(ceiling) };
+}
+
 function generatePainting(inputs: PaintingInputs, book: PriceBook): GenerateResult {
   const warnings: string[] = [];
   const lines: GeneratedLine[] = [];

@@ -6,6 +6,7 @@ import {
   formatDate,
   linePricePence,
   generateQuoteFromTemplate,
+  paintingAreasFromRooms,
   type QuoteTemplate,
   type PriceBook,
   type SavedRate,
@@ -26,6 +27,19 @@ const WOODWORK: { key: Woodwork; label: string }[] = [
   { key: 'lots', label: 'Lots' },
 ];
 const COATS = [1, 2, 3];
+
+interface RoomRow {
+  key: string;
+  length: string;
+  width: string;
+  height: string;
+  ceiling: boolean;
+}
+let roomSeq = 0;
+function blankRoom(): RoomRow {
+  roomSeq += 1;
+  return { key: `r${roomSeq}`, length: '4', width: '3', height: '2.4', ceiling: true };
+}
 
 function onlyNum(s: string): string {
   return s.replace(/[^0-9.]/g, '');
@@ -49,23 +63,42 @@ export function TemplateQuoteBuilder({
   const [selected, setSelected] = useState<QuoteTemplate | null>(null);
   const [seed, setSeed] = useState<EstimateFormSeed | null>(null);
 
-  // painter inputs
-  const [wallArea, setWallArea] = useState('40');
-  const [paintCeiling, setPaintCeiling] = useState(true);
-  const [ceilingArea, setCeilingArea] = useState('14');
+  // painter inputs — measure by rooms (auto m²) with a direct-m² fallback
+  const [mode, setMode] = useState<'rooms' | 'area'>('rooms');
+  const [rooms, setRooms] = useState<RoomRow[]>([blankRoom()]);
+  const [directWall, setDirectWall] = useState('40');
+  const [directCeilingOn, setDirectCeilingOn] = useState(true);
+  const [directCeiling, setDirectCeiling] = useState('14');
   const [coats, setCoats] = useState(2);
   const [surface, setSurface] = useState<Surface>('patch');
   const [woodwork, setWoodwork] = useState<Woodwork>('some');
   const [margin, setMargin] = useState('20');
+
+  const areas = useMemo(() => {
+    if (mode === 'area') {
+      return {
+        wall_area_m2: num(directWall),
+        ceiling_area_m2: directCeilingOn ? num(directCeiling) : 0,
+      };
+    }
+    return paintingAreasFromRooms(
+      rooms.map((r) => ({
+        length_m: num(r.length),
+        width_m: num(r.width),
+        height_m: num(r.height),
+        paint_ceiling: r.ceiling,
+      })),
+    );
+  }, [mode, rooms, directWall, directCeilingOn, directCeiling]);
 
   const result = useMemo(() => {
     if (!selected) return null;
     return generateQuoteFromTemplate(
       selected.engine_key,
       {
-        wall_area_m2: num(wallArea),
-        paint_ceiling: paintCeiling,
-        ceiling_area_m2: num(ceilingArea),
+        wall_area_m2: areas.wall_area_m2,
+        paint_ceiling: areas.ceiling_area_m2 > 0,
+        ceiling_area_m2: areas.ceiling_area_m2,
         coats,
         surface,
         woodwork,
@@ -73,7 +106,17 @@ export function TemplateQuoteBuilder({
       },
       priceBook,
     );
-  }, [selected, wallArea, paintCeiling, ceilingArea, coats, surface, woodwork, margin, priceBook]);
+  }, [selected, areas, coats, surface, woodwork, margin, priceBook]);
+
+  function updateRoom(key: string, patch: Partial<RoomRow>) {
+    setRooms((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  }
+  function addRoom() {
+    setRooms((prev) => [...prev, blankRoom()]);
+  }
+  function removeRoom(key: string) {
+    setRooms((prev) => (prev.length <= 1 ? prev : prev.filter((r) => r.key !== key)));
+  }
 
   const totals = useMemo(() => {
     if (!result) return { cost: 0, price: 0 };
@@ -184,40 +227,121 @@ export function TemplateQuoteBuilder({
         <section className="space-y-4 rounded-card border border-hairline bg-white p-5 shadow-card">
           <h2 className="text-sm font-extrabold">{selected.name}</h2>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className={miniLabel}>Wall area (m²)</label>
-              <input
-                className={inputCls}
-                inputMode="decimal"
-                value={wallArea}
-                onChange={(e) => setWallArea(onlyNum(e.target.value))}
-              />
-              <p className="mt-1 text-[11px] text-ink-muted">
-                Rough wall area. Tip: perimeter × height.
+          {/* mode toggle */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMode('rooms')}
+              className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                mode === 'rooms'
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-hairline bg-white text-ink'
+              }`}
+            >
+              By room
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('area')}
+              className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold ${
+                mode === 'area'
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-hairline bg-white text-ink'
+              }`}
+            >
+              I know the m²
+            </button>
+          </div>
+
+          {mode === 'rooms' ? (
+            <div className="space-y-3">
+              {rooms.map((r, idx) => (
+                <div key={r.key} className="rounded-lg border border-hairline bg-canvas p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                      Room {idx + 1}
+                    </span>
+                    {rooms.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeRoom(r.key)}
+                        className="text-xs font-semibold text-[#B23B1D] hover:underline"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['length', 'width', 'height'] as const).map((dim) => (
+                      <div key={dim}>
+                        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+                          {dim === 'length' ? 'Length' : dim === 'width' ? 'Width' : 'Height'} (m)
+                        </label>
+                        <input
+                          className={inputCls}
+                          inputMode="decimal"
+                          value={r[dim]}
+                          onChange={(e) => updateRoom(r.key, { [dim]: onlyNum(e.target.value) })}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <label className="mt-2 flex items-center gap-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
+                      checked={r.ceiling}
+                      onChange={(e) => updateRoom(r.key, { ceiling: e.target.checked })}
+                    />
+                    Paint this ceiling
+                  </label>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addRoom}
+                className="w-full rounded-lg border border-dashed border-primary px-3 py-2 text-xs font-bold text-primary hover:bg-canvas"
+              >
+                + Add a room
+              </button>
+              <p className="text-[11px] text-ink-muted">
+                ≈ {areas.wall_area_m2} m² walls
+                {areas.ceiling_area_m2 > 0 ? ` + ${areas.ceiling_area_m2} m² ceiling` : ''} · 10%
+                knocked off walls for doors &amp; windows.
               </p>
             </div>
-            <div>
-              <label className={miniLabel}>Ceiling</label>
-              <label className="flex items-center gap-2 py-2 text-sm text-ink">
-                <input
-                  type="checkbox"
-                  checked={paintCeiling}
-                  onChange={(e) => setPaintCeiling(e.target.checked)}
-                />
-                Paint the ceiling(s)
-              </label>
-              {paintCeiling && (
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className={miniLabel}>Wall area (m²)</label>
                 <input
                   className={inputCls}
                   inputMode="decimal"
-                  value={ceilingArea}
-                  onChange={(e) => setCeilingArea(onlyNum(e.target.value))}
-                  placeholder="Ceiling area m²"
+                  value={directWall}
+                  onChange={(e) => setDirectWall(onlyNum(e.target.value))}
                 />
-              )}
+              </div>
+              <div>
+                <label className={miniLabel}>Ceiling</label>
+                <label className="flex items-center gap-2 py-2 text-sm text-ink">
+                  <input
+                    type="checkbox"
+                    checked={directCeilingOn}
+                    onChange={(e) => setDirectCeilingOn(e.target.checked)}
+                  />
+                  Paint the ceiling(s)
+                </label>
+                {directCeilingOn && (
+                  <input
+                    className={inputCls}
+                    inputMode="decimal"
+                    value={directCeiling}
+                    onChange={(e) => setDirectCeiling(onlyNum(e.target.value))}
+                    placeholder="Ceiling area m²"
+                  />
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className={miniLabel}>Coats</label>
