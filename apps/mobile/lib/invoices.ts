@@ -209,3 +209,27 @@ export async function markInvoicePaid(input: MarkPaidInput): Promise<void> {
     .eq('id', input.invoice_id);
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Ask the web backend to email the client a PDF receipt for a paid invoice.
+ * The web mark-paid path emails directly; the app has no PDF/email runtime, so
+ * it calls this JWT-authenticated endpoint. Best-effort — never throws, so it
+ * can't disrupt the confirm flow.
+ */
+export async function requestPaidReceiptEmail(invoiceId: UUID): Promise<void> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) return;
+    const base = process.env.EXPO_PUBLIC_APP_URL ?? 'https://buildersready.uk';
+    await fetch(`${base}/api/invoices/receipt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ invoice_id: invoiceId }),
+    });
+  } catch {
+    // Best-effort — the in-app/push receipt still fires via the DB trigger.
+  }
+}

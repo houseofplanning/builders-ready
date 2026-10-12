@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { isoDate } from '@br/shared';
 import { createSupabaseServer } from '../supabase-server';
 import { resolveCurrentTenant } from '../tenant-resolver';
+import { sendPaidReceipt } from '../receipts';
 
 export interface InvoiceActionResult {
   ok: boolean;
@@ -115,6 +116,8 @@ export async function markInvoicePaid(
     })
     .eq('id', parsed.data.invoice_id);
   if (error) return { ok: false, error: error.message };
+  // Email the client a PDF receipt (best-effort, shared with the app path).
+  await sendPaidReceipt(parsed.data.invoice_id);
   revalidatePath(`/${tenant.tenant.slug}/projects/${existing.project_id}`);
   revalidatePath(`/${tenant.tenant.slug}/dashboard`);
   return { ok: true };

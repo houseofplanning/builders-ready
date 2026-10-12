@@ -114,6 +114,7 @@ function AuthGate() {
           case 'invoice_sent':
           case 'invoice_overdue':
           case 'invoice_paid':
+          case 'payment_flagged':
             if (data.invoice_id) router.push(`/invoice/${data.invoice_id}`);
             break;
           case 'report_posted':

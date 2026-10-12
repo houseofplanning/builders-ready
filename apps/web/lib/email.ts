@@ -917,3 +917,99 @@ export async function sendEstimateAcceptedEmail(
     console.error('[estimate-accepted-email] resend rejected', error);
   }
 }
+
+// -------------------------------------------------------------------------
+// Payment receipt — emailed to the client when an invoice is marked paid
+// (cash / bank transfer / manual; card payments get Stripe's own receipt).
+// -------------------------------------------------------------------------
+export interface InvoicePaidReceiptEmailParams {
+  to: string;
+  businessName: string;
+  clientName: string | null;
+  invoiceNumber: string;
+  invoiceTitle: string;
+  amountLabel: string;
+  methodLabel: string;
+  datePaidLabel: string;
+  /** Receipt PDF buffer, attached to the email. */
+  pdf: Buffer;
+}
+
+export async function sendInvoicePaidReceiptEmail(
+  p: InvoicePaidReceiptEmailParams,
+): Promise<void> {
+  const firstName = (p.clientName ?? '').trim().split(/\s+/)[0] || 'there';
+  const subject = `Payment received — ${p.invoiceNumber} (${p.businessName})`;
+
+  const text = [
+    `Hi ${firstName},`,
+    ``,
+    `This confirms we've received your payment for ${p.invoiceNumber} — ${p.invoiceTitle}.`,
+    ``,
+    `Amount: ${p.amountLabel}`,
+    `Method: ${p.methodLabel}`,
+    `Date: ${p.datePaidLabel}`,
+    ``,
+    `Your receipt is attached as a PDF. No further action is needed.`,
+    ``,
+    `Best regards,`,
+    p.businessName,
+  ].join('\n');
+
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+  const GREEN = '#2E7D32';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:24px 28px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;font-size:15px;color:${INK};">${escapeHtml(p.businessName)}</div>
+          </td></tr>
+          <tr><td style="padding:26px 28px;">
+            <div style="display:inline-block;background:#E8F7F0;color:${GREEN};font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:5px 10px;border-radius:5px;margin-bottom:12px;">Payment received</div>
+            <h1 style="margin:0 0 14px;font-size:22px;line-height:1.25;font-weight:800;color:${INK};">Thanks, ${escapeHtml(firstName)} — you're all paid up</h1>
+            <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:${INK};">We've received your payment for <strong>${escapeHtml(p.invoiceNumber)}</strong> — ${escapeHtml(p.invoiceTitle)}. Your receipt is attached as a PDF.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 18px;border:1px solid ${HAIRLINE};border-radius:10px;">
+              <tr><td style="padding:14px 16px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                  <tr><td style="font-size:13px;color:${MUTED};padding:3px 0;">Amount</td><td style="font-size:20px;font-weight:800;color:${GREEN};text-align:right;">${escapeHtml(p.amountLabel)}</td></tr>
+                  <tr><td style="font-size:13px;color:${MUTED};padding:3px 0;">Method</td><td style="font-size:13px;color:${INK};text-align:right;">${escapeHtml(p.methodLabel)}</td></tr>
+                  <tr><td style="font-size:13px;color:${MUTED};padding:3px 0;">Date paid</td><td style="font-size:13px;color:${INK};text-align:right;">${escapeHtml(p.datePaidLabel)}</td></tr>
+                </table>
+              </td></tr>
+            </table>
+            <p style="margin:0;font-size:12px;line-height:1.6;color:${MUTED};">No further action is needed. If anything looks wrong, just reply to this email.</p>
+          </td></tr>
+          <tr><td style="padding:16px 28px;border-top:1px solid ${HAIRLINE};font-size:11px;color:${MUTED};">
+            ${escapeHtml(p.businessName)} · sent with <span style="color:${PRIMARY};font-weight:700;">Builders Ready</span>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const { error } = await getResend().emails.send({
+    from: fromAddress(),
+    to: p.to,
+    subject,
+    html,
+    text,
+    attachments: [
+      {
+        filename: `${p.invoiceNumber}-receipt.pdf`,
+        content: p.pdf,
+      },
+    ],
+  });
+  if (error) {
+    throw new Error(`Resend rejected the receipt email: ${error.message ?? 'unknown'}`);
+  }
+}

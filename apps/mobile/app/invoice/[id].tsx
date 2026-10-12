@@ -28,6 +28,7 @@ import { useCurrentProject } from '../../lib/current-project';
 import {
   getInvoice,
   markInvoicePaid,
+  requestPaidReceiptEmail,
   type InvoiceDetail,
 } from '../../lib/invoices';
 import {
@@ -178,6 +179,8 @@ export default function InvoiceDetailScreen() {
         paid_reference: null,
         paid_marked_by: user_id,
       });
+      // Email the client their PDF receipt (best-effort, via the web backend).
+      void requestPaidReceiptEmail(invoice.id);
       await refreshProject();
       router.back();
     } catch (err) {
