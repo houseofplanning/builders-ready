@@ -32,7 +32,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
 
   const { data: project } = await supabase
     .from('projects')
-    .select('id, name, status, progress_percent, estimated_end_date, tenant_id, client_id, handover_pdf_storage_path')
+    .select('id, name, status, progress_percent, estimated_end_date, tenant_id, client_id, handover_pdf_storage_path, quoted_amount_pence')
     .eq('id', projectId)
     .maybeSingle();
   if (!project || project.client_id !== me.user_id) notFound();
@@ -80,6 +80,33 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
   const invoices = invoicesRes.data ?? [];
   const decisions = decisionsRes.data ?? [];
   const variations = variationsRes.data ?? [];
+
+  // Money summary for the client: agreed value, paid so far, still to pay.
+  const { data: acceptedVarRows } = await supabase
+    .from('variations')
+    .select('delta_amount_gbp_pence')
+    .eq('project_id', projectId)
+    .eq('status', 'accepted');
+  const acceptedVariationsPence = (acceptedVarRows ?? []).reduce(
+    (s, v) => s + Number(v.delta_amount_gbp_pence || 0),
+    0,
+  );
+  const paidPence = invoices
+    .filter((i) => i.status === 'paid')
+    .reduce((s, i) => s + Number(i.amount_gbp_pence || 0), 0);
+  const dueNowPence = invoices
+    .filter((i) => i.status === 'sent' || i.status === 'overdue')
+    .reduce((s, i) => s + Number(i.amount_gbp_pence || 0), 0);
+  const totalInvoicedPence = invoices.reduce(
+    (s, i) => s + Number(i.amount_gbp_pence || 0),
+    0,
+  );
+  const quotedPence = Number(project.quoted_amount_pence ?? 0);
+  // Agreed value = quote + signed (accepted) variations. If no quote was set,
+  // fall back to what's been invoiced so the figures still make sense.
+  const projectValuePence = quotedPence + acceptedVariationsPence || totalInvoicedPence;
+  const remainingPence = Math.max(0, projectValuePence - paidPence);
+  const showMoney = projectValuePence > 0 || paidPence > 0;
 
   const optionsByDecision = new Map<string, { id: string; label: string; description: string | null; price_gbp_pence: number | null }[]>();
   if (decisions.length) {
@@ -174,6 +201,48 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
           />
         </div>
       </div>
+
+      {/* Money summary — agreed value, paid, remaining */}
+      {showMoney && (
+        <div className="mt-4 rounded-card border border-hairline bg-white p-5">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+                Project value
+              </div>
+              <div className="mt-1 text-xl font-extrabold text-ink">{gbp(projectValuePence)}</div>
+              {acceptedVariationsPence > 0 && (
+                <div className="text-[11px] text-ink-muted">incl. approved changes</div>
+              )}
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+                Paid so far
+              </div>
+              <div className="mt-1 text-xl font-extrabold text-emerald-700">{gbp(paidPence)}</div>
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+                Still to pay
+              </div>
+              <div className="mt-1 text-xl font-extrabold text-ink">{gbp(remainingPence)}</div>
+              {dueNowPence > 0 && (
+                <div className="text-[11px] font-semibold text-amber-700">
+                  {gbp(dueNowPence)} due now
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
+            <div
+              className="h-1.5 rounded-full bg-emerald-600"
+              style={{
+                width: `${projectValuePence > 0 ? Math.min(100, Math.round((paidPence / projectValuePence) * 100)) : 0}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Needs you */}
       {(decisions.length > 0 || variations.length > 0 || unpaid.length > 0) && (

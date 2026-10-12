@@ -94,6 +94,10 @@ export default function HomeScreen() {
   const invoiced = Number(finance.invoiced_pence ?? 0);
   const paid = Number(finance.paid_pence ?? 0);
   const outstanding = invoiced - paid;
+  // Agreed value = quote + signed variations (fallback to invoiced if no quote).
+  const quoted = Number(project.quoted_amount_pence ?? 0);
+  const projectValue = quoted + variations || invoiced;
+  const stillToPay = Math.max(0, projectValue - paid);
 
   return (
     <ScrollView
@@ -216,6 +220,12 @@ export default function HomeScreen() {
         ]}
       >
         <FinanceRow
+          label="Project value"
+          value={gbp(projectValue, { whole: projectValue === 0 })}
+          palette={palette}
+        />
+        <Divider palette={palette} />
+        <FinanceRow
           label="Variations"
           value={gbp(variations, { whole: variations === 0 })}
           palette={palette}
@@ -228,13 +238,19 @@ export default function HomeScreen() {
         />
         <Divider palette={palette} />
         <FinanceRow
-          label="Paid"
+          label="Paid so far"
           value={gbp(paid, { whole: paid === 0 })}
           palette={palette}
         />
         <Divider palette={palette} />
         <FinanceRow
-          label="Outstanding"
+          label="Still to pay"
+          value={gbp(stillToPay, { whole: stillToPay === 0 })}
+          palette={palette}
+        />
+        <Divider palette={palette} />
+        <FinanceRow
+          label="Due now"
           value={gbp(outstanding, { whole: outstanding === 0 })}
           palette={palette}
           highlight

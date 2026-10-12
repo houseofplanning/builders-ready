@@ -928,20 +928,31 @@ export interface ProjectHeader {
   pm_id: UUID;
   trade_name: string;
   handover_pdf_storage_path: string | null;
+  /** Agreed quote amount in pence (null if none was set). */
+  quoted_amount_pence: number | null;
+  /** Sum of signed (accepted) variation deltas in pence. */
+  accepted_variations_pence: number;
 }
 
 export async function getCustomerProject(projectId: UUID): Promise<ProjectHeader | null> {
   const { data: p } = await supabase
     .from('projects')
-    .select('id, name, status, progress_percent, estimated_end_date, tenant_id, pm_id, handover_pdf_storage_path')
+    .select('id, name, status, progress_percent, estimated_end_date, tenant_id, pm_id, handover_pdf_storage_path, quoted_amount_pence')
     .eq('id', projectId)
     .maybeSingle();
   if (!p) return null;
-  const { data: trade } = await supabase
-    .from('trades_public')
-    .select('name')
-    .eq('id', p.tenant_id)
-    .maybeSingle();
+  const [{ data: trade }, { data: accVars }] = await Promise.all([
+    supabase.from('trades_public').select('name').eq('id', p.tenant_id).maybeSingle(),
+    supabase
+      .from('variations')
+      .select('delta_amount_gbp_pence')
+      .eq('project_id', projectId)
+      .eq('status', 'accepted'),
+  ]);
+  const acceptedVariations = (accVars ?? []).reduce(
+    (s, v) => s + Number((v as { delta_amount_gbp_pence: number }).delta_amount_gbp_pence || 0),
+    0,
+  );
   return {
     id: p.id,
     name: p.name,
@@ -952,6 +963,9 @@ export async function getCustomerProject(projectId: UUID): Promise<ProjectHeader
     pm_id: p.pm_id,
     trade_name: (trade?.name as string) ?? 'Your trade',
     handover_pdf_storage_path: (p.handover_pdf_storage_path as string | null) ?? null,
+    quoted_amount_pence:
+      p.quoted_amount_pence != null ? Number(p.quoted_amount_pence) : null,
+    accepted_variations_pence: acceptedVariations,
   };
 }
 

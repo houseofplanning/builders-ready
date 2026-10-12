@@ -135,6 +135,25 @@ export default function CustomerProject() {
   const methodsFor = (i: Invoice): PaymentMethod[] =>
     offerableInvoiceMethods(i, { cardReady, bankReady });
 
+  // Money summary — agreed value, paid so far, still to pay.
+  const paidPence = invoices
+    .filter((i) => i.status === 'paid')
+    .reduce((s, i) => s + Number(i.amount_gbp_pence || 0), 0);
+  const dueNowPence = unpaid.reduce((s, i) => s + Number(i.amount_gbp_pence || 0), 0);
+  const totalInvoicedPence = invoices.reduce(
+    (s, i) => s + Number(i.amount_gbp_pence || 0),
+    0,
+  );
+  const projectValuePence =
+    Number(project.quoted_amount_pence ?? 0) + project.accepted_variations_pence ||
+    totalInvoicedPence;
+  const remainingPence = Math.max(0, projectValuePence - paidPence);
+  const showMoney = projectValuePence > 0 || paidPence > 0;
+  const paidPct =
+    projectValuePence > 0
+      ? Math.min(100, Math.round((paidPence / projectValuePence) * 100))
+      : 0;
+
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.canvas }}>
       <View style={styles.header}>
@@ -173,6 +192,34 @@ export default function CustomerProject() {
             <View style={[styles.fill, { width: `${Math.min(100, Math.max(0, project.progress_percent))}%` }]} />
           </View>
         </View>
+
+        {showMoney && (
+          <View style={styles.moneyCard}>
+            <View style={styles.moneyRow}>
+              <View style={styles.moneyCol}>
+                <Text style={styles.moneyLabel}>Project value</Text>
+                <Text style={styles.moneyVal}>{gbp(projectValuePence)}</Text>
+                {project.accepted_variations_pence > 0 && (
+                  <Text style={styles.moneyHint}>incl. approved changes</Text>
+                )}
+              </View>
+              <View style={styles.moneyCol}>
+                <Text style={styles.moneyLabel}>Paid so far</Text>
+                <Text style={[styles.moneyVal, { color: '#0F6E56' }]}>{gbp(paidPence)}</Text>
+              </View>
+              <View style={styles.moneyCol}>
+                <Text style={styles.moneyLabel}>Still to pay</Text>
+                <Text style={styles.moneyVal}>{gbp(remainingPence)}</Text>
+                {dueNowPence > 0 && (
+                  <Text style={styles.moneyDue}>{gbp(dueNowPence)} due now</Text>
+                )}
+              </View>
+            </View>
+            <View style={styles.moneyTrack}>
+              <View style={[styles.moneyFill, { width: `${paidPct}%` }]} />
+            </View>
+          </View>
+        )}
 
         {(decisions.length > 0 || variations.length > 0 || unpaid.length > 0) && (
           <>
@@ -534,6 +581,33 @@ const styles = StyleSheet.create({
   progressVal: { fontSize: typography.size.sm, fontWeight: typography.weightExtraBold as '800', color: palette.primary },
   track: { height: 10, borderRadius: 999, backgroundColor: palette.canvas, marginTop: spacing.sm, overflow: 'hidden' },
   fill: { height: 10, borderRadius: 999, backgroundColor: palette.primary },
+  moneyCard: {
+    borderWidth: 1,
+    borderColor: palette.hairline,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginTop: spacing.md,
+    backgroundColor: palette.card,
+  },
+  moneyRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  moneyCol: { flex: 1, paddingRight: spacing.sm },
+  moneyLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weightSemibold as '600',
+    color: palette.inkMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  moneyVal: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weightExtraBold as '800',
+    color: palette.ink,
+    marginTop: 2,
+  },
+  moneyHint: { fontSize: 10, color: palette.inkMuted, marginTop: 1 },
+  moneyDue: { fontSize: 10, color: '#B54708', fontWeight: typography.weightBold as '700', marginTop: 1 },
+  moneyTrack: { height: 6, borderRadius: 999, backgroundColor: palette.canvas, marginTop: spacing.md, overflow: 'hidden' },
+  moneyFill: { height: 6, borderRadius: 999, backgroundColor: '#0F6E56' },
   section: {
     fontSize: typography.size.lg,
     fontWeight: typography.weightExtraBold as '800',
