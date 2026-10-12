@@ -60,9 +60,9 @@ export default async function ProjectChatPage({ params }: Props) {
           {pm?.full_name ? ` · ${pm.full_name}` : ''}
         </div>
       </div>
-      <MessageThread messages={messages} meId={me.user_id} />
+      <MessageThread key={`t-${projectId}`} messages={messages} meId={me.user_id} />
       <div className="pt-3">
-        <ProjectChatBox projectId={projectId} />
+        <ProjectChatBox key={projectId} projectId={projectId} />
       </div>
     </div>
   );

@@ -61,9 +61,9 @@ export default async function BuilderProjectChatPage({ params }: Props) {
         <div className="font-extrabold text-ink">{clientName}</div>
         <div className="text-xs text-ink-muted">{project.name}</div>
       </div>
-      <MessageThread messages={messages} meId={user_id} />
+      <MessageThread key={`t-${id}`} messages={messages} meId={user_id} />
       <div className="pt-3">
-        <ProjectChatBox projectId={id} />
+        <ProjectChatBox key={id} projectId={id} />
       </div>
     </div>
   );
