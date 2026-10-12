@@ -44,12 +44,75 @@ export default async function TradeMessagesPage({ params }: Props) {
     (jobs ?? []).forEach((j) => jobTitle.set(j.id as string, j.title as string));
   }
 
+  // Project conversations — the client↔PM chat on each project (the `messages`
+  // thread). Previously only reachable in the app; this is the web window on it.
+  const { data: projRows } = await supabase
+    .from('projects')
+    .select('id, name, client_id')
+    .eq('tenant_id', tenant.id)
+    .neq('status', 'archived')
+    .not('client_id', 'is', null)
+    .order('updated_at', { ascending: false });
+  const projects = (projRows ?? []) as { id: string; name: string; client_id: string }[];
+
+  const lastMsgAt = new Map<string, string>();
+  const clientFirst = new Map<string, string>();
+  if (projects.length) {
+    const projectIds = projects.map((p) => p.id);
+    const [{ data: msgs }, { data: clients }] = await Promise.all([
+      supabase
+        .from('messages')
+        .select('project_id, sent_at')
+        .in('project_id', projectIds)
+        .order('sent_at', { ascending: false }),
+      admin
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', [...new Set(projects.map((p) => p.client_id))]),
+    ]);
+    (msgs ?? []).forEach((m) => {
+      const pid = m.project_id as string;
+      if (!lastMsgAt.has(pid)) lastMsgAt.set(pid, m.sent_at as string);
+    });
+    (clients ?? []).forEach((c) =>
+      clientFirst.set(c.id as string, (c.full_name as string)?.split(/\s+/)[0] ?? 'Client'),
+    );
+  }
+
   return (
     <div className="w-full">
       <h1 className="mb-6 text-2xl font-extrabold tracking-tight text-ink">Messages</h1>
+
+      <h2 className="mb-3 text-sm font-bold text-ink">Project conversations</h2>
+      {projects.length === 0 ? (
+        <div className="rounded-card border border-hairline bg-white p-6 text-center text-sm text-ink-muted">
+          No projects with a client yet. Assign a client to a project to start a conversation.
+        </div>
+      ) : (
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {projects.map((p) => (
+            <li key={p.id}>
+              <Link
+                href={`/${slug}/projects/${p.id}/chat`}
+                className="flex items-center justify-between rounded-card border border-hairline bg-white p-4 transition hover:border-primary/40"
+              >
+                <div>
+                  <div className="font-bold text-ink">{clientFirst.get(p.client_id) ?? 'Client'}</div>
+                  <div className="text-sm text-ink-muted">{p.name}</div>
+                </div>
+                <span className="text-xs text-ink-muted">
+                  {lastMsgAt.has(p.id) ? relativeTime(lastMsgAt.get(p.id)!) : 'New'}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 className="mb-3 mt-8 text-sm font-bold text-ink">Marketplace</h2>
       {threads.length === 0 ? (
         <div className="rounded-card border border-hairline bg-white p-10 text-center text-sm text-ink-muted">
-          No messages yet. Message a customer from a job in the Marketplace.
+          No marketplace messages yet. Message a customer from a job in the Marketplace.
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">

@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +20,8 @@ import {
   radius,
   formatDate,
   gbp,
+  offerableInvoiceMethods,
+  type PaymentMethod,
 } from '@br/shared';
 import { useTenant } from '../../lib/tenant-provider';
 import { useCurrentProject } from '../../lib/current-project';
@@ -28,6 +30,11 @@ import {
   markInvoicePaid,
   type InvoiceDetail,
 } from '../../lib/invoices';
+import {
+  payInvoice,
+  requestCashPayment,
+  requestBankPayment,
+} from '../../lib/marketplace';
 
 function isVisuallyOverdue(invoice: InvoiceDetail): boolean {
   if (invoice.status !== 'sent') return false;
@@ -46,7 +53,6 @@ export default function InvoiceDetailScreen() {
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [reference, setReference] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
@@ -129,39 +135,38 @@ export default function InvoiceDetailScreen() {
     !!tenant.bank_account_name &&
     !!tenant.bank_sort_code &&
     !!tenant.bank_account_number;
+  const cardReady = !!tenant.connect_charges_enabled;
+  const methods: PaymentMethod[] = offerableInvoiceMethods(invoice, {
+    cardReady,
+    bankReady,
+  });
 
-  async function onMarkPaid() {
-    if (!invoice || !user_id) return;
-    Alert.alert(
-      'Mark this invoice as paid?',
-      'Your builder will be notified and the invoice will move to the Paid section. Make sure you’ve actually sent the bank transfer first.',
-      [
-        { text: 'Not yet', style: 'cancel' },
-        {
-          text: 'Yes, mark paid',
-          style: 'default',
-          onPress: async () => {
-            setSubmitting(true);
-            try {
-              await markInvoicePaid({
-                invoice_id: invoice.id,
-                paid_reference: reference,
-                paid_marked_by: user_id,
-              });
-              await refreshProject();
-              router.back();
-            } catch (err) {
-              Alert.alert(
-                'Could not mark as paid',
-                err instanceof Error ? err.message : 'Unknown error',
-              );
-            } finally {
-              setSubmitting(false);
-            }
-          },
-        },
-      ],
-    );
+  async function onPayCard() {
+    if (!invoice) return;
+    setSubmitting(true);
+    try {
+      const url = await payInvoice(invoice.id);
+      await Linking.openURL(url);
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Could not start payment.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Client flags cash / bank transfer; the builder confirms receipt.
+  async function onFlag(kind: 'cash' | 'bank') {
+    if (!invoice) return;
+    setSubmitting(true);
+    try {
+      if (kind === 'cash') await requestCashPayment(invoice.id);
+      else await requestBankPayment(invoice.id);
+      await load();
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Could not update.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function onConfirmReceived() {
@@ -299,8 +304,9 @@ export default function InvoiceDetailScreen() {
             </View>
           )}
 
-          {/* BANK DETAILS (shown to anyone, useful for everyone) */}
-          {!isPaid && (
+          {/* BANK DETAILS — shown when bank transfer is on offer for this
+              invoice (clients), and always to the builder for reference. */}
+          {!isPaid && (role !== 'client' || methods.includes('bank')) && (
             <>
               <Text style={[styles.sectionLabel, { color: palette.inkMuted }]}>
                 Pay by bank transfer
@@ -369,33 +375,64 @@ export default function InvoiceDetailScreen() {
             </>
           )}
 
-          {/* MARK PAID FORM (client + outstanding) */}
+          {/* CLIENT — how to pay (builder confirms cash / bank transfer) */}
           {canMarkPaid && role === 'client' && (
-            <View style={styles.markPaidSection}>
-              <Text style={[styles.signTitle, { color: palette.ink }]}>
-                Already paid?
-              </Text>
-              <Text style={[styles.signHint, { color: palette.inkMuted }]}>
-                Once your bank transfer has gone through, mark this invoice as
-                paid. Optionally add the reference you used so your builder can
-                match it up.
-              </Text>
-              <TextInput
-                value={reference}
-                onChangeText={setReference}
-                placeholder={`Reference (e.g. ${suggestedRef})`}
-                placeholderTextColor={palette.inkMuted}
-                autoCapitalize="characters"
-                style={[
-                  styles.field,
-                  {
-                    borderColor: palette.hairline,
-                    backgroundColor: palette.card,
-                    color: palette.ink,
-                  },
-                ]}
-              />
-            </View>
+            invoice.cash_requested_at ? (
+              <View style={styles.markPaidSection}>
+                <Text style={[styles.flaggedNote, { color: '#0F6E56' }]}>
+                  ✓ Cash flagged — your builder will confirm receipt.
+                </Text>
+              </View>
+            ) : invoice.bank_requested_at ? (
+              <View style={styles.markPaidSection}>
+                <Text style={[styles.flaggedNote, { color: '#0F6E56' }]}>
+                  ✓ Bank transfer flagged — your builder will confirm receipt.
+                </Text>
+              </View>
+            ) : methods.length === 0 ? (
+              <View style={styles.markPaidSection}>
+                <Text style={[styles.signHint, { color: palette.inkMuted }]}>
+                  Your builder will confirm payment once received.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.markPaidSection}>
+                <Text style={[styles.signTitle, { color: palette.ink }]}>
+                  How would you like to pay?
+                </Text>
+                {methods.includes('card') && (
+                  <TouchableOpacity
+                    disabled={submitting}
+                    onPress={onPayCard}
+                    style={[styles.payBtn, { backgroundColor: palette.primary, marginTop: spacing.sm }]}
+                  >
+                    <Text style={styles.payBtnText}>{submitting ? '…' : 'Pay by card'}</Text>
+                  </TouchableOpacity>
+                )}
+                {methods.includes('bank') && (
+                  <TouchableOpacity
+                    disabled={submitting}
+                    onPress={() => onFlag('bank')}
+                    style={[styles.outlineBtn, { borderColor: palette.primary, marginTop: spacing.sm }]}
+                  >
+                    <Text style={[styles.outlineBtnText, { color: palette.primary }]}>
+                      I’ve paid by bank transfer
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {methods.includes('cash') && (
+                  <TouchableOpacity
+                    disabled={submitting}
+                    onPress={() => onFlag('cash')}
+                    style={[styles.outlineBtn, { borderColor: palette.primary, marginTop: spacing.sm }]}
+                  >
+                    <Text style={[styles.outlineBtnText, { color: palette.primary }]}>
+                      I’ll pay in cash
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )
           )}
 
           {/* OWNER/PM — confirm a cash / bank-transfer the client has flagged */}
@@ -440,41 +477,6 @@ export default function InvoiceDetailScreen() {
               </Text>
             )}
         </ScrollView>
-
-        {canMarkPaid && role === 'client' && (
-          <View
-            style={[
-              styles.footer,
-              {
-                backgroundColor: palette.card,
-                borderTopColor: palette.hairline,
-              },
-            ]}
-          >
-            <TouchableOpacity
-              onPress={onMarkPaid}
-              disabled={submitting}
-              activeOpacity={0.85}
-              style={[
-                styles.payBtn,
-                {
-                  backgroundColor: submitting
-                    ? palette.inkMuted
-                    : palette.success,
-                },
-              ]}
-            >
-              {submitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark-circle" size={18} color="#fff" />
-                  <Text style={styles.payBtnText}>Mark as paid</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -689,5 +691,22 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: typography.size.body,
     fontWeight: typography.weightBold as '700',
+  },
+  outlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+  },
+  outlineBtnText: {
+    fontSize: typography.size.body,
+    fontWeight: typography.weightBold as '700',
+  },
+  flaggedNote: {
+    fontSize: typography.size.body,
+    fontWeight: typography.weightSemibold as '600',
+    lineHeight: 20,
   },
 });
