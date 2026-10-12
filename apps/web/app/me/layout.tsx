@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { requireCustomer, isInvitedClient } from '@/lib/customer-resolver';
-import { createSupabaseServer } from '@/lib/supabase-server';
 import { CustomerAccountMenu } from '@/components/customer-account-menu';
 
 function initialsOf(name: string, email: string): string {
@@ -19,22 +18,11 @@ export default async function CustomerLayout({ children }: { children: React.Rea
   // tenant member never sees the marketplace.
   const invitedClient = await isInvitedClient();
 
-  // For an invited client, "Messages" should open the thread with their
-  // builder/PM (the project `messages` thread), not the marketplace inbox.
-  // With one project we deep-link straight to its chat; with several we send
-  // them to the project list to pick one first.
-  let clientMessagesHref = '/me';
-  if (invitedClient) {
-    const supabase = await createSupabaseServer();
-    const { data: projs } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('client_id', me.user_id)
-      .neq('status', 'archived')
-      .order('updated_at', { ascending: false });
-    clientMessagesHref =
-      projs && projs.length === 1 ? `/me/jobs/${projs[0].id}/chat` : '/me';
-  }
+  // For an invited client, "Messages" opens their project conversations (the
+  // project `messages` threads with their builder/PM), not the marketplace
+  // inbox. /me/chats deep-links straight to the chat when there's one project
+  // and lists them when there are several — so it works either way.
+  const clientMessagesHref = '/me/chats';
 
   const initials = initialsOf(me.full_name ?? '', me.email);
 
