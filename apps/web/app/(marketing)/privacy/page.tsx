@@ -7,10 +7,9 @@ export const metadata: Metadata = {
 };
 
 const LAST_UPDATED = '18 May 2026';
-const COMPANY = 'Mehraj Consultancy Ltd';
-const COMPANIES_HOUSE = '14161216';
-// Registered office is not displayed publicly — see Companies House register.
-// Replace with a virtual-office address once one is in place.
+const COMPANY = 'Builders Ready Ltd';
+const COMPANIES_HOUSE = '17551960';
+const REGISTERED_OFFICE = '66 Paul Street, London, England, EC2A 4NA';
 const CONTACT_EMAIL = 'info@buildersready.uk';
 
 export default function PrivacyPage() {
@@ -32,8 +31,7 @@ export default function PrivacyPage() {
           <p>
             Builders Ready is operated by <strong>{COMPANY}</strong> (&quot;we&quot;,
             &quot;us&quot;, &quot;our&quot;), a company registered in England and Wales with
-            company number {COMPANIES_HOUSE}. Our registered office details are on file with
-            Companies House.
+            company number {COMPANIES_HOUSE}. Our registered office is {REGISTERED_OFFICE}.
           </p>
           <p>
             For the purposes of UK GDPR, we are the <strong>data controller</strong> of:
@@ -275,6 +273,8 @@ export default function PrivacyPage() {
           </p>
           <p>
             <strong>{COMPANY}</strong> (Companies House {COMPANIES_HOUSE})
+            <br />
+            {REGISTERED_OFFICE}
             <br />
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary underline">
               {CONTACT_EMAIL}

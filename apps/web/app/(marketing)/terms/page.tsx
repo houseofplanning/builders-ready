@@ -7,10 +7,9 @@ export const metadata: Metadata = {
 };
 
 const LAST_UPDATED = '18 May 2026';
-const COMPANY = 'Mehraj Consultancy Ltd';
-const COMPANIES_HOUSE = '14161216';
-// Registered office is not displayed publicly — see Companies House register.
-// Replace with a virtual-office address once one is in place.
+const COMPANY = 'Builders Ready Ltd';
+const COMPANIES_HOUSE = '17551960';
+const REGISTERED_OFFICE = '66 Paul Street, London, England, EC2A 4NA';
 const CONTACT_EMAIL = 'info@buildersready.uk';
 
 export default function TermsPage() {
@@ -32,8 +31,8 @@ export default function TermsPage() {
           <p>
             Builders Ready is a software service operated by <strong>{COMPANY}</strong>, a
             company registered in England and Wales with company number {COMPANIES_HOUSE}{' '}
-            (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). Our registered office details
-            are on file with Companies House.
+            (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;). Our registered office is{' '}
+            {REGISTERED_OFFICE}.
           </p>
           <p>
             These Terms and Conditions (these &quot;Terms&quot;) form a binding agreement
@@ -289,12 +288,15 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-xl font-extrabold">16. Contact</h2>
+          <p>Questions about these Terms?</p>
           <p>
-            Questions about these Terms? Email us at{' '}
+            <strong>{COMPANY}</strong> (Companies House {COMPANIES_HOUSE})
+            <br />
+            {REGISTERED_OFFICE}
+            <br />
             <a href={`mailto:${CONTACT_EMAIL}`} className="text-primary underline">
               {CONTACT_EMAIL}
             </a>
-            .
           </p>
         </section>
       </article>
