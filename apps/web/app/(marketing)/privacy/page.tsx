@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: 'Privacy Policy · Builders Ready',
   description:
     'How Builders Ready collects, uses and protects personal data — written for UK GDPR.',
+  alternates: { canonical: 'https://buildersready.uk/privacy' },
 };
 
 const LAST_UPDATED = '18 May 2026';

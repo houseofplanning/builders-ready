@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: 'Terms and Conditions · Builders Ready',
   description:
     'The terms that govern your use of Builders Ready — the multi-tenant SaaS portal for UK construction businesses.',
+  alternates: { canonical: 'https://buildersready.uk/terms' },
 };
 
 const LAST_UPDATED = '18 May 2026';

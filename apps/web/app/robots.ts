@@ -18,6 +18,7 @@ export default function robots(): MetadataRoute.Robots {
           '/reset-password',
           '/auth/',
           '/onboarding/',
+          '/admin',
           // Anything that looks like /<tenant-slug>/* — match common dashboard subpaths.
           '/*/dashboard',
           '/*/projects',

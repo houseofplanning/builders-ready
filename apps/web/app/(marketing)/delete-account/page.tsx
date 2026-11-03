@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: 'Delete your account · Builders Ready',
   description:
     'How to request deletion of your Builders Ready account and associated data, what is removed, and what is retained.',
+  alternates: { canonical: 'https://buildersready.uk/delete-account' },
 };
 
 const CONTACT_EMAIL = 'info@buildersready.uk';
