@@ -5,6 +5,7 @@ import { requireTenantBySlug, isTenantInGoodStanding } from '@/lib/tenant-resolv
 import { TIERS, gbp, formatDate } from '@br/shared';
 import { OpenPortalButton } from './portal-button';
 import { PaymentsSection } from './payments-section';
+import { BankDetailsSection } from './bank-details-section';
 import { getConnectState } from '@/lib/server-actions/connect';
 
 interface Props {
@@ -185,6 +186,18 @@ export default async function BillingSettingsPage({ params }: Props) {
           isUnlimited={tierId === 'unlimited'}
         />
       </Suspense>
+
+      {/* Bank transfer details — shown on invoices offering bank transfer */}
+      <BankDetailsSection
+        initial={{
+          bank_name: tenant.bank_name ?? null,
+          bank_account_name: tenant.bank_account_name ?? tenant.name ?? null,
+          bank_sort_code: tenant.bank_sort_code ?? null,
+          bank_account_number: tenant.bank_account_number ?? null,
+          vat_number: tenant.vat_number ?? null,
+          company_number: tenant.company_number ?? null,
+        }}
+      />
     </div>
   );
 }

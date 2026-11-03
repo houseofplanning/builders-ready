@@ -491,3 +491,136 @@ export function MockupDashboard({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function MockupClientPortal({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 720 540"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      role="img"
+      aria-label="Builders Ready client web portal — builder-branded header, progress bar, money summary and latest update"
+    >
+      <rect width="720" height="540" rx="14" fill="#F4F6F7" />
+      {/* Browser chrome */}
+      <rect width="720" height="40" rx="14" fill="#FFFFFF" />
+      <rect y="26" width="720" height="14" fill="#FFFFFF" />
+      <circle cx="20" cy="20" r="5" fill="#D7DCDE" />
+      <circle cx="36" cy="20" r="5" fill="#D7DCDE" />
+      <circle cx="52" cy="20" r="5" fill="#D7DCDE" />
+      <rect x="80" y="12" width="300" height="16" rx="8" fill="#F4F6F7" />
+      <text x="92" y="23" fontSize="9" fill="#5F7480">buildersready.uk/me/jobs/elmwood</text>
+
+      {/* Branded header — builder's logo, not Builders Ready */}
+      <rect y="40" width="720" height="48" fill="#FFFFFF" />
+      <rect x="24" y="54" width="24" height="24" rx="6" fill="#0F4C5C" />
+      <text x="36" y="70" fontSize="10" fill="#fff" fontWeight="800" textAnchor="middle">HB</text>
+      <text x="56" y="72" fontSize="13" fill="#0B1418" fontWeight="800">Heritage Build Co</text>
+      <text x="548" y="66" fontSize="9" fill="#5F7480" fontWeight="600">My project</text>
+      <text x="620" y="66" fontSize="9" fill="#5F7480" fontWeight="600">Messages</text>
+      <circle cx="692" cy="63" r="12" fill="#EEF2F1" />
+      <text x="692" y="67" fontSize="8" fill="#0F4C5C" fontWeight="800" textAnchor="middle">DM</text>
+
+      <text x="24" y="118" fontSize="20" fill="#0B1418" fontWeight="800">Elmwood Rear Extension</text>
+      <text x="24" y="136" fontSize="9" fill="#5F7480">Heritage Build Co · est. completion 14 Dec 2026</text>
+
+      {/* Progress card */}
+      <rect x="24" y="150" width="672" height="60" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
+      <text x="40" y="176" fontSize="10" fill="#5F7480" fontWeight="700">Progress</text>
+      <text x="680" y="176" fontSize="12" fill="#0F4C5C" fontWeight="800" textAnchor="end">62%</text>
+      <rect x="40" y="186" width="640" height="10" rx="5" fill="#EEF1F2" />
+      <rect x="40" y="186" width="397" height="10" rx="5" fill="#0F4C5C" />
+
+      {/* Money summary */}
+      <rect x="24" y="224" width="672" height="110" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
+      {[
+        { x: 40, label: 'Project value', value: '£52,000', col: '#0B1418' },
+        { x: 268, label: 'Paid so far', value: '£26,000', col: '#2E7D5B' },
+        { x: 496, label: 'Still to pay', value: '£26,000', col: '#0B1418' },
+      ].map((c) => (
+        <g key={c.label}>
+          <text x={c.x} y="252" fontSize="8" fill="#5F7480" fontWeight="700" letterSpacing="1">
+            {c.label.toUpperCase()}
+          </text>
+          <text x={c.x} y="282" fontSize="24" fill={c.col} fontWeight="800">{c.value}</text>
+        </g>
+      ))}
+      <text x="496" y="300" fontSize="9" fill="#C0862E" fontWeight="700">£8,000 due now</text>
+      <rect x="40" y="312" width="640" height="8" rx="4" fill="#EEF1F2" />
+      <rect x="40" y="312" width="320" height="8" rx="4" fill="#2E7D5B" />
+
+      {/* Latest update with a photo tile */}
+      <rect x="24" y="348" width="672" height="168" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
+      <text x="40" y="374" fontSize="11" fill="#0B1418" fontWeight="800">Latest update</text>
+      <text x="40" y="398" fontSize="10" fill="#0B1418" fontWeight="700">First fix complete</text>
+      <text x="40" y="416" fontSize="9" fill="#5F7480">Electrics and plumbing roughed in — plastering starts Monday.</text>
+      <text x="40" y="430" fontSize="9" fill="#5F7480">2 days ago</text>
+      <rect x="40" y="444" width="88" height="60" rx="8" fill="#E7ECEA" />
+      <rect x="136" y="444" width="88" height="60" rx="8" fill="#DCE4E2" />
+      <rect x="232" y="444" width="88" height="60" rx="8" fill="#E7ECEA" />
+      <path d="M62 492l14-14 12 12 8-8 10 10" fill="none" stroke="#9FB3AE" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="74" cy="462" r="5" fill="#9FB3AE" />
+      {/* Decision chip */}
+      <rect x="430" y="388" width="250" height="26" rx="8" fill="#FBF3E7" />
+      <circle cx="446" cy="401" r="3.5" fill="#C0862E" />
+      <text x="458" y="405" fontSize="9" fill="#0B1418" fontWeight="600">Decision: choose your tiles →</text>
+      {/* Pay chip */}
+      <rect x="430" y="420" width="250" height="26" rx="8" fill="#0F4C5C" />
+      <text x="555" y="437" fontSize="9" fill="#fff" fontWeight="700" textAnchor="middle">Pay invoice · £8,000</text>
+    </svg>
+  );
+}
+
+export function MockupPlanningRadar({ className }: { className?: string }) {
+  const cards = [
+    { y: 182, cat: 'Loft conversion', badge: 'APPROVED', approved: true, addr: '12 Oakfield Road, M20', meta: '0.4 mi · Manchester' },
+    { y: 266, cat: 'Rear extension', badge: 'NEW', approved: false, addr: '5 Brydon Avenue, M12', meta: '0.8 mi · Manchester' },
+    { y: 350, cat: 'Two-storey ext.', badge: 'NEW', approved: false, addr: '28 Raby Street, M16', meta: '1.9 mi · Manchester' },
+    { y: 434, cat: 'Dormer', badge: 'APPROVED', approved: true, addr: '7 Schoolside Close, M8', meta: '2.3 mi · Manchester' },
+  ];
+  return (
+    <svg
+      viewBox="0 0 720 540"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      role="img"
+      aria-label="Builders Ready Planning Radar — planning applications near you, filtered by distance, with approved and new status"
+    >
+      <rect width="720" height="540" rx="14" fill="#F4F6F7" />
+      {/* Browser chrome */}
+      <rect width="720" height="40" rx="14" fill="#FFFFFF" />
+      <rect y="26" width="720" height="14" fill="#FFFFFF" />
+      <circle cx="20" cy="20" r="5" fill="#D7DCDE" />
+      <circle cx="36" cy="20" r="5" fill="#D7DCDE" />
+      <circle cx="52" cy="20" r="5" fill="#D7DCDE" />
+      <rect x="80" y="12" width="320" height="16" rx="8" fill="#F4F6F7" />
+      <text x="92" y="23" fontSize="9" fill="#5F7480">buildersready.uk/oakline/planning-radar</text>
+
+      {/* Title */}
+      <text x="24" y="72" fontSize="20" fill="#0B1418" fontWeight="800">Planning Radar</text>
+      <text x="24" y="90" fontSize="9" fill="#5F7480">See the jobs being planned near you — and get there first.</text>
+
+      {/* Filter bar */}
+      <rect x="24" y="106" width="96" height="30" rx="8" fill="#FFFFFF" stroke="#E1E6E9" />
+      <text x="40" y="125" fontSize="10" fill="#0B1418" fontWeight="700">M1</text>
+      <rect x="130" y="106" width="110" height="30" rx="8" fill="#0F4C5C" />
+      <text x="146" y="125" fontSize="10" fill="#fff" fontWeight="700">5 miles ▾</text>
+      <rect x="250" y="106" width="150" height="30" rx="8" fill="#FFFFFF" stroke="#E1E6E9" />
+      <text x="266" y="125" fontSize="10" fill="#5F7480" fontWeight="700">Approved + new</text>
+      <text x="680" y="126" fontSize="9" fill="#5F7480" fontWeight="600" textAnchor="end">48 near you</text>
+
+      {/* Listing cards */}
+      {cards.map((c) => (
+        <g key={c.addr}>
+          <rect x="24" y={c.y} width="672" height="72" rx="12" fill="#FFFFFF" stroke="#E1E6E9" />
+          <rect x="40" y={c.y + 16} width="132" height="24" rx="7" fill="#EAF1F2" />
+          <text x="106" y={c.y + 32} fontSize="10" fill="#0F4C5C" fontWeight="700" textAnchor="middle">{c.cat}</text>
+          <rect x={c.approved ? 566 : 606} y={c.y + 16} width={c.approved ? 110 : 70} height="24" rx="7" fill={c.approved ? '#E3F3EA' : '#FBEFE0'} />
+          <text x={c.approved ? 621 : 641} y={c.y + 32} fontSize="9" fill={c.approved ? '#2E7D5B' : '#B5731F'} fontWeight="800" textAnchor="middle">{c.badge}</text>
+          <text x="40" y={c.y + 58} fontSize="12" fill="#0B1418" fontWeight="700">{c.addr}</text>
+          <text x="676" y={c.y + 58} fontSize="10" fill="#5F7480" textAnchor="end">{c.meta}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}

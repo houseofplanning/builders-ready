@@ -82,7 +82,59 @@ function MarketplaceEntry() {
   );
 }
 
+/**
+ * Planning Radar entry — see planning applications near you and get to the job
+ * first. Trade-only, sits just under the Marketplace on the home grid.
+ */
+function PlanningRadarEntry() {
+  const { palette } = useTenant();
+  const router = useRouter();
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => router.push('/planning-radar')}
+      style={[gridStyles.radarCard, { backgroundColor: palette.card, borderColor: palette.primary }]}
+    >
+      <View style={[gridStyles.radarIcon, { borderColor: palette.primary }]}>
+        <Ionicons name="radio-outline" size={22} color={palette.primary} />
+      </View>
+      <View style={{ flex: 1, marginLeft: spacing.md }}>
+        <Text style={[gridStyles.radarTitle, { color: palette.ink }]}>Planning Radar</Text>
+        <Text style={[gridStyles.radarSub, { color: palette.inkMuted }]}>
+          See jobs being planned near you and get there first
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={palette.primary} />
+    </TouchableOpacity>
+  );
+}
+
 const gridStyles = StyleSheet.create({
+  radarCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  radarIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  radarTitle: {
+    fontSize: typography.size.body,
+    fontWeight: typography.weightExtraBold as '800',
+  },
+  radarSub: {
+    fontSize: typography.size.xs,
+    marginTop: 2,
+    lineHeight: 16,
+  },
   mktCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -167,6 +219,7 @@ export function ProjectGrid() {
         }
       >
         {role !== 'client' && <MarketplaceEntry />}
+        {role !== 'client' && <PlanningRadarEntry />}
         {role !== 'client' && <QuotesEntry />}
         <View style={styles.emptyInline}>
           <Ionicons
@@ -203,6 +256,7 @@ export function ProjectGrid() {
       </Text>
 
       {role !== 'client' && <MarketplaceEntry />}
+      {role !== 'client' && <PlanningRadarEntry />}
       {role !== 'client' && <QuotesEntry />}
 
       {projects.map((p) => (

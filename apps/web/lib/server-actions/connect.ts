@@ -77,7 +77,20 @@ export async function startConnectOnboarding(opts?: {
   if (!accountId) {
     try {
       const account = await stripe.accounts.create({
-        type: 'express',
+        // Modern controller config (replaces the legacy `type: 'express'`).
+        // Required by the Builders Ready Ltd platform's managed-risk setup:
+        // Express dashboard + Stripe-hosted onboarding, platform controls fees,
+        // Stripe is the losses collector.
+        controller: {
+          // Platform is managed-risk (Stripe is losses collector), which is
+          // incompatible with the Express dashboard. Use dashboard 'none':
+          // builders still get Stripe-hosted onboarding (requirement_collection
+          // 'stripe') and view payouts inside Builders Ready.
+          stripe_dashboard: { type: 'none' },
+          fees: { payer: 'application' },
+          losses: { payments: 'stripe' },
+          requirement_collection: 'stripe',
+        },
         country: 'GB',
         email: t.business_email ?? undefined,
         capabilities: {

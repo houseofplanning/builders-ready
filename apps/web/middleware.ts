@@ -1,132 +1,29 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * Auth + tenant middleware.
- *
- * 1. Refreshes the Supabase session cookie (required for @supabase/ssr to
- *    keep server clients in sync with the browser).
- * 2. Gates `/onboarding/*` and `/<slug>/*` on a logged-in session.
- *    Unauthenticated requests redirect to /login.
- * 3. We do NOT validate slug-vs-tenant here — the page layout
- *    (`requireTenantBySlug`) handles that with a redirect, keeping the
- *    middleware free of an extra DB round-trip per request.
+ * Capture an acquisition-offer slug from the URL (?offer=flash48) into a
+ * cookie so it survives the signup -> onboarding -> billing journey and can
+ * be read when the Stripe Checkout session is built (see lib/offers.ts and
+ * createCheckoutSession). Does nothing else — every request just passes
+ * through.
  */
-export async function middleware(req: NextRequest) {
+export function middleware(req: NextRequest) {
+  const offer = req.nextUrl.searchParams.get('offer');
   const res = NextResponse.next();
-  const url = req.nextUrl.clone();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
-        setAll(toSet: { name: string; value: string; options: CookieOptions }[]) {
-          toSet.forEach(({ name, value, options }) => {
-            res.cookies.set({ name, value, ...options });
-          });
-        },
-      },
-    },
-  );
-
-  // Refresh session if expired.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const path = url.pathname;
-  const isProtected =
-    path.startsWith('/onboarding') ||
-    isTenantSlugPath(path);
-  const isAuthPage =
-    path === '/login' || path === '/signup' || path.startsWith('/accept');
-
-  if (isProtected && !user) {
-    url.pathname = '/login';
-    url.searchParams.set('next', path);
-    return NextResponse.redirect(url);
+  if (offer) {
+    res.cookies.set('br_offer', offer.toLowerCase(), {
+      maxAge: 60 * 60 * 24 * 7, // 7 days — long enough to finish signing up
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+    });
   }
-
-  // Logged-in users hitting /login or /signup get sent to their home.
-  // Owners/PMs → their builder dashboard; clients → their read-only portal
-  // (/me). Marketplace customers have no membership and also land on /me.
-  if (isAuthPage && user) {
-    const { data: membership } = await supabase
-      .from('tenant_members')
-      .select('role, tenant:tenants(slug)')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    const role = (membership as { role?: string } | null)?.role;
-    const slug = (membership?.tenant as { slug?: string } | null)?.slug;
-    if (role === 'client') {
-      url.pathname = '/me';
-      url.searchParams.delete('next');
-      return NextResponse.redirect(url);
-    }
-    if (slug) {
-      url.pathname = `/${slug}/dashboard`;
-      url.searchParams.delete('next');
-      return NextResponse.redirect(url);
-    }
-  }
-
   return res;
 }
 
-// Reserved top-level paths that ARE NOT tenant slugs. Keep aligned with
-// the RESERVED set in packages/shared/src/slug.ts.
-const RESERVED_TOP_LEVEL = new Set([
-  '',
-  'login',
-  'signup',
-  'accept',
-  'auth',
-  'forgot-password',
-  'reset-password',
-  'onboarding',
-  // Marketing routes
-  'pricing',
-  'about',
-  'contact',
-  'features',
-  'blog',
-  'privacy',
-  'terms',
-  'delete-account',
-  'homeowners',
-  'me',
-  'brand',
-  'q', // public shareable quote page (/q/<accept_token>) — no login
-  // Infrastructure routes / files
-  'api',
-  '_next',
-  'favicon.ico',
-  'icon',
-  'icon.svg',
-  'apple-icon',
-  'opengraph-image',
-  'sitemap.xml',
-  'robots.txt',
-  'manifest.json',
-  'manifest.webmanifest',
-]);
-
-function isTenantSlugPath(path: string): boolean {
-  // e.g. "/regal/dashboard" → top = "regal" (not reserved) → tenant path
-  const top = path.split('/').filter(Boolean)[0] ?? '';
-  return top !== '' && !RESERVED_TOP_LEVEL.has(top);
-}
-
 export const config = {
-  // Run on every path except static assets, Next.js internals, common
-  // root-level files, and webhook / health endpoints. Adding new
-  // root-level routes (sitemap.xml, robots.txt, icon, opengraph-image)
-  // here means the middleware doesn't try to auth-gate them.
+  // Run on pages, not on static assets / image optimiser / API internals.
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|icon|apple-icon|opengraph-image|sitemap\\.xml|robots\\.txt|manifest\\.(?:json|webmanifest)|api/webhooks|api/health|onboarding/complete).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|css|js|txt|xml|woff2?)).*)',
   ],
 };

@@ -847,6 +847,70 @@ export async function sendEstimateEmail(p: EstimateEmailParams): Promise<void> {
 }
 
 // -------------------------------------------------------------------------
+// Planning Radar — occupier letter emailed to the builder to print and post.
+// -------------------------------------------------------------------------
+export interface PlanningLetterEmailParams {
+  to: string;
+  businessName: string;
+  siteAddress: string;
+  /** Rendered PDF bytes to attach. */
+  pdf: Buffer;
+}
+
+export async function sendPlanningLetterEmail(p: PlanningLetterEmailParams): Promise<void> {
+  const subject = `Your letter for ${p.siteAddress} — ready to print`;
+  const text = [
+    `Here's your letter for ${p.siteAddress}.`,
+    ``,
+    `It's attached as a PDF, ready to print and post through the door.`,
+    ``,
+    `Builders Ready`,
+  ].join('\n');
+
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+
+  const html = `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:24px 28px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;font-size:15px;color:${INK};">${escapeHtml(p.businessName)}</div>
+          </td></tr>
+          <tr><td style="padding:26px 28px;">
+            <div style="font-size:11px;font-weight:600;color:${PRIMARY};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Planning Radar</div>
+            <h1 style="margin:0 0 14px;font-size:22px;line-height:1.25;font-weight:800;color:${INK};">Your letter is ready to print</h1>
+            <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:${INK};">Here's your letter for <strong>${escapeHtml(p.siteAddress)}</strong>, attached as a PDF. Print it, pop it through the door, and introduce yourself.</p>
+            <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:${MUTED};">It's addressed to "The Occupier" — no contact details were used, just the public planning record.</p>
+          </td></tr>
+          <tr><td style="padding:16px 28px;border-top:1px solid ${HAIRLINE};font-size:11px;color:${MUTED};">
+            Sent by ${escapeHtml(p.businessName)} · powered by Builders Ready
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const { error } = await getResend().emails.send({
+    from: fromAddress(),
+    to: p.to,
+    subject,
+    html,
+    text,
+    attachments: [{ filename: 'planning-letter.pdf', content: p.pdf }],
+  });
+  if (error) {
+    throw new Error(`Resend rejected the letter email: ${error.message ?? 'unknown'}`);
+  }
+}
+
+// -------------------------------------------------------------------------
 // Quote accepted — notifies the builder that a prospect signed their quote.
 // -------------------------------------------------------------------------
 export interface EstimateAcceptedEmailParams {

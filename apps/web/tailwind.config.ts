@@ -19,6 +19,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
+          'var(--font-hanken)',
           '-apple-system',
           'BlinkMacSystemFont',
           'Segoe UI',

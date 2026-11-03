@@ -131,6 +131,42 @@ export async function saveBankDetails(
   return { ok: true, redirectTo: '/onboarding/invite' };
 }
 
+/**
+ * Save bank / business details from Settings → Billing (not the onboarding
+ * flow). Same validation and owner-only guard as saveBankDetails, but it
+ * returns to the same page instead of redirecting into onboarding.
+ */
+export async function updateBankDetails(
+  raw: Record<string, unknown>,
+): Promise<ActionResult> {
+  const parsed = tenantBank.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' };
+  }
+  const resolved = await resolveCurrentTenant();
+  if (!resolved) return { ok: false, error: 'Not signed in.' };
+  if (resolved.role !== 'owner') {
+    return { ok: false, error: 'Only the tenant owner can change bank details.' };
+  }
+
+  const supabase = await createSupabaseServer();
+  const { error } = await supabase
+    .from('tenants')
+    .update({
+      bank_name: parsed.data.bank_name,
+      bank_account_name: parsed.data.bank_account_name,
+      bank_sort_code: parsed.data.bank_sort_code,
+      bank_account_number: parsed.data.bank_account_number,
+      vat_number: parsed.data.vat_number,
+      company_number: parsed.data.company_number,
+    })
+    .eq('id', resolved.tenant.id);
+
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/${resolved.tenant.slug}/settings/billing`);
+  return { ok: true };
+}
+
 export async function finishOnboarding(): Promise<void> {
   const resolved = await resolveCurrentTenant();
   if (!resolved) redirect('/login');

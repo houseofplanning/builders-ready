@@ -11,8 +11,18 @@ const IC = 'h-7 w-7';
 
 const STEPS: Step[] = [
   {
+    label: 'Find the job',
+    caption: 'Win new work from homeowners posting jobs on the marketplace.',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={IC}>
+        <circle cx="11" cy="11" r="7" />
+        <path d="M21 21l-4.3-4.3" />
+      </svg>
+    ),
+  },
+  {
     label: 'Quote',
-    caption: 'Price the job on site — materials, labour, your margin.',
+    caption: 'Price it on site from a trade template — materials, labour, your margin.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={IC}>
         <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
@@ -45,7 +55,7 @@ const STEPS: Step[] = [
   },
   {
     label: 'Get paid',
-    caption: 'Clients pay by card or bank — straight to your account.',
+    caption: 'Clients pay by card, bank transfer or cash — staged through the job.',
     accent: true,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={IC}>
@@ -74,9 +84,9 @@ export function JourneyStrip({ className = '' }: { className?: string }) {
       <div className="hidden items-start md:flex">
         {STEPS.map((s, i) => (
           <div key={s.label} className="flex flex-1 items-start">
-            <div className="flex flex-1 flex-col items-center px-2 text-center">
+            <div className="flex flex-1 flex-col items-center px-1 text-center">
               <div
-                className={`flex h-16 w-16 items-center justify-center rounded-2xl ${
+                className={`flex h-14 w-14 items-center justify-center rounded-2xl ${
                   s.accent ? 'bg-accent text-white' : 'bg-primary text-white'
                 }`}
               >
@@ -85,13 +95,13 @@ export function JourneyStrip({ className = '' }: { className?: string }) {
               <div className="mt-3 text-[10px] font-bold uppercase tracking-widest text-ink-muted">
                 Step {i + 1}
               </div>
-              <div className="mt-0.5 text-lg font-extrabold text-ink">{s.label}</div>
-              <p className="mt-1 max-w-[190px] text-xs leading-relaxed text-ink-muted">
+              <div className="mt-0.5 text-base font-extrabold leading-tight text-ink">{s.label}</div>
+              <p className="mt-1 max-w-[150px] text-[11px] leading-relaxed text-ink-muted">
                 {s.caption}
               </p>
             </div>
             {i < STEPS.length - 1 && (
-              <div className="mt-5 flex-shrink-0 self-start pt-0.5">
+              <div className="mt-4 flex-shrink-0 self-start pt-0.5">
                 <Chevron />
               </div>
             )}

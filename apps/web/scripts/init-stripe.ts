@@ -59,7 +59,7 @@ if (!SECRET.startsWith('sk_')) {
 
 const stripe = new Stripe(SECRET, {
   // @ts-expect-error pin to a known-stable API version
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2025-03-31.basil',
 });
 
 const PRODUCT_NAME = 'Builders Ready Subscription';

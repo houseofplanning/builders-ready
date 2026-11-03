@@ -112,6 +112,11 @@ export interface EstimateFormSeed {
   priced_on?: string | null;
   indicative?: boolean;
   lines: EstimateFormInitial['lines'];
+  // Optional site prefill (e.g. launched from a Planning Radar listing).
+  site_address_line1?: string | null;
+  city?: string | null;
+  postcode?: string | null;
+  note?: string | null;
 }
 
 export function EstimateForm({
@@ -135,9 +140,9 @@ export function EstimateForm({
   const [clientName, setClientName] = useState(initial?.client_name ?? '');
   const [clientEmail, setClientEmail] = useState(initial?.client_email ?? '');
   const [clientPhone, setClientPhone] = useState(initial?.client_phone ?? '');
-  const [addr1, setAddr1] = useState(initial?.site_address_line1 ?? '');
-  const [city, setCity] = useState(initial?.city ?? '');
-  const [postcode, setPostcode] = useState(initial?.postcode ?? '');
+  const [addr1, setAddr1] = useState(initial?.site_address_line1 ?? seed?.site_address_line1 ?? '');
+  const [city, setCity] = useState(initial?.city ?? seed?.city ?? '');
+  const [postcode, setPostcode] = useState(initial?.postcode ?? seed?.postcode ?? '');
   const [vatMode, setVatMode] = useState<VatMode>(initial?.vat_mode ?? 'none');
   const [clientDetailLevel, setClientDetailLevel] = useState<EstimateClientDetail>(
     initial?.client_detail_level ?? 'itemised',

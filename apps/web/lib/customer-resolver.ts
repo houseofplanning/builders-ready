@@ -1,6 +1,7 @@
 import 'server-only';
 import { redirect } from 'next/navigation';
 import { createSupabaseServer } from './supabase-server';
+import { getSupabaseAdmin } from './supabase-admin';
 
 /**
  * A "customer" is simply a signed-in user. In the marketplace they own their
@@ -60,4 +61,36 @@ export async function isInvitedClient(): Promise<boolean> {
     .eq('user_id', auth.user.id)
     .maybeSingle();
   return membership?.role === 'client';
+}
+
+/**
+ * Brand (name + logo) of the builder an invited client belongs to, for the
+ * client web shell header. Returns null for marketplace customers and for
+ * anyone not signed in — those keep the generic "BUILDERS READY" wordmark.
+ *
+ * Read via admin: the client has already passed the membership gate, and we
+ * only surface non-sensitive brand fields (name, public logo URL).
+ */
+export interface InvitedClientBrand {
+  name: string | null;
+  logo_url: string | null;
+}
+
+export async function getInvitedClientBrand(): Promise<InvitedClientBrand | null> {
+  const supabase = await createSupabaseServer();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return null;
+  const { data: membership } = await supabase
+    .from('tenant_members')
+    .select('tenant_id, role')
+    .eq('user_id', auth.user.id)
+    .maybeSingle();
+  if (membership?.role !== 'client' || !membership.tenant_id) return null;
+  const { data: tenant } = await getSupabaseAdmin()
+    .from('tenants')
+    .select('name, logo_url')
+    .eq('id', membership.tenant_id)
+    .maybeSingle();
+  if (!tenant) return null;
+  return { name: tenant.name ?? null, logo_url: tenant.logo_url ?? null };
 }

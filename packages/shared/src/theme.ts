@@ -26,6 +26,15 @@ export const palette = {
   card: '#FFFFFF',
   hairline: '#E1E6E9',
 
+  // Marketing (warm) surface — used ONLY on the public marketing site,
+  // never in the app/dashboard, which keeps the cool neutral canvas above.
+  paper: '#F4F0E9',
+  paperAlt: '#ECE6DB',
+  hairlineWarm: '#E4DDD0',
+  inkWarm: '#16201D',
+  inkSoftWarm: '#46524E',
+  inkMutedWarm: '#808B86',
+
   // Status
   success: '#2E7D32',
   successSoft: 'rgba(46, 125, 50, 0.08)',
@@ -105,6 +114,12 @@ export const tailwindColors = {
   canvas: palette.canvas,
   card: palette.card,
   hairline: palette.hairline,
+  paper: palette.paper,
+  'paper-alt': palette.paperAlt,
+  'hairline-warm': palette.hairlineWarm,
+  'ink-warm': palette.inkWarm,
+  'ink-soft-warm': palette.inkSoftWarm,
+  'ink-muted-warm': palette.inkMutedWarm,
   success: palette.success,
   warning: palette.warning,
   error: palette.error,

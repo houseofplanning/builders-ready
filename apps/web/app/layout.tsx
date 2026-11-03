@@ -1,6 +1,14 @@
 import type { Metadata } from 'next';
+import { Hanken_Grotesk } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
+
+const hanken = Hanken_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-hanken',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: {
@@ -45,7 +53,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en-GB">
+    <html lang="en-GB" className={hanken.variable}>
       <body className="min-h-screen font-sans antialiased">
         {children}
         <Analytics />

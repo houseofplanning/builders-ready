@@ -1,10 +1,13 @@
 'use server';
 
 import 'server-only';
+import { cookies } from 'next/headers';
 import { z } from 'zod';
+import type Stripe from 'stripe';
 import { TIERS, type SubscriptionTier } from '@br/shared';
 import { getSupabaseAdmin } from '../supabase-admin';
 import { resolveCurrentTenant } from '../tenant-resolver';
+import { resolveOffer } from '../offers';
 import {
   appUrl,
   getStripe,
@@ -95,8 +98,12 @@ export async function createCheckoutSession(
     }
   }
 
-  // 2) Create the Checkout Session
-  const session = await stripe.checkout.sessions.create({
+  // 2) Resolve any time-limited acquisition offer (?offer= -> br_offer cookie)
+  const cookieStore = await cookies();
+  const offer = resolveOffer(cookieStore.get('br_offer')?.value);
+
+  // 3) Create the Checkout Session
+  const baseParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
@@ -105,14 +112,17 @@ export async function createCheckoutSession(
       metadata: {
         tenant_id: tenant.id,
         tenant_slug: tenant.slug,
+        ...(offer ? { offer: offer.slug } : {}),
       },
     },
     // Force card collection during trial so day-15 auto-charge works.
     payment_method_collection: 'always',
-    automatic_tax: { enabled: true },
-    customer_update: { name: 'auto', address: 'auto' },
-    tax_id_collection: { enabled: true },
-    allow_promotion_codes: true,
+    // NOT VAT-registered yet — do not charge or auto-calculate VAT. When the
+    // company registers for VAT, set automatic_tax.enabled=true again, re-add
+    // tax_id_collection, restore customer_update.address='auto', and configure
+    // the VAT registration in Stripe Tax settings.
+    automatic_tax: { enabled: false },
+    customer_update: { name: 'auto' },
     success_url: `${appUrl()}/onboarding/complete?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl()}/onboarding/billing?cancelled=1`,
     metadata: {
@@ -120,8 +130,34 @@ export async function createCheckoutSession(
       tenant_slug: tenant.slug,
       tier,
       cadence,
+      ...(offer ? { offer: offer.slug } : {}),
     },
-  });
+  };
+
+  // `discounts` and `allow_promotion_codes` are mutually exclusive. When a
+  // valid offer is present we stack its coupons; otherwise we leave the
+  // manual promo-code box open at checkout. If the offer's coupons are
+  // expired/invalid (e.g. past redeem_by), Stripe throws — so we fall back
+  // to a normal checkout rather than block the signup.
+  let session;
+  if (offer) {
+    try {
+      session = await stripe.checkout.sessions.create({
+        ...baseParams,
+        discounts: offer.coupons.map((coupon) => ({ coupon })),
+      });
+    } catch {
+      session = await stripe.checkout.sessions.create({
+        ...baseParams,
+        allow_promotion_codes: true,
+      });
+    }
+  } else {
+    session = await stripe.checkout.sessions.create({
+      ...baseParams,
+      allow_promotion_codes: true,
+    });
+  }
 
   if (!session.url) {
     return { ok: false, error: 'Stripe did not return a Checkout URL.' };

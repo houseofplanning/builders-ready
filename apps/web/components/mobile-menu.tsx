@@ -35,6 +35,7 @@ export function MobileMenu({ slug, role }: { slug: string; role: TenantMemberRol
     ...(isTrade
       ? [
           { href: `/${slug}/find-work`, label: 'Marketplace' },
+          { href: `/${slug}/planning-radar`, label: 'Planning Radar' },
           { href: `/${slug}/messages`, label: 'Messages' },
         ]
       : []),
@@ -48,7 +49,7 @@ export function MobileMenu({ slug, role }: { slug: string; role: TenantMemberRol
   ];
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

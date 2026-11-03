@@ -54,7 +54,7 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
         .order('position', { ascending: true }),
       supabase
         .from('project_updates')
-        .select('id, headline, body, posted_at')
+        .select('id, headline, body, posted_at, photos:update_photos(storage_path, position)')
         .eq('project_id', projectId)
         .order('posted_at', { ascending: false })
         .limit(8),
@@ -108,18 +108,37 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
   const remainingPence = Math.max(0, projectValuePence - paidPence);
   const showMoney = projectValuePence > 0 || paidPence > 0;
 
-  const optionsByDecision = new Map<string, { id: string; label: string; description: string | null; price_gbp_pence: number | null }[]>();
+  const optionsByDecision = new Map<string, { id: string; label: string; description: string | null; price_gbp_pence: number | null; photo_storage_path: string | null }[]>();
   if (decisions.length) {
     const { data: opts } = await supabase
       .from('decision_options')
-      .select('id, decision_id, label, description, price_gbp_pence, position')
+      .select('id, decision_id, label, description, price_gbp_pence, position, photo_storage_path')
       .in('decision_id', decisions.map((d) => d.id))
       .order('position', { ascending: true });
     (opts ?? []).forEach((o) => {
       const arr = optionsByDecision.get(o.decision_id) ?? [];
-      arr.push({ id: o.id, label: o.label, description: o.description, price_gbp_pence: o.price_gbp_pence });
+      arr.push({ id: o.id, label: o.label, description: o.description, price_gbp_pence: o.price_gbp_pence, photo_storage_path: o.photo_storage_path });
       optionsByDecision.set(o.decision_id, arr);
     });
+  }
+
+  // Sign every update/decision photo (private `update-photos` bucket) in one
+  // batch so the client actually sees the pictures their builder posted.
+  const photoPaths = new Set<string>();
+  for (const u of updates as Array<{ photos?: { storage_path: string }[] }>) {
+    for (const p of u.photos ?? []) if (p.storage_path) photoPaths.add(p.storage_path);
+  }
+  for (const arr of optionsByDecision.values()) {
+    for (const o of arr) if (o.photo_storage_path) photoPaths.add(o.photo_storage_path);
+  }
+  const photoUrls: Record<string, string> = {};
+  if (photoPaths.size > 0) {
+    const { data: signed } = await supabase.storage
+      .from('update-photos')
+      .createSignedUrls([...photoPaths], 3600);
+    for (const s of signed ?? []) {
+      if (s.path && s.signedUrl) photoUrls[s.path] = s.signedUrl;
+    }
   }
 
   const { data: trade } = await supabase
@@ -204,30 +223,30 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
 
       {/* Money summary — agreed value, paid, remaining */}
       {showMoney && (
-        <div className="mt-4 rounded-card border border-hairline bg-white p-5">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+        <div className="mt-4 rounded-card border border-hairline bg-white p-4 sm:p-5">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:tracking-widest">
                 Project value
               </div>
-              <div className="mt-1 text-xl font-extrabold text-ink">{gbp(projectValuePence)}</div>
+              <div className="mt-1 text-base font-extrabold tracking-tight text-ink sm:text-xl">{gbp(projectValuePence)}</div>
               {acceptedVariationsPence > 0 && (
                 <div className="text-[11px] text-ink-muted">incl. approved changes</div>
               )}
             </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:tracking-widest">
                 Paid so far
               </div>
-              <div className="mt-1 text-xl font-extrabold text-emerald-700">{gbp(paidPence)}</div>
+              <div className="mt-1 text-base font-extrabold tracking-tight text-emerald-700 sm:text-xl">{gbp(paidPence)}</div>
             </div>
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-ink-muted">
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-muted sm:tracking-widest">
                 Still to pay
               </div>
-              <div className="mt-1 text-xl font-extrabold text-ink">{gbp(remainingPence)}</div>
+              <div className="mt-1 text-base font-extrabold tracking-tight text-ink sm:text-xl">{gbp(remainingPence)}</div>
               {dueNowPence > 0 && (
-                <div className="text-[11px] font-semibold text-amber-700">
+                <div className="mt-0.5 text-[11px] font-semibold text-amber-700">
                   {gbp(dueNowPence)} due now
                 </div>
               )}
@@ -253,6 +272,30 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
               {d.description && <p className="mt-1 text-sm text-ink-muted">{d.description}</p>}
               {d.deadline && (
                 <p className="mt-1 text-xs text-amber-700">By {formatDate(d.deadline)}</p>
+              )}
+              {(optionsByDecision.get(d.id) ?? []).some((o) => o.photo_storage_path) && (
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {(optionsByDecision.get(d.id) ?? [])
+                    .filter((o) => o.photo_storage_path && photoUrls[o.photo_storage_path])
+                    .map((o) => (
+                      <a
+                        key={o.id}
+                        href={photoUrls[o.photo_storage_path!]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                      >
+                        <img
+                          src={photoUrls[o.photo_storage_path!]}
+                          alt={o.label}
+                          className="h-24 w-24 rounded-lg border border-hairline object-cover"
+                        />
+                        <span className="mt-1 block max-w-24 truncate text-[11px] text-ink-muted">
+                          {o.label}
+                        </span>
+                      </a>
+                    ))}
+                </div>
               )}
               <DecisionAccept
                 decisionId={d.id}
@@ -336,6 +379,13 @@ export default async function CustomerProjectPortal({ params, searchParams }: Pr
               <li key={u.id} className="rounded-card border border-hairline bg-white p-4">
                 {u.headline && <div className="text-sm font-extrabold text-ink">{u.headline}</div>}
                 <p className="mt-1 text-sm text-ink">{u.body}</p>
+                <PhotoGrid
+                  photos={((u as unknown as { photos?: { storage_path: string; position: number }[] }).photos ?? [])
+                    .slice()
+                    .sort((a, b) => a.position - b.position)
+                    .map((p) => photoUrls[p.storage_path])
+                    .filter(Boolean)}
+                />
                 <p className="mt-1 text-xs text-ink-muted">{relativeTime(u.posted_at)}</p>
               </li>
             ))}
@@ -416,4 +466,21 @@ function Section({
 
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="mb-3 rounded-card border border-hairline bg-white p-5">{children}</div>;
+}
+
+function PhotoGrid({ photos }: { photos: string[] }) {
+  if (photos.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {photos.map((url, i) => (
+        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+          <img
+            src={url}
+            alt={`Update photo ${i + 1}`}
+            className="h-24 w-24 rounded-lg border border-hairline object-cover"
+          />
+        </a>
+      ))}
+    </div>
+  );
 }

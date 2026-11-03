@@ -16,6 +16,148 @@ export interface BlogPost {
 
 export const POSTS: BlogPost[] = [
   {
+    slug: 'card-bank-transfer-or-cash-let-clients-pay-their-way',
+    title: 'Card, bank transfer or cash: let clients pay the way that suits the job',
+    description:
+      'Not every domestic job wants a card machine, and not every client wants to tap their PIN. Here is how to offer card, bank transfer and cash on the same invoice — and still keep a clean record of who paid what, when.',
+    publishedAt: '2026-10-12',
+    readingTime: '5 min read',
+    category: 'Getting Paid',
+    contentHtml: `
+<p>There is a quiet assumption baked into most "get paid online" tools: that every client wants to pay by card, and that card is always the right answer. On domestic building work it often is not. A homeowner settling a £15,000 stage payment usually does it by bank transfer. A smaller cash job gets handed over in notes. And plenty of clients are happy to tap a card for the deposit and transfer the rest. Forcing all of that down one rail just means the awkward ones get paid late — or off the books, where you lose the record.</p>
+
+<p>The better approach is to let the invoice carry whichever methods make sense for that job, and to keep the paperwork tidy whichever one the client picks.</p>
+
+<h2>Pick the methods per invoice, not per business</h2>
+
+<p>How you get paid is rarely a fixed, business-wide decision — it shifts job by job. A new client you have not worked with before: take the deposit on card so it clears instantly. A long-standing customer on a big extension: bank transfer, no fees, no fuss. A quick repair for a neighbour: cash. The tool should bend to that, letting you turn card, bank transfer and cash on or off for each invoice you raise, rather than making you run everything the same way.</p>
+
+<h2>Bank transfer, without the "what were your details again?" text</h2>
+
+<p>The friction in bank transfer is never the transfer — it is the client not having your details to hand. Put your account name, sort code and account number directly on the invoice, with a clear reference, and that back-and-forth disappears. The client pays from their banking app, tells you it is done, and you confirm it the moment the money lands. No card fees, no waiting on a third party, and a dated record of the whole thing.</p>
+
+<h2>Cash, but on the record</h2>
+
+<p>Cash is not the enemy of good bookkeeping — untracked cash is. If the client can flag "paid in cash" against the invoice and you confirm receipt, you keep every advantage of cash while still having a clean, dated record that the invoice was settled. That record is what turns into a proper handover document and keeps your accounts honest at year end.</p>
+
+<h2>The record is the point</h2>
+
+<p>Whatever the method, the thing that protects you is the same: an invoice that visibly moves from sent to paid, with who confirmed it and when. Card reconciles itself; bank transfer and cash get flagged by the client and confirmed by you; and either way a receipt goes to the client automatically. Six months later, if anyone asks what was paid for that stage, the answer is one tap away rather than a scroll through a bank statement.</p>
+
+<h2>Getting started</h2>
+
+<p>In Builders Ready you choose the payment methods on each invoice — card, bank transfer, cash, in any combination. Card lands in your own account; bank transfer shows your details on the invoice; cash is flagged and confirmed. Every confirmed payment emails the client a branded PDF receipt. You can try it free for 14 days — raise a real invoice, offer the methods that suit the job, and let the client pay the way they actually want to.</p>
+`,
+  },
+  {
+    slug: 'bill-the-milestone-not-the-month',
+    title: 'Bill the milestone, not the month: invoicing straight off your contract schedule',
+    description:
+      'If your invoices and your contract live in two different places, the numbers drift and stages get billed twice or not at all. Here is why raising each invoice straight off the agreed payment schedule keeps everyone honest.',
+    publishedAt: '2026-10-05',
+    readingTime: '5 min read',
+    category: 'Getting Paid',
+    contentHtml: `
+<p>Most payment disputes on domestic jobs are not really about money — they are about bookkeeping that drifted. The contract said a deposit, three stage payments and a completion balance. But the invoices got raised ad hoc, from memory, between jobs. One stage got billed twice. Another never got billed at all and only surfaced at the end as an awkward "actually, you still owe for first fix." None of it was dishonest. It was just two lists that stopped agreeing with each other.</p>
+
+<p>The fix is to stop treating the invoice and the contract as separate things. Every invoice should come <em>off</em> the schedule you already agreed, for the amount you already agreed, and should mark that milestone as billed the moment it goes out.</p>
+
+<h2>Agree the schedule once, at the start</h2>
+
+<p>The groundwork happens before the first brick: turn the accepted quote into a contract with a clear payment schedule — a deposit, named stage payments tied to milestones, a completion balance, and a retention if the job warrants one. Each milestone is either a fixed amount or a percentage of the contract sum. The client signs it up front, so the whole shape of how and when they pay is agreed while goodwill is high, not negotiated stage by stage under pressure.</p>
+
+<h2>Then raise each invoice from a milestone, not from scratch</h2>
+
+<p>When a stage is signed off, you should be able to raise its invoice in one tap — pulling the amount straight from the schedule, not re-typing a figure and hoping it matches. Billing this way does three things at once. The amount is always right, because it comes from the agreed milestone. The milestone is marked invoiced, so it cannot be billed again by accident. And the running total of invoiced-versus-remaining stays live, so you and the client can both see exactly where the money is.</p>
+
+<h2>Milestones beat dates, every time</h2>
+
+<p>Tie payments to verifiable milestones — "on completion of first fix" — rather than the calendar. A milestone is something both parties can look at and agree has happened; a date just invites an argument every time the programme slips. When the trigger for a payment is a stage the client can see is done, the invoice feels earned rather than demanded, and it gets paid faster.</p>
+
+<h2>Everyone sees the same schedule</h2>
+
+<p>The quiet benefit of invoicing off the contract is that nobody is working from a different copy. The client sees the same schedule you do — what is paid, what is invoiced, what is still to come — so the completion invoice is never a surprise. "Final account shock" is almost always the cumulative effect of payments nobody was tracking; a visible, shared schedule removes it entirely.</p>
+
+<h2>Getting started</h2>
+
+<p>Builders Ready links invoices to the contract schedule: build the schedule when the contract is signed, then raise each milestone's invoice in one tap — on the web or in the app — and watch the schedule update to invoiced and paid as you go. Try it free for 14 days and bill your next job straight off the plan you agreed, instead of from memory.</p>
+`,
+  },
+  {
+    slug: 'give-clients-a-window-into-the-job-client-portal',
+    title: 'Give clients a window into the job — and stop answering “any update?”',
+    description:
+      'The single biggest drain on a builder’s week is keeping clients informed by text and call. A client portal flips it: they look instead of asking, on their phone or their laptop, under your brand.',
+    publishedAt: '2026-09-28',
+    readingTime: '5 min read',
+    category: 'Client Experience',
+    contentHtml: `
+<p>Ask any builder what eats their evenings and the answer is rarely the building. It is the keeping-everyone-informed: the "any update?" texts, the client's partner ringing for a progress photo, the drip of small questions that each take two minutes and collectively take your week. The instinct is to answer faster. The fix is the opposite — give the client somewhere to look, so they stop needing to ask.</p>
+
+<h2>A portal is just "their job, in one place"</h2>
+
+<p>A client portal is not a complicated thing. It is a single page — on the web and in the app — that shows the client exactly their job and nothing else: where it is on the timeline, the latest update with photos, any decision you need from them, and what they owe. Because everything they might text you about is already on that page, the texts stop. You post one update from the van and everyone who needs to know, knows.</p>
+
+<h2>Money they can see is money they do not query</h2>
+
+<p>The part clients worry about most is the money, so it is the part worth showing most clearly. A simple summary — the project value, what they have paid so far, and what is still to come — answers the anxious question before it is asked. When the numbers are visible and move in real time as stages are invoiced and paid, the completion bill is never a shock, and you spend no time reconstructing "what have I actually paid you so far?" from memory.</p>
+
+<h2>Under your brand, not the tool's</h2>
+
+<p>A portal that carries someone else's logo quietly undersells you. The client should open their project and see <em>your</em> business — your name, your logo — not the software you happen to run it on. Done right, the portal makes a sole trader look as organised as a firm with an office, which is exactly the impression that wins the next job.</p>
+
+<h2>Same picture on the phone and the laptop</h2>
+
+<p>Clients are not consistent about devices — one checks on their phone at lunch, their partner opens a laptop in the evening. If the two show different things, you are back to fielding "but it said…" messages. The portal and the app should show the same live picture, so it genuinely does not matter which one they open.</p>
+
+<h2>Getting started</h2>
+
+<p>In Builders Ready, inviting a client to a project gives them exactly this: a branded, project-only portal on the web that mirrors their app — live progress, updates with photos, decisions, a money summary and payable invoices, all under your logo. Try it free for 14 days, invite a client to your next job, and see how much quieter your phone gets.</p>
+`,
+  },
+  {
+    slug: 'what-to-put-on-a-builders-invoice-to-get-paid',
+    title: 'What to put on a builder’s invoice so you actually get paid',
+    description:
+      'A vague invoice is a slow invoice. Here is exactly what belongs on a domestic building invoice — the details that remove the client’s excuses to delay and get the money in faster.',
+    publishedAt: '2026-09-21',
+    readingTime: '6 min read',
+    category: 'Getting Paid',
+    contentHtml: `
+<p>Late payment on domestic jobs is often blamed on difficult clients. More often it is a vague invoice. When an invoice does not clearly say what the money is for, what it covers, when it is due and how to pay it, the client has a dozen small reasons to put it in the "later" pile — and "later" is where builder cash flow goes to die. A tight, professional invoice removes those reasons one by one.</p>
+
+<h2>Say what it is for — in the client's language</h2>
+
+<p>"Payment 2 — £8,000" tells the client nothing they can feel good about paying. "Stage 2: first fix complete — carpentry, electrics and plumbing roughed in" ties the money to work they can see has been done. People pay willingly for things they understand and resent paying for mysteries. Describe the stage, not just the number.</p>
+
+<h2>The details that remove excuses</h2>
+
+<ul>
+  <li><strong>A unique invoice number.</strong> Sequential and unmissable, so neither of you loses track of what has been billed.</li>
+  <li><strong>Issue date and a clear due date.</strong> "Due on receipt" or a specific date — not "net 30" buried in small print the client will interpret generously.</li>
+  <li><strong>What the payment covers.</strong> The stage or milestone, in plain words, ideally matched to the schedule they already signed.</li>
+  <li><strong>How to pay, right there.</strong> Bank details for a transfer, or a pay-by-card option — never "let me know how you'd like to pay", which just adds a round of messages.</li>
+  <li><strong>Your business details.</strong> Trading name, and your VAT and Companies House numbers if you have them. It signals a real business, and some clients genuinely need them for their own records.</li>
+</ul>
+
+<h2>Tie it to a milestone they agreed</h2>
+
+<p>The strongest invoice is one the client has, in effect, already approved. If the payment matches a milestone on a schedule they signed at the start, there is nothing left to argue about — the trigger was agreed, the amount was agreed, and the stage is visibly done. Invoices that come as a surprise get queried; invoices that were expected get paid.</p>
+
+<h2>Make paying it a single action</h2>
+
+<p>Every extra step between "I should pay this" and "paid" is a chance for the client to drift off. An invoice they can open and settle in one action — tap to pay by card, or your details sitting right there for a transfer — gets paid far faster than a PDF that requires them to go find their banking app and type your sort code from memory. Reduce the job of paying you to one tap and most clients will do it there and then.</p>
+
+<h2>Keep the record clean</h2>
+
+<p>Finally, an invoice is not done when it is sent — it is done when it is marked paid, with the date and reference captured. That record is what protects you if a payment is ever disputed, and it is what rolls up into a professional handover pack at the end of the job. A pile of sent invoices with no record of what came back is how builders end up chasing money they were, in fact, already paid.</p>
+
+<h2>Getting started</h2>
+
+<p>Builders Ready invoices carry all of this by default — auto-numbered, tied to your contract milestones, with your bank details or a pay button built in, and a clean sent-to-paid record on every one. Try it free for 14 days and see how much faster a proper invoice gets you paid.</p>
+`,
+  },
+  {
     slug: 'how-to-quote-a-building-job-on-site',
     title: 'How to quote a building job on site — and win more of them',
     description:

@@ -152,6 +152,9 @@ export default function CreateEstimateScreen() {
     if (!pending) return;
     setTitle(pending.title);
     setProjectType(pending.projectType);
+    if (pending.siteAddressLine1) setAddr1(pending.siteAddressLine1);
+    if (pending.city) setCity(pending.city);
+    if (pending.postcode) setPostcode(pending.postcode);
     if (pending.lines.length) {
       setRows(
         pending.lines.map((l) => ({
@@ -168,11 +171,13 @@ export default function CreateEstimateScreen() {
       );
     }
     setTemplateNote(
-      pending.indicative
-        ? 'Indicative guideline pre-filled — review and adjust every line and your margin before you send.'
-        : pending.pricedOn
-          ? `Pre-filled from a template · materials priced as of ${formatDate(pending.pricedOn, { short: true })}. Edit any line and your margin.`
-          : 'Pre-filled from a template. Edit any line and your margin.',
+      pending.note
+        ? pending.note
+        : pending.indicative
+          ? 'Indicative guideline pre-filled — review and adjust every line and your margin before you send.'
+          : pending.pricedOn
+            ? `Pre-filled from a template · materials priced as of ${formatDate(pending.pricedOn, { short: true })}. Edit any line and your margin.`
+            : 'Pre-filled from a template. Edit any line and your margin.',
     );
   }, [id]);
 

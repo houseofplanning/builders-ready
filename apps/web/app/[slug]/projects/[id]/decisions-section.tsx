@@ -22,6 +22,7 @@ export interface DecisionListRow {
     label: string;
     description: string | null;
     price_gbp_pence: number | null;
+    photo_url: string | null;
   }[];
 }
 
@@ -148,6 +149,15 @@ function DecisionRow({
                   : 'border-hairline'
               }`}
             >
+              {o.photo_url && (
+                <a href={o.photo_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                  <img
+                    src={o.photo_url}
+                    alt={o.label}
+                    className="h-12 w-12 rounded-md border border-hairline object-cover"
+                  />
+                </a>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="font-semibold">{o.label}</div>
                 {o.description && (

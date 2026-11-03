@@ -5,30 +5,33 @@ import { useState } from 'react';
 
 const NAV_LINKS = [
   { href: '/features', label: 'Features' },
+  { href: '/planning-radar', label: 'Planning Radar' },
   { href: '/pricing', label: 'Pricing' },
-  { href: '/homeowners', label: 'Homeowners' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/about', label: 'About' },
+  { href: '/homeowners', label: 'For homeowners' },
 ];
 
 export function SiteNav() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-hairline bg-white/85 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-5 py-3.5 sm:px-6">
+    <header className="sticky top-0 z-30 border-b border-hairline-warm bg-paper/80 backdrop-blur">
+      <div className="flex items-center gap-3 px-6 py-4 sm:px-10 xl:px-14">
         <Link
           href="/"
-          className="whitespace-nowrap text-sm font-extrabold tracking-[0.18em] text-ink sm:text-base sm:tracking-[0.2em]"
+          className="whitespace-nowrap text-sm font-extrabold tracking-[0.18em] text-ink-warm sm:text-base sm:tracking-[0.2em]"
           onClick={() => setOpen(false)}
         >
           BUILDERS <span className="text-primary">READY</span>
         </Link>
 
         {/* Desktop links */}
-        <nav className="ml-8 hidden gap-7 text-sm font-semibold text-ink-muted md:flex">
+        <nav className="ml-9 hidden gap-7 text-sm font-semibold text-ink-muted-warm lg:flex">
           {NAV_LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-ink">
+            <Link
+              key={l.href}
+              href={l.href}
+              className="whitespace-nowrap transition-colors hover:text-ink-warm"
+            >
               {l.label}
             </Link>
           ))}
@@ -37,13 +40,13 @@ export function SiteNav() {
         <div className="ml-auto flex items-center gap-2">
           <Link
             href="/login"
-            className="hidden rounded-lg border border-hairline bg-white px-3 py-2 text-sm font-semibold text-ink sm:inline-flex"
+            className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-warm transition-colors hover:text-primary lg:inline-flex"
           >
-            Sign in
+            Log in
           </Link>
           <Link
             href="/signup"
-            className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white sm:text-sm"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-deep"
           >
             Start free
           </Link>
@@ -54,7 +57,7 @@ export function SiteNav() {
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-hairline text-ink md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-ink-warm lg:hidden"
           >
             {open ? (
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -71,14 +74,14 @@ export function SiteNav() {
 
       {/* Mobile dropdown menu */}
       {open && (
-        <nav className="border-t border-hairline bg-white md:hidden">
-          <div className="mx-auto max-w-7xl px-5 py-2">
+        <nav className="border-t border-hairline-warm bg-paper lg:hidden">
+          <div className="px-6 py-2 sm:px-10 xl:px-14">
             {NAV_LINKS.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="block border-b border-hairline/70 py-3 text-sm font-semibold text-ink last:border-b-0"
+                className="block border-b border-hairline-warm/70 py-3.5 text-base font-bold text-ink-warm last:border-b-0"
               >
                 {l.label}
               </Link>
@@ -86,9 +89,9 @@ export function SiteNav() {
             <Link
               href="/login"
               onClick={() => setOpen(false)}
-              className="block py-3 text-sm font-semibold text-primary"
+              className="block py-3.5 text-base font-bold text-primary"
             >
-              Sign in →
+              Log in →
             </Link>
           </div>
         </nav>

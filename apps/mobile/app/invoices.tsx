@@ -10,13 +10,16 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { spacing, typography, gbp } from '@br/shared';
+import { Alert } from 'react-native';
+import { spacing, typography, radius, gbp } from '@br/shared';
 import { useTenant } from '../lib/tenant-provider';
 import { useCurrentProject } from '../lib/current-project';
 import {
   listInvoicesForProject,
+  raiseMilestoneInvoice,
   type InvoiceListItem,
 } from '../lib/invoices';
+import { getContract, type ContractMilestone } from '../lib/contracts';
 import { InvoiceCard } from '../components/invoice-card';
 
 type Section =
@@ -25,23 +28,48 @@ type Section =
 
 export default function InvoicesScreen() {
   const router = useRouter();
-  const { role, palette } = useTenant();
+  const { role, palette, user_id } = useTenant();
   const { current } = useCurrentProject();
   const canCreate = role === 'owner' || role === 'pm';
 
   const [items, setItems] = useState<InvoiceListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [milestones, setMilestones] = useState<ContractMilestone[]>([]);
+  const [raisingId, setRaisingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!current) {
       setItems([]);
+      setMilestones([]);
       setLoading(false);
       return;
     }
     setLoading(true);
-    setItems(await listInvoicesForProject(current.project.id));
+    const [invs, contract] = await Promise.all([
+      listInvoicesForProject(current.project.id),
+      canCreate ? getContract(current.project.id) : Promise.resolve(null),
+    ]);
+    setItems(invs);
+    setMilestones(
+      (contract?.milestones ?? []).filter(
+        (m) => !m.invoice_id && m.amount_resolved_pence > 0,
+      ),
+    );
     setLoading(false);
-  }, [current]);
+  }, [current, canCreate]);
+
+  async function onRaiseMilestone(m: ContractMilestone) {
+    if (!user_id) return;
+    setRaisingId(m.id);
+    try {
+      await raiseMilestoneInvoice(m.id, user_id);
+      await load();
+    } catch (err) {
+      Alert.alert('Could not raise invoice', err instanceof Error ? err.message : 'Error');
+    } finally {
+      setRaisingId(null);
+    }
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -119,10 +147,58 @@ export default function InvoicesScreen() {
         }
         ListHeaderComponent={
           current ? (
-            <Text style={[styles.subtitle, { color: palette.inkMuted }]}>
-              {current.project.name}
-              {items.length === 0 ? ' · No invoices yet on this project.' : ''}
-            </Text>
+            <View>
+              <Text style={[styles.subtitle, { color: palette.inkMuted }]}>
+                {current.project.name}
+                {items.length === 0 ? ' · No invoices yet on this project.' : ''}
+              </Text>
+              {canCreate && milestones.length > 0 && (
+                <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+                  <Text style={[styles.sectionHeader, { color: palette.inkMuted, marginBottom: spacing.xs }]}>
+                    From your contract
+                  </Text>
+                  <View
+                    style={[
+                      styles.contractCard,
+                      { backgroundColor: palette.card, borderColor: palette.hairline },
+                    ]}
+                  >
+                    {milestones.map((m, i) => (
+                      <View
+                        key={m.id}
+                        style={[
+                          styles.msRow,
+                          i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.hairline },
+                        ]}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.msName, { color: palette.ink }]}>
+                            {m.name}
+                            {m.is_retention ? '  · retention' : ''}
+                          </Text>
+                          <Text style={[styles.msMeta, { color: palette.inkMuted }]}>
+                            {m.percent != null ? `${m.percent}% of contract` : 'Fixed amount'} · {gbp(m.amount_resolved_pence)}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => onRaiseMilestone(m)}
+                          disabled={raisingId === m.id}
+                          style={[styles.raiseBtn, { backgroundColor: palette.primary, opacity: raisingId === m.id ? 0.6 : 1 }]}
+                          activeOpacity={0.85}
+                        >
+                          <Text style={styles.raiseBtnText}>
+                            {raisingId === m.id ? '…' : m.is_retention ? 'Release' : 'Raise'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={[styles.contractHint, { color: palette.inkMuted }]}>
+                    Raising bills the client for that milestone and links it to the contract. Or use + for a custom invoice.
+                  </Text>
+                </View>
+              )}
+            </View>
           ) : null
         }
         ListEmptyComponent={
@@ -248,6 +324,40 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   flexGrow: { flexGrow: 1 },
+  contractCard: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+  },
+  msRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  msName: {
+    fontSize: typography.size.body,
+    fontWeight: typography.weightSemibold as '600',
+  },
+  msMeta: {
+    fontSize: typography.size.xs,
+    marginTop: 2,
+  },
+  raiseBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: radius.md,
+  },
+  raiseBtnText: {
+    color: '#fff',
+    fontSize: typography.size.sm,
+    fontWeight: typography.weightBold as '700',
+  },
+  contractHint: {
+    fontSize: typography.size.xs,
+    marginTop: spacing.sm,
+    lineHeight: 16,
+  },
   fab: {
     position: 'absolute',
     right: spacing.lg,

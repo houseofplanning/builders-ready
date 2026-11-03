@@ -24,7 +24,8 @@ export function getStripe(): Stripe {
   if (!key) throw new Error('STRIPE_SECRET_KEY is not set');
   singleton = new Stripe(key, {
     // @ts-expect-error pin to a known-stable API version
-    apiVersion: '2024-11-20.acacia',
+    // basil+ required: the Builders Ready Ltd account uses Managed Payments
+    apiVersion: '2025-03-31.basil',
   });
   return singleton;
 }

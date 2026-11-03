@@ -117,6 +117,9 @@ function AuthGate() {
           case 'payment_flagged':
             if (data.invoice_id) router.push(`/invoice/${data.invoice_id}`);
             break;
+          case 'contract_sent':
+            router.push('/contract');
+            break;
           case 'report_posted':
             if (data.report_id) router.push(`/report/${data.report_id}`);
             break;
@@ -237,6 +240,9 @@ function AuthGate() {
       />
       <Stack.Screen name="find-work" options={{ headerShown: false }} />
       <Stack.Screen name="find-work/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="planning-radar" options={{ headerShown: false }} />
+      <Stack.Screen name="planning-radar/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="planning-radar/letter" options={{ headerShown: false }} />
       <Stack.Screen name="mkt-messages" options={{ headerShown: false }} />
       <Stack.Screen name="mkt-thread/[id]" options={{ headerShown: false }} />
       <Stack.Screen

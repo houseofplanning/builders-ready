@@ -47,9 +47,11 @@ export default function MarketingLayout({
           ]),
         }}
       />
-      <SiteNav />
-      {children}
-      <SiteFooter />
+      <div className="bg-paper text-ink-warm">
+        <SiteNav />
+        {children}
+        <SiteFooter />
+      </div>
     </>
   );
 }

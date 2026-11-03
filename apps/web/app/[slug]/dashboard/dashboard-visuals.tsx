@@ -1,50 +1,36 @@
 export { CashChart, CompletionRing } from '@/components/finance-visuals';
 
-// Each KPI gets its own soft tint so the row reads at a glance and the tiles
-// don't look empty. Colour carries meaning (projects/teal, variations/coral,
-// decisions/amber, money/green).
-const TINTS = {
-  teal: { bg: '#E7F0F2', icon: '#0F4C5C' },
-  coral: { bg: '#FDEDE8', icon: '#C85A3E' },
-  amber: { bg: '#FEF3E2', icon: '#B7791F' },
-  green: { bg: '#E6F6EF', icon: '#0F6E56' },
-} as const;
-
-export type Tint = keyof typeof TINTS;
+// KPI tiles are deliberately calm: the number leads, the label sits quietly
+// above it, and a single muted icon marks the tile. No coloured tile tints or
+// badges — colour is reserved for the one brand accent, used sparingly.
+export type Tint = 'teal' | 'coral' | 'amber' | 'green';
 
 export function KpiTile({
-  tint,
   icon,
   value,
   label,
   chip,
 }: {
-  tint: Tint;
-  icon: React.ReactNode;
+  tint?: Tint;
+  icon?: React.ReactNode;
   value: string | number;
   label: string;
   chip?: string | null;
 }) {
-  const t = TINTS[tint];
   return (
-    <div className="rounded-card border border-hairline bg-white p-4 shadow-card">
-      <div className="flex items-center gap-2">
-        <span
-          className="flex flex-shrink-0 items-center justify-center"
-          style={{ width: 34, height: 34, borderRadius: 9, background: t.bg, color: t.icon }}
-        >
-          {icon}
-        </span>
+    <div className="rounded-card border border-hairline bg-white p-5 shadow-card">
+      <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
           {label}
         </span>
+        {icon && <span style={{ color: '#9AA7A2' }}>{icon}</span>}
       </div>
-      <div className="mt-3 flex items-end justify-between gap-2">
-        <div className="text-[28px] font-extrabold leading-none tracking-tight text-ink">
+      <div className="mt-4 flex items-end justify-between gap-2">
+        <div className="text-[30px] font-extrabold leading-none tracking-tight text-ink">
           {value}
         </div>
         {chip && (
-          <span className="mb-0.5 whitespace-nowrap rounded-full bg-canvas px-2 py-0.5 text-[11px] font-semibold text-ink-muted">
+          <span className="mb-0.5 whitespace-nowrap text-[12px] font-semibold text-ink-muted">
             {chip}
           </span>
         )}

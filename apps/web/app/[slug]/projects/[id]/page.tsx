@@ -73,7 +73,8 @@ export default async function ProjectDetail({ params }: Props) {
       .select(
         `id, headline, body, decision_needed, posted_at, stage_id,
          posted_by_profile:profiles!project_updates_posted_by_fkey(id, full_name),
-         stage:project_stages!project_updates_stage_id_fkey(id, name)`,
+         stage:project_stages!project_updates_stage_id_fkey(id, name),
+         photos:update_photos(storage_path, position)`,
       )
       .eq('project_id', id)
       .order('posted_at', { ascending: false })
@@ -216,12 +217,13 @@ export default async function ProjectDetail({ params }: Props) {
     description: string | null;
     price_gbp_pence: number | null;
     position: number;
+    photo_storage_path: string | null;
   }
   const decisionIds = (decisionRows ?? []).map((d) => d.id);
   const { data: decisionOptions } = decisionIds.length
     ? await supabase
         .from('decision_options')
-        .select('id, decision_id, label, description, price_gbp_pence, position')
+        .select('id, decision_id, label, description, price_gbp_pence, position, photo_storage_path')
         .in('decision_id', decisionIds)
         .order('position')
     : { data: [] as OptionRow[] };
@@ -230,6 +232,25 @@ export default async function ProjectDetail({ params }: Props) {
     const list = optionsByDecision.get(o.decision_id) ?? [];
     list.push(o);
     optionsByDecision.set(o.decision_id, list);
+  }
+
+  // Sign every update/decision photo (private `update-photos` bucket) in one
+  // batch so the builder sees the pictures posted to updates and decisions.
+  const photoPathSet = new Set<string>();
+  for (const u of (updates ?? []) as Array<{ photos?: { storage_path: string }[] }>) {
+    for (const p of u.photos ?? []) if (p.storage_path) photoPathSet.add(p.storage_path);
+  }
+  for (const o of (decisionOptions ?? []) as OptionRow[]) {
+    if (o.photo_storage_path) photoPathSet.add(o.photo_storage_path);
+  }
+  const photoUrls: Record<string, string> = {};
+  if (photoPathSet.size > 0) {
+    const { data: signedPhotos } = await supabase.storage
+      .from('update-photos')
+      .createSignedUrls([...photoPathSet], 3600);
+    for (const s of signedPhotos ?? []) {
+      if (s.path && s.signedUrl) photoUrls[s.path] = s.signedUrl;
+    }
   }
 
   const decisions: DecisionListRow[] = (decisionRows ?? []).map((d) => ({
@@ -247,6 +268,7 @@ export default async function ProjectDetail({ params }: Props) {
       label: o.label,
       description: o.description,
       price_gbp_pence: o.price_gbp_pence,
+      photo_url: o.photo_storage_path ? (photoUrls[o.photo_storage_path] ?? null) : null,
     })),
   }));
 
@@ -475,6 +497,27 @@ export default async function ProjectDetail({ params }: Props) {
                   <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink">
                     {u.body}
                   </p>
+                  {(() => {
+                    const urls = ((u as unknown as { photos?: { storage_path: string; position: number }[] }).photos ?? [])
+                      .slice()
+                      .sort((a, b) => a.position - b.position)
+                      .map((p) => photoUrls[p.storage_path])
+                      .filter(Boolean);
+                    if (urls.length === 0) return null;
+                    return (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {urls.map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                            <img
+                              src={url}
+                              alt={`Update photo ${i + 1}`}
+                              className="h-24 w-24 rounded-lg border border-hairline object-cover"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   {u.decision_needed && (
                     <div className="mt-3 rounded-lg border-l-4 border-accent bg-accent/5 px-3 py-2 text-xs">
                       <div className="font-bold uppercase tracking-wider text-accent-deep">

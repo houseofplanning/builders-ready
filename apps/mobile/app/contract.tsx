@@ -283,6 +283,35 @@ export default function ContractScreen() {
               })}
             </View>
 
+            {/* INVOICES — owner/PM can raise & manage invoices from here, so
+                "Contract & payments" is one place for everything money. */}
+            {canManage && (
+              <TouchableOpacity
+                onPress={() => router.push('/invoices')}
+                activeOpacity={0.85}
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: palette.card,
+                    borderColor: palette.hairline,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.msName, { color: palette.ink }]}>
+                    Invoices
+                  </Text>
+                  <Text style={[styles.msMeta, { color: palette.inkMuted }]}>
+                    View all invoices or raise a new one for this project
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={palette.inkMuted} />
+              </TouchableOpacity>
+            )}
+
             {/* TERMS */}
             {contract.terms ? (
               <>

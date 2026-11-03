@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,15 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { spacing, typography, radius, gbp } from '@br/shared';
 import { useTenant } from '../lib/tenant-provider';
 import { useCurrentProject } from '../lib/current-project';
-import { createInvoice } from '../lib/invoices';
+import { createInvoice, raiseMilestoneInvoice } from '../lib/invoices';
+import { getContract, type ContractMilestone } from '../lib/contracts';
 
 function parsePenceText(s: string): number | null {
   const trimmed = s.trim();
@@ -52,7 +54,30 @@ export default function CreateInvoiceScreen() {
   const [description, setDescription] = useState('');
   const [amountText, setAmountText] = useState('');
   const [dueDays, setDueDays] = useState<number>(14);
+  const [allowCard, setAllowCard] = useState(true);
+  const [allowBank, setAllowBank] = useState(true);
+  const [allowCash, setAllowCash] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // Unbilled contract milestones for this project — the builder can raise an
+  // invoice straight off the agreed schedule (web parity).
+  const [milestones, setMilestones] = useState<ContractMilestone[]>([]);
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
+
+  const projectId = current?.project.id;
+  useEffect(() => {
+    let cancelled = false;
+    if (!projectId) return;
+    getContract(projectId)
+      .then((c) => {
+        if (cancelled || !c) return;
+        setMilestones(c.milestones.filter((m) => !m.invoice_id && m.amount_resolved_pence > 0));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
 
   if (!current || !tenant || !user_id) {
     return (
@@ -72,6 +97,18 @@ export default function CreateInvoiceScreen() {
     !tenant.bank_sort_code ||
     !tenant.bank_account_number;
 
+  function selectMilestone(m: ContractMilestone | null) {
+    setSelectedMilestoneId(m?.id ?? null);
+    if (m) {
+      setTitle(m.name);
+      setAmountText((m.amount_resolved_pence / 100).toFixed(2));
+      setDescription('');
+    } else {
+      setTitle('');
+      setAmountText('');
+    }
+  }
+
   async function onSubmit() {
     if (!title.trim()) {
       Alert.alert('Add a title', 'What is this invoice for?');
@@ -83,17 +120,30 @@ export default function CreateInvoiceScreen() {
     }
     setSubmitting(true);
     try {
-      await createInvoice({
-        tenant_id: tenant!.id,
-        project_id: current!.project.id,
-        created_by: user_id!,
-        title: title.trim(),
-        description: description.trim() || null,
-        amount_gbp_pence: amountPence!,
-        issued_at: todayISO(),
-        due_at: daysFromNowISO(dueDays),
-        number_override: null,
-      });
+      if (selectedMilestoneId) {
+        // Raise straight off the contract schedule — amount comes from the
+        // contract and the invoice is linked back to the milestone.
+        await raiseMilestoneInvoice(selectedMilestoneId, user_id!, {
+          allow_card: allowCard,
+          allow_bank_transfer: allowBank,
+          allow_cash: allowCash,
+        });
+      } else {
+        await createInvoice({
+          tenant_id: tenant!.id,
+          project_id: current!.project.id,
+          created_by: user_id!,
+          title: title.trim(),
+          description: description.trim() || null,
+          amount_gbp_pence: amountPence!,
+          issued_at: todayISO(),
+          due_at: daysFromNowISO(dueDays),
+          number_override: null,
+          allow_card: allowCard,
+          allow_bank_transfer: allowBank,
+          allow_cash: allowCash,
+        });
+      }
       await refresh();
       router.back();
     } catch (err) {
@@ -176,17 +226,78 @@ export default function CreateInvoiceScreen() {
             </View>
           )}
 
+          {milestones.length > 0 && (
+            <>
+              <Text style={[styles.label, { color: palette.inkMuted }]}>
+                From your contract
+              </Text>
+              <View
+                style={[
+                  styles.methodCard,
+                  { backgroundColor: palette.card, borderColor: palette.hairline },
+                ]}
+              >
+                {milestones.map((m, i) => {
+                  const active = selectedMilestoneId === m.id;
+                  return (
+                    <TouchableOpacity
+                      key={m.id}
+                      onPress={() => selectMilestone(active ? null : m)}
+                      activeOpacity={0.7}
+                      style={[
+                        styles.methodRow,
+                        i > 0 && styles.methodRowBorder,
+                        i > 0 && { borderTopColor: palette.hairline },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.methodLabel, { color: palette.ink }]}>
+                          {m.name}
+                          {m.is_retention ? '  · retention' : ''}
+                        </Text>
+                        <Text style={[styles.methodHint, { color: palette.inkMuted }]}>
+                          {m.percent != null ? `${m.percent}% of contract` : 'Fixed amount'}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.methodLabel,
+                          { color: active ? palette.primary : palette.ink, marginRight: spacing.sm },
+                        ]}
+                      >
+                        {gbp(m.amount_resolved_pence)}
+                      </Text>
+                      <View
+                        style={[
+                          styles.radio,
+                          { borderColor: active ? palette.primary : palette.hairline },
+                          active && { backgroundColor: palette.primary },
+                        ]}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <Text style={[styles.hint, { color: palette.inkMuted }]}>
+                {selectedMilestoneId
+                  ? 'Billing this milestone — the amount is set by the contract. Deselect it to raise a custom invoice.'
+                  : 'Pick a milestone to bill it, or just fill in a custom invoice below.'}
+              </Text>
+            </>
+          )}
+
           <Text style={[styles.label, { color: palette.inkMuted }]}>Title</Text>
           <TextInput
             value={title}
             onChangeText={setTitle}
+            editable={!selectedMilestoneId}
             placeholder="e.g. Stage 3 payment — structure complete"
             placeholderTextColor={palette.inkMuted}
             style={[
               styles.field,
               {
                 borderColor: palette.hairline,
-                backgroundColor: palette.card,
+                backgroundColor: selectedMilestoneId ? palette.canvas : palette.card,
                 color: palette.ink,
               },
             ]}
@@ -223,6 +334,7 @@ export default function CreateInvoiceScreen() {
             <TextInput
               value={amountText}
               onChangeText={(t) => setAmountText(t.replace(/[^0-9.,]/g, ''))}
+              editable={!selectedMilestoneId}
               placeholder="0.00"
               placeholderTextColor={palette.inkMuted}
               keyboardType="decimal-pad"
@@ -231,7 +343,7 @@ export default function CreateInvoiceScreen() {
                 styles.amountField,
                 {
                   borderColor: palette.hairline,
-                  backgroundColor: palette.card,
+                  backgroundColor: selectedMilestoneId ? palette.canvas : palette.card,
                   color: palette.ink,
                 },
               ]}
@@ -272,6 +384,64 @@ export default function CreateInvoiceScreen() {
           <Text style={[styles.hint, { color: palette.inkMuted }]}>
             Due {daysFromNowISO(dueDays)}.
           </Text>
+
+          <Text style={[styles.label, { color: palette.inkMuted }]}>
+            How can the client pay?
+          </Text>
+          <View
+            style={[
+              styles.methodCard,
+              { backgroundColor: palette.card, borderColor: palette.hairline },
+            ]}
+          >
+            <View style={styles.methodRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.methodLabel, { color: palette.ink }]}>
+                  Card
+                </Text>
+                <Text style={[styles.methodHint, { color: palette.inkMuted }]}>
+                  {tenant.connect_charges_enabled
+                    ? 'Pay instantly by card'
+                    : 'Shows once you connect Stripe'}
+                </Text>
+              </View>
+              <Switch
+                value={allowCard}
+                onValueChange={setAllowCard}
+                trackColor={{ true: palette.primary }}
+              />
+            </View>
+            <View style={[styles.methodRow, styles.methodRowBorder, { borderTopColor: palette.hairline }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.methodLabel, { color: palette.ink }]}>
+                  Bank transfer
+                </Text>
+                <Text style={[styles.methodHint, { color: palette.inkMuted }]}>
+                  Client sees your bank details, then flags it paid
+                </Text>
+              </View>
+              <Switch
+                value={allowBank}
+                onValueChange={setAllowBank}
+                trackColor={{ true: palette.primary }}
+              />
+            </View>
+            <View style={[styles.methodRow, styles.methodRowBorder, { borderTopColor: palette.hairline }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.methodLabel, { color: palette.ink }]}>
+                  Cash
+                </Text>
+                <Text style={[styles.methodHint, { color: palette.inkMuted }]}>
+                  Client flags cash; you confirm when received
+                </Text>
+              </View>
+              <Switch
+                value={allowCash}
+                onValueChange={setAllowCash}
+                trackColor={{ true: palette.primary }}
+              />
+            </View>
+          </View>
 
           {/* PREVIEW */}
           <View
@@ -389,6 +559,34 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: typography.size.xs,
     marginTop: spacing.xs,
+  },
+  methodCard: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+  },
+  methodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  methodRowBorder: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  methodLabel: {
+    fontSize: typography.size.body,
+    fontWeight: typography.weightSemibold as '600',
+  },
+  methodHint: {
+    fontSize: typography.size.xs,
+    marginTop: 2,
+  },
+  radio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
   },
   preview: {
     marginTop: spacing.xl,

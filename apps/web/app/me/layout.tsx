@@ -1,5 +1,9 @@
 import Link from 'next/link';
-import { requireCustomer, isInvitedClient } from '@/lib/customer-resolver';
+import {
+  requireCustomer,
+  isInvitedClient,
+  getInvitedClientBrand,
+} from '@/lib/customer-resolver';
 import { CustomerAccountMenu } from '@/components/customer-account-menu';
 
 function initialsOf(name: string, email: string): string {
@@ -17,6 +21,9 @@ export default async function CustomerLayout({ children }: { children: React.Rea
   // chrome (no "Post a job" / "Browse"), mirroring the mobile app where a
   // tenant member never sees the marketplace.
   const invitedClient = await isInvitedClient();
+  // For an invited client, show their builder's brand (logo / name) in the
+  // header instead of the generic Builders Ready wordmark.
+  const brand = invitedClient ? await getInvitedClientBrand() : null;
 
   // For an invited client, "Messages" opens their project conversations (the
   // project `messages` threads with their builder/PM), not the marketplace
@@ -47,8 +54,22 @@ export default async function CustomerLayout({ children }: { children: React.Rea
         <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-10">
           {/* Top row: logo + nav (+ Post a job for customers) + account. */}
           <div className="flex items-center gap-4 py-3">
-            <Link href="/me" className="text-sm font-extrabold tracking-[0.2em] text-ink">
-              BUILDERS <span className="text-primary">READY</span>
+            <Link href="/me" className="flex items-center gap-2">
+              {brand?.logo_url ? (
+                <img
+                  src={brand.logo_url}
+                  alt={brand.name ?? 'Your builder'}
+                  className="h-8 max-w-[160px] object-contain"
+                />
+              ) : brand?.name ? (
+                <span className="text-sm font-extrabold tracking-tight text-ink">
+                  {brand.name}
+                </span>
+              ) : (
+                <span className="text-sm font-extrabold tracking-[0.2em] text-ink">
+                  BUILDERS <span className="text-primary">READY</span>
+                </span>
+              )}
             </Link>
             <nav className="ml-2 hidden items-center gap-1 text-sm sm:flex">{navLinks}</nav>
             <div className="ml-auto flex items-center gap-3">

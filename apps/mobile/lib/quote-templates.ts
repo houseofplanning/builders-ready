@@ -115,6 +115,11 @@ export interface PendingTemplateQuote {
   lines: EstimateLineDraft[];
   pricedOn: string | null;
   indicative?: boolean;
+  // Optional site prefill (e.g. launched from a Planning Radar listing).
+  siteAddressLine1?: string | null;
+  city?: string | null;
+  postcode?: string | null;
+  note?: string | null;
 }
 
 let pending: PendingTemplateQuote | null = null;

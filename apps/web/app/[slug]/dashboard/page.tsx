@@ -270,7 +270,7 @@ export default async function Dashboard({ params }: Props) {
         </div>
       )}
 
-      {/* Coloured KPI tiles */}
+      {/* KPI tiles — calm, number-led */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <KpiTile
           tint="teal"
@@ -428,8 +428,7 @@ export default async function Dashboard({ params }: Props) {
                             className="h-full rounded-full"
                             style={{
                               width: `${p.progress_percent}%`,
-                              background:
-                                'linear-gradient(90deg, var(--br-primary), var(--br-accent))',
+                              background: 'var(--br-primary)',
                             }}
                           />
                         </div>

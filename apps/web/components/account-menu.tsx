@@ -16,11 +16,14 @@ export function AccountMenu({
   role,
   name,
   initials,
+  placement = 'bottom-right',
 }: {
   slug: string;
   role: TenantMemberRole;
   name: string;
   initials: string;
+  /** Where the dropdown opens relative to the avatar. Use 'top-left' in the sidebar footer. */
+  placement?: 'bottom-right' | 'top-left';
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -59,7 +62,9 @@ export function AccountMenu({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-card border border-hairline bg-white py-1 shadow-card"
+          className={`absolute z-50 w-56 overflow-hidden rounded-card border border-hairline bg-white py-1 shadow-card ${
+            placement === 'top-left' ? 'bottom-full left-0 mb-2' : 'right-0 mt-2'
+          }`}
         >
           <div className="border-b border-hairline px-4 py-3">
             <div className="truncate text-sm font-bold text-ink">{name}</div>
