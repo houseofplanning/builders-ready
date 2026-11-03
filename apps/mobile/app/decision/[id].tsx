@@ -138,7 +138,7 @@ export default function DecisionDetailScreen() {
     return (
       <SafeAreaView
         style={[styles.shell, { backgroundColor: palette.canvas }]}
-        edges={['bottom']}
+        edges={['top', 'bottom']}
       >
         <View
           style={[
@@ -183,7 +183,7 @@ export default function DecisionDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.shell, { backgroundColor: palette.canvas }]}
-      edges={['bottom']}
+      edges={['top', 'bottom']}
     >
       <View
         style={[

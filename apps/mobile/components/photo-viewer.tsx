@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { spacing, typography } from '@br/shared';
 
@@ -48,7 +49,7 @@ export function PhotoViewer({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <SafeAreaView style={styles.backdrop} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.backdrop} edges={['bottom']}>
         {/* The entire top bar dismisses on tap. The visible X is still the
             primary affordance, but tapping anywhere in this strip works —
             which is critical because users naturally aim near the X and
@@ -57,6 +58,7 @@ export function PhotoViewer({
         <Pressable
           onPress={onClose}
           style={styles.topBar}
+          hitSlop={12}
           accessibilityRole="button"
           accessibilityLabel="Close photo viewer"
         >
@@ -118,7 +120,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
+    // Safe-area insets don't resolve inside a RN Modal, so clear the status
+    // bar / Dynamic Island with an explicit offset — otherwise the close
+    // button sits in a dead zone under the status bar and can't be tapped.
+    paddingTop: Constants.statusBarHeight + spacing.md,
     // Generous bottom padding so the whole strip stays out of the
     // FlatList's pan gesture detection.
     paddingBottom: spacing.lg,
