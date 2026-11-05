@@ -10,6 +10,7 @@ import {
   type AssignableResource,
   type BookingRow,
 } from '@/components/scheduling/project-schedule-panel';
+import { CostToBusinessCard } from '@/components/scheduling/cost-to-business-card';
 
 interface Props {
   params: Promise<{ slug: string; id: string }>;
@@ -126,7 +127,6 @@ export default async function ProjectSchedulePage({ params }: Props) {
     { label: 'Other', value: loggedByCat.other, colour: '#8A979C' },
   ].filter((b) => b.value > 0);
   const costToDate = loggedTotal + scheduledTotal;
-  const maxBar = Math.max(costToDate, 1);
 
   const margin = contractValue > 0 ? ((contractValue - costToDate) / contractValue) * 100 : null;
   const budgeted = estCost?.cost_subtotal_pence != null ? Number(estCost.cost_subtotal_pence) : null;
@@ -228,34 +228,14 @@ export default async function ProjectSchedulePage({ params }: Props) {
         <WhosOnJob projectId={project.id} canWrite resources={resources} stages={stageList.map((s) => ({ id: s.id, name: s.name }))} bookings={bookings} />
 
         <div className="space-y-4">
-          {/* cost to business */}
-          <section className="rounded-card border border-hairline bg-white p-5 shadow-card">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xs font-extrabold uppercase tracking-wide text-ink-muted">Cost to business</h2>
-              <span className="text-xs font-bold">{money(costToDate)}</span>
-            </div>
-            {breakdown.length === 0 ? (
-              <p className="text-sm text-ink-muted">No costs yet. Log costs or assign the team.</p>
-            ) : (
-              <div className="space-y-3">
-                {breakdown.map((b) => (
-                  <div key={b.label}>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span>{b.label}</span>
-                      <span className="font-bold">{money(b.value)}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-canvas">
-                      <div className="h-full rounded-full" style={{ width: `${(b.value / maxBar) * 100}%`, background: b.colour }} />
-                    </div>
-                  </div>
-                ))}
-                <div className="flex justify-between border-t border-hairline pt-3 text-sm font-extrabold">
-                  <span>Total</span>
-                  <span>{money(costToDate)}</span>
-                </div>
-              </div>
-            )}
-          </section>
+          {/* cost to business — logs materials/plant here too */}
+          <CostToBusinessCard
+            projectId={project.id}
+            breakdown={breakdown}
+            costToDate={costToDate}
+            scheduledTotal={scheduledTotal}
+            canWrite
+          />
 
           {/* project health */}
           <section className="rounded-card border border-hairline bg-white p-5 shadow-card">
