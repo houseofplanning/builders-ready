@@ -22,11 +22,19 @@ import {
   archiveResource,
   addResourceDocument,
   deleteResourceDocument,
+  addTeamMemberResource,
   type ResourceInput,
 } from '@/lib/server-actions/resources';
 
 export interface ResourceWithDocs extends Resource {
   documents: ResourceDocument[];
+}
+
+export interface AccountMember {
+  user_id: string;
+  full_name: string;
+  role: 'owner' | 'pm';
+  linked: boolean;
 }
 
 const money = (pence: number) =>
@@ -113,7 +121,13 @@ const toDraft = (r: ResourceWithDocs): Draft => ({
   email: r.email ?? '',
 });
 
-export function WorkforceManager({ initialResources }: { initialResources: ResourceWithDocs[] }) {
+export function WorkforceManager({
+  initialResources,
+  accountTeam = [],
+}: {
+  initialResources: ResourceWithDocs[];
+  accountTeam?: AccountMember[];
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState<Draft | null>(null);
   const [editingDocs, setEditingDocs] = useState<ResourceDocument[]>([]);
@@ -179,6 +193,8 @@ export function WorkforceManager({ initialResources }: { initialResources: Resou
         )}
       </div>
 
+      {accountTeam.length > 0 && <AccountTeamSection members={accountTeam} onChanged={() => router.refresh()} />}
+
       <Section title="Your team" subtitle="Permanent staff and operatives, on the books.">
         {team.length === 0 ? (
           <Empty label="No team members yet. Add your first operative or office staff." />
@@ -226,6 +242,51 @@ export function WorkforceManager({ initialResources }: { initialResources: Resou
           }}
           onDocsChanged={() => router.refresh()}
         />
+      )}
+    </div>
+  );
+}
+
+function AccountTeamSection({ members, onChanged }: { members: AccountMember[]; onChanged: () => void }) {
+  return (
+    <Section title="Account team (owner & PMs)" subtitle="Your logins. Add them to the schedule to book them on jobs.">
+      <Grid>
+        {members.map((m) => (
+          <AccountMemberCard key={m.user_id} m={m} onChanged={onChanged} />
+        ))}
+      </Grid>
+    </Section>
+  );
+}
+
+function AccountMemberCard({ m, onChanged }: { m: AccountMember; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-white p-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-primary-soft text-sm font-bold text-primary">
+          {initials(m.full_name) || '?'}
+        </span>
+        <div className="min-w-0">
+          <div className="truncate font-bold">{m.full_name}</div>
+          <div className="text-xs text-ink-muted">{m.role === 'owner' ? 'Owner' : 'Project manager'}</div>
+        </div>
+      </div>
+      {m.linked ? (
+        <span className="flex-none rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">On schedule</span>
+      ) : (
+        <button
+          onClick={async () => {
+            setBusy(true);
+            await addTeamMemberResource({ user_id: m.user_id, display_name: m.full_name });
+            setBusy(false);
+            onChanged();
+          }}
+          disabled={busy}
+          className="flex-none rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-canvas disabled:opacity-50"
+        >
+          {busy ? 'Adding…' : 'Add to schedule'}
+        </button>
       )}
     </div>
   );

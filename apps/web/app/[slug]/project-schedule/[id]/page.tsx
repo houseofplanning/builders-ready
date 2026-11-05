@@ -38,7 +38,9 @@ export default async function ProjectScheduleDetailPage({ params }: Props) {
   ] = await Promise.all([
     supabase
       .from('projects')
-      .select('*, client:profiles!projects_client_id_fkey(full_name)')
+      .select(
+        '*, client:profiles!projects_client_id_fkey(full_name), pm:profiles!projects_pm_id_fkey(full_name)',
+      )
       .eq('id', id)
       .maybeSingle(),
     supabase
@@ -183,11 +185,25 @@ export default async function ProjectScheduleDetailPage({ params }: Props) {
           <p className="text-sm text-ink-muted">
             {project.address_line1}
             {project.address_line2 ? `, ${project.address_line2}` : ''}, {project.city} {project.postcode}
-            {(() => {
-              const c = Array.isArray(project.client) ? project.client[0] : project.client;
-              return c?.full_name ? ` · Client: ${c.full_name}` : '';
-            })()}
           </p>
+          {(() => {
+            const c = Array.isArray(project.client) ? project.client[0] : project.client;
+            const pm = Array.isArray(project.pm) ? project.pm[0] : project.pm;
+            return (
+              <p className="mt-0.5 text-xs text-ink-muted">
+                {c?.full_name && (
+                  <>
+                    Client: <span className="font-semibold text-ink">{c.full_name}</span>
+                  </>
+                )}
+                {pm?.full_name && (
+                  <>
+                    {c?.full_name ? '  ·  ' : ''}PM: <span className="font-semibold text-ink">{pm.full_name}</span>
+                  </>
+                )}
+              </p>
+            );
+          })()}
         </div>
         <Link href={`/${slug}/projects/${project.id}`} className="flex-none text-xs font-semibold text-primary hover:underline">
           Open job admin →

@@ -54,7 +54,12 @@ export default async function SchedulePage({ params, searchParams }: Props) {
   const supabase = await createSupabaseServer();
   const [{ data: resourceRows }, { data: projectRows }, { data: assignmentRows }] = await Promise.all([
     supabase.from('resources').select('id, display_name, kind, trade').eq('tenant_id', tenant.id).eq('active', true).order('display_name'),
-    supabase.from('projects').select('id, name, status').eq('tenant_id', tenant.id).in('status', ['active', 'on_hold']).order('name'),
+    supabase
+      .from('projects')
+      .select('id, name, status, client:profiles!projects_client_id_fkey(full_name)')
+      .eq('tenant_id', tenant.id)
+      .in('status', ['active', 'on_hold'])
+      .order('name'),
     supabase
       .from('assignments')
       .select('resource_id, project_id, starts_at, cost_pence')
@@ -68,6 +73,14 @@ export default async function SchedulePage({ params, searchParams }: Props) {
   const resourceById = new Map(resources.map((r) => [r.id, r]));
   const projectColour = new Map(projects.map((p, i) => [p.id, PALETTE[i % PALETTE.length]!]));
   const projectName = new Map(projects.map((p) => [p.id, p.name]));
+  const projectClient = new Map<string, string>();
+  for (const p of (projectRows ?? []) as {
+    id: string;
+    client?: { full_name: string } | { full_name: string }[] | null;
+  }[]) {
+    const c = Array.isArray(p.client) ? p.client[0] : p.client;
+    if (c?.full_name) projectClient.set(p.id, c.full_name);
+  }
 
   // rid -> date -> set of project ids (for clash detection); project->rid->dates
   const multi = new Map<string, Map<string, Set<string>>>();
@@ -171,6 +184,7 @@ export default async function SchedulePage({ params, searchParams }: Props) {
           const rids = projResources.get(p.id) ? [...projResources.get(p.id)!.keys()] : [];
           return {
             title: p.name,
+            subtitle: projectClient.get(p.id) ? `Client: ${projectClient.get(p.id)}` : undefined,
             colour: projectColour.get(p.id),
             href: `/${slug}/project-schedule/${p.id}`,
             rows: rids

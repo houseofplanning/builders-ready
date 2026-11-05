@@ -16,7 +16,7 @@ export default async function WorkforcePage({ params }: Props) {
   if (role !== 'owner' && role !== 'pm') redirect(`/${slug}/dashboard`);
 
   const supabase = await createSupabaseServer();
-  const [resRes, docRes] = await Promise.all([
+  const [resRes, docRes, memberRes] = await Promise.all([
     supabase
       .from('resources')
       .select('*')
@@ -28,6 +28,11 @@ export default async function WorkforcePage({ params }: Props) {
       .select('*')
       .eq('tenant_id', tenant.id)
       .order('expires_on', { ascending: true }),
+    supabase
+      .from('tenant_members')
+      .select('user_id, role')
+      .eq('tenant_id', tenant.id)
+      .in('role', ['owner', 'pm']),
   ]);
 
   const docsByResource = new Map<string, ResourceDocument[]>();
@@ -42,5 +47,22 @@ export default async function WorkforcePage({ params }: Props) {
     documents: docsByResource.get(r.id) ?? [],
   }));
 
-  return <WorkforceManager initialResources={resources} />;
+  // Account team (owner/PMs) — so they can be added to the schedule.
+  const members = (memberRes.data ?? []) as { user_id: string; role: 'owner' | 'pm' }[];
+  const memberIds = members.map((m) => m.user_id);
+  const { data: profileRows } = memberIds.length
+    ? await supabase.from('profiles').select('id, full_name').in('id', memberIds)
+    : { data: [] as { id: string; full_name: string }[] };
+  const nameById = new Map((profileRows ?? []).map((p) => [p.id, p.full_name]));
+  const linkedMemberIds = new Set(
+    ((resRes.data ?? []) as Resource[]).map((r) => r.member_user_id).filter(Boolean) as string[],
+  );
+  const accountTeam = members.map((m) => ({
+    user_id: m.user_id,
+    full_name: nameById.get(m.user_id) ?? 'Team member',
+    role: m.role,
+    linked: linkedMemberIds.has(m.user_id),
+  }));
+
+  return <WorkforceManager initialResources={resources} accountTeam={accountTeam} />;
 }

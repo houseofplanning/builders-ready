@@ -22,7 +22,7 @@ export default async function ProjectScheduleListPage({ params }: Props) {
   const [{ data: projects }, { data: assignments }] = await Promise.all([
     supabase
       .from('projects')
-      .select('id, name, status, progress_percent, current_stage_id')
+      .select('id, name, status, progress_percent, client:profiles!projects_client_id_fkey(full_name)')
       .eq('tenant_id', tenant.id)
       .in('status', ['active', 'on_hold'])
       .order('name'),
@@ -66,6 +66,10 @@ export default async function ProjectScheduleListPage({ params }: Props) {
                   <h2 className="min-w-0 truncate font-bold">{p.name}</h2>
                   <ProjectStatusPill status={p.status} />
                 </div>
+                {(() => {
+                  const c = Array.isArray(p.client) ? p.client[0] : p.client;
+                  return c?.full_name ? <div className="mt-0.5 text-xs text-ink-muted">Client: {c.full_name}</div> : null;
+                })()}
                 <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-canvas">
                   <div className="h-full rounded-full bg-primary" style={{ width: `${p.progress_percent}%` }} />
                 </div>

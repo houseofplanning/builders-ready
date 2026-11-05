@@ -81,6 +81,44 @@ export async function saveResource(input: ResourceInput): Promise<ActionResult> 
   return { ok: true, id };
 }
 
+/**
+ * Add an account team member (owner/PM) as a schedulable staff resource,
+ * linked back to their login via member_user_id. Idempotent: if they already
+ * have one, it returns that. Owner/PM only.
+ */
+export async function addTeamMemberResource(input: {
+  user_id: string;
+  display_name: string;
+}): Promise<ActionResult> {
+  const gate = await ownerOrPm();
+  if ('error' in gate) return { ok: false, error: gate.error };
+  const { tenant } = gate;
+  const supabase = await createSupabaseServer();
+
+  const { data: existing } = await supabase
+    .from('resources')
+    .select('id')
+    .eq('tenant_id', tenant.tenant.id)
+    .eq('member_user_id', input.user_id)
+    .maybeSingle();
+  if (existing?.id) return { ok: true, id: existing.id as string };
+
+  const { data, error } = await supabase
+    .from('resources')
+    .insert({
+      tenant_id: tenant.tenant.id,
+      kind: 'staff',
+      display_name: input.display_name.trim() || 'Team member',
+      member_user_id: input.user_id,
+      cost_rate_unit: 'day',
+    })
+    .select('id')
+    .single();
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/${tenant.tenant.slug}/workforce`);
+  return { ok: true, id: (data as { id: string } | null)?.id };
+}
+
 /** Archive (soft-delete) a resource so it drops off the roster but history stays. */
 export async function archiveResource(id: string): Promise<ActionResult> {
   const gate = await ownerOrPm();

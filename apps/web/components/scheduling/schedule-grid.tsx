@@ -20,6 +20,7 @@ export interface GridRow {
 }
 export interface GridGroup {
   title: string;
+  subtitle?: string;
   colour?: string;
   href?: string;
   rows: GridRow[];
@@ -96,6 +97,9 @@ export function ScheduleGrid({
                   </Link>
                 ) : (
                   g.title
+                )}
+                {g.subtitle && (
+                  <span className="font-medium normal-case tracking-normal text-ink-muted">· {g.subtitle}</span>
                 )}
               </div>
               {g.rows.length === 0 ? (
