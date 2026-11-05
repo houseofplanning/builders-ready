@@ -4,9 +4,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { palette, spacing, typography, radius } from '@br/shared';
 import { getMySchedule, confirmMyAssignment, shortAddress, type MyScheduleItem } from '../../lib/schedule';
+import { openConnThread } from '../../lib/conn-messages';
+import { useTenant } from '../../lib/tenant-provider';
 import { ProfileToggle } from '../../components/profile-toggle';
 
 const dayKey = (iso: string) => iso.slice(0, 10);
@@ -30,6 +32,8 @@ const STATUS: Record<string, { label: string; bg: string; fg: string }> = {
 };
 
 export default function ForHireMyWork() {
+  const { tenant } = useTenant();
+  const router = useRouter();
   const [rows, setRows] = useState<MyScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -99,11 +103,26 @@ export default function ForHireMyWork() {
                         </TouchableOpacity>
                       ) : null}
                       <View style={styles.actions}>
-                        {(item.business_phone || item.pm_phone) ? (
-                          <TouchableOpacity style={styles.secondaryBtn} onPress={() => Linking.openURL(`tel:${item.pm_phone || item.business_phone}`)}>
-                            <Ionicons name="call-outline" size={15} color={palette.primary} /><Text style={styles.secondaryText}>Call</Text>
-                          </TouchableOpacity>
-                        ) : <View />}
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          {(item.business_phone || item.pm_phone) ? (
+                            <TouchableOpacity style={styles.secondaryBtn} onPress={() => Linking.openURL(`tel:${item.pm_phone || item.business_phone}`)}>
+                              <Ionicons name="call-outline" size={15} color={palette.primary} /><Text style={styles.secondaryText}>Call</Text>
+                            </TouchableOpacity>
+                          ) : null}
+                          {tenant && item.business_tenant_id ? (
+                            <TouchableOpacity
+                              style={styles.secondaryBtn}
+                              onPress={async () => {
+                                try {
+                                  const id = await openConnThread(item.business_tenant_id!, tenant.id);
+                                  router.push({ pathname: '/conn-chat/[id]', params: { id, name: item.business_name ?? 'Builder' } });
+                                } catch { /* ignore */ }
+                              }}
+                            >
+                              <Ionicons name="chatbubble-outline" size={15} color={palette.primary} /><Text style={styles.secondaryText}>Message</Text>
+                            </TouchableOpacity>
+                          ) : null}
+                        </View>
                         {item.status === 'planned' ? (
                           <TouchableOpacity style={styles.primaryBtn} disabled={busyId === item.assignment_id} onPress={() => confirm(item)}>
                             <Text style={styles.primaryText}>{busyId === item.assignment_id ? 'Confirming…' : "I'll be there"}</Text>

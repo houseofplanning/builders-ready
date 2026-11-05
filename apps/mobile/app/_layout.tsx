@@ -131,7 +131,8 @@ function AuthGate() {
             router.push('/customer/my-work');
             break;
           case 'message_received':
-            router.push('/messages');
+            if (data.conn_thread_id) router.push(`/conn-chat/${data.conn_thread_id}`);
+            else router.push('/messages');
             break;
           default:
             // Unknown kind — open the app to home and leave the rest to
@@ -158,6 +159,8 @@ function AuthGate() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="customer" options={{ headerShown: false }} />
       <Stack.Screen name="for-hire" options={{ headerShown: false }} />
+      <Stack.Screen name="sub-messages" options={{ headerShown: false }} />
+      <Stack.Screen name="conn-chat/[id]" options={{ headerShown: false }} />
       <Stack.Screen
         name="compose-update"
         options={{ presentation: 'modal', headerShown: false }}

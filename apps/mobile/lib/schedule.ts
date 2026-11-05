@@ -19,6 +19,7 @@ export interface MyScheduleItem {
   city: string | null;
   postcode: string | null;
   stage_name: string | null;
+  business_tenant_id: string | null;
   business_name: string | null;
   business_phone: string | null;
   pm_name: string | null;

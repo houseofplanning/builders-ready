@@ -4,14 +4,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { palette, spacing, typography, radius } from '@br/shared';
 import { useTenant } from '../../lib/tenant-provider';
 import { listOpenSubJobs, placeSubBid, type OpenSubJob } from '../../lib/for-hire';
+import { openConnThread } from '../../lib/conn-messages';
 import { ProfileToggle } from '../../components/profile-toggle';
 
 export default function ForHireFindJobs() {
   const { tenant } = useTenant();
+  const router = useRouter();
   const [rows, setRows] = useState<OpenSubJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,9 +89,25 @@ export default function ForHireFindJobs() {
                     </View>
                   </View>
                 ) : (
-                  <TouchableOpacity onPress={() => { setOpenId(j.id); setAmount(''); setMessage(''); }} style={styles.bidBtn}>
-                    <Text style={styles.bidBtnText}>Bid on this</Text>
-                  </TouchableOpacity>
+                  <View style={styles.jobActions}>
+                    <TouchableOpacity onPress={() => { setOpenId(j.id); setAmount(''); setMessage(''); }} style={styles.bidBtn}>
+                      <Text style={styles.bidBtnText}>Bid on this</Text>
+                    </TouchableOpacity>
+                    {tenant && (
+                      <TouchableOpacity
+                        onPress={async () => {
+                          try {
+                            const id = await openConnThread(j.tenant_id, tenant.id);
+                            router.push({ pathname: '/conn-chat/[id]', params: { id, name: j.poster_name } });
+                          } catch { /* ignore */ }
+                        }}
+                        style={styles.msgBtn}
+                      >
+                        <Ionicons name="chatbubble-outline" size={15} color={palette.primary} />
+                        <Text style={styles.bidBtnText}>Message</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 )}
               </View>
             ))
@@ -111,7 +129,9 @@ const styles = StyleSheet.create({
   meta: { fontSize: typography.size.sm, color: palette.inkMuted, marginTop: 3 },
   desc: { fontSize: typography.size.sm, color: palette.inkSoft, marginTop: 6 },
   bidState: { marginTop: 10, fontSize: typography.size.sm, fontWeight: typography.weightSemibold as '600', color: palette.inkMuted },
-  bidBtn: { marginTop: 12, alignSelf: 'flex-start', borderWidth: 1, borderColor: palette.primary, borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 16 },
+  jobActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  bidBtn: { alignSelf: 'flex-start', borderWidth: 1, borderColor: palette.primary, borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 16 },
+  msgBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', borderWidth: 1, borderColor: palette.hairline, borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 14 },
   bidBtnText: { color: palette.primary, fontWeight: typography.weightBold as '700', fontSize: typography.size.sm },
   bidForm: { marginTop: 10, gap: 8 },
   input: { borderWidth: 1, borderColor: palette.hairline, borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 10, fontSize: typography.size.sm, color: palette.ink },

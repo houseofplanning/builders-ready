@@ -21,7 +21,7 @@ type MoreRoute =
   | '/invoices'
   | '/reports'
   | '/messages'
-  | '/for-hire-work'
+  | '/sub-messages'
   | '/settings';
 
 interface MoreItem {
@@ -57,6 +57,13 @@ const ITEMS: MoreItem[] = [
     icon: 'chatbubbles-outline',
     hint: 'Direct chat with your project counterpart',
     route: '/messages',
+  },
+  {
+    label: 'Subcontractor messages',
+    icon: 'chatbubbles-outline',
+    hint: 'Chats with tradespeople you hire',
+    route: '/sub-messages',
+    requiresTrade: true,
   },
   {
     label: 'Settings',
