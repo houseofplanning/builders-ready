@@ -22,6 +22,12 @@ import { ProjectActions } from './project-actions';
 import { CashChart, CompletionRing } from '@/components/finance-visuals';
 import { CostsSection, type CostRow, type MarginData } from './costs-section';
 import {
+  TeamSection,
+  type AssignableResource,
+  type BookingRow,
+} from './team-section';
+import type { ResourceKind, RateUnit } from '@br/shared';
+import {
   ContractSection,
   type ContractView,
   type MilestoneView,
@@ -149,6 +155,9 @@ export default async function ProjectDetail({ params }: Props) {
   // Costs & margin — owner/PM only (RLS returns nothing to clients anyway).
   let marginData: MarginData | null = null;
   let costList: CostRow[] = [];
+  let assignableResources: AssignableResource[] = [];
+  let bookingRows: BookingRow[] = [];
+  let teamContractValue = 0;
   if (canWrite) {
     const [{ data: costRows }, { data: estCost }] = await Promise.all([
       supabase
@@ -185,6 +194,43 @@ export default async function ProjectDetail({ params }: Props) {
         : null;
     const m = computeMargin(contractValue, summary.total_pence, budgeted);
     marginData = { ...m, by_category: summary.by_category };
+    teamContractValue = contractValue;
+
+    // Scheduling: assignable resources + this project's bookings (with cost).
+    const [{ data: resourceRows }, { data: assignmentRows }] = await Promise.all([
+      supabase
+        .from('resources')
+        .select('id, display_name, kind, trade, cost_rate_pence, cost_rate_unit')
+        .eq('tenant_id', tenant.id)
+        .eq('active', true)
+        .order('display_name', { ascending: true }),
+      supabase
+        .from('assignments')
+        .select(
+          'resource_id, starts_at, ends_at, cost_pence, resource:resources(display_name, kind, trade)',
+        )
+        .eq('project_id', id),
+    ]);
+    assignableResources = (resourceRows ?? []).map((r) => ({
+      id: r.id as string,
+      display_name: r.display_name as string,
+      kind: r.kind as ResourceKind,
+      trade: (r.trade as string | null) ?? null,
+      cost_rate_pence: r.cost_rate_pence != null ? Number(r.cost_rate_pence) : null,
+      cost_rate_unit: r.cost_rate_unit as RateUnit,
+    }));
+    bookingRows = (assignmentRows ?? []).map((a) => {
+      const res = Array.isArray(a.resource) ? a.resource[0] : a.resource;
+      return {
+        resource_id: a.resource_id as string,
+        resource_name: (res?.display_name as string) ?? 'Someone',
+        kind: (res?.kind as ResourceKind) ?? 'operative',
+        trade: (res?.trade as string | null) ?? null,
+        start: a.starts_at as string,
+        end: a.ends_at as string,
+        cost_pence: a.cost_pence != null ? Number(a.cost_pence) : 0,
+      };
+    });
   }
 
   // Resolve profile names for the new sections (raised_by, decided_by, etc.)
@@ -575,6 +621,19 @@ export default async function ProjectDetail({ params }: Props) {
           costs={costList}
           margin={marginData}
           canWrite={canWrite}
+        />
+      )}
+
+      {/* TEAM ON THIS JOB (scheduling) — owner/PM only */}
+      {canWrite && (
+        <TeamSection
+          projectId={project.id}
+          canWrite={canWrite}
+          resources={assignableResources}
+          stages={(stages ?? []).map((s) => ({ id: s.id, name: s.name }))}
+          bookings={bookingRows}
+          loggedCostPence={marginData?.cost_to_date_pence ?? 0}
+          contractValuePence={teamContractValue}
         />
       )}
 
