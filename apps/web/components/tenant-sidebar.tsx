@@ -39,7 +39,8 @@ export function TenantSidebar({
     ...(isTrade
       ? [
           { href: `/${slug}/estimates`, label: 'Quotes', icon: <IconDoc /> },
-          { href: `/${slug}/team`, label: 'Team', icon: <IconPeople /> },
+          { href: `/${slug}/workforce`, label: 'Team & rates', icon: <IconPeople /> },
+          { href: `/${slug}/team`, label: 'Members', icon: <IconPeople /> },
         ]
       : []),
   ];

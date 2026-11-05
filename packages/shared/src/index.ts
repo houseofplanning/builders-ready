@@ -13,3 +13,4 @@ export * from './stages';
 export * from './documents';
 export * from './marketplace';
 export * from './templates';
+export * from './scheduling';

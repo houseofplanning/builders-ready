@@ -16,13 +16,13 @@ _Not legal or accounting advice — confirm the tax/legal specifics with your ac
 2. ⏳ Sign the IP-assignment deed and director's loan agreement (drafts ready)
 3. ◻ **Trademark** the name (slow — ~4 months — worth starting)
 4. ◻ **ICO registration** (10 mins, legally required)
-5. ◻ Terms of Service + Privacy Policy renamed to the Ltd
-6. ◻ Company details (name/number/office) in website + email footers
+5. ✔ Terms of Service + Privacy Policy renamed to the Ltd (company number 17551960 + registered office now on both)
+6. ⏳ Company details (name/number/office): ✔ website footer done; ◻ email footers still to add
 7. ◻ Business insurance (PI + cyber + public liability)
-8. 🔒 Apple Developer → company account (waiting on D-U-N-S number)
-9. ◻ Google Play account → company
+8. ⏳ Apple Developer → company account (D-U-N-S in hand; individual→org conversion submitted, in Apple review)
+9. ⏳ Google Play account → company (payments profile added, developer set to Builders Ready Ltd; in verification, up to 3 days)
 10. ⏳ Finish the last old-Stripe bits: migrate Balraj's sub + cancel the 2 old subs
-11. ◻ Strategy docs: business plan, finalise roadmap, marketing plan, finish website redesign
+11. ⏳ Strategy docs: ✔ website redesign shipped live (full rebrand + SEO); ◻ business plan, ◻ finalise roadmap, ◻ marketing plan
 
 Have these to hand for almost every step: **company number, registered office address, date of incorporation, certificate of incorporation (PDF), Tide account + sort code/account number.**
 
@@ -63,18 +63,19 @@ Legend: **[YOU]** = you do it · **[ME]** = I produce it for you · **[ACCT]** =
 ### 5. ICO registration (data protection fee)  ◻ [YOU]
 - Register at ico.org.uk → "Pay the data protection fee." ~£40–60/yr. Required because you process personal data. 10 minutes.
 
-### 6. Terms of Service + Privacy Policy named to the Ltd  ◻ [ME]
-- Update both to name **Builders Ready Ltd** as entity/data controller, with company number + registered office. Sets out the processor/controller split for builders' client data.
+### 6. Terms of Service + Privacy Policy named to the Ltd  ✔ [ME]
+- Done: both now name **Builders Ready Ltd** as entity/data controller, with company number 17551960 + registered office (66 Paul Street, London, EC2A 4NA). Processor/controller split for builders' client data is set out. Live on buildersready.uk/privacy and /terms.
 
-### 7. Company details on the website + emails  ◻ [ME]
-- Legal requirement for a Ltd: show registered company name, number, country of registration and registered office in the website footer and email footers. I add these next deploy.
+### 7. Company details on the website + emails  ⏳ [ME]
+- ✔ Website footer shows registered company name, number, country of registration and registered office on every page.
+- ◻ Email footers (the Resend marketing broadcasts) still need the same legal footer line added.
 
 ### 8. Insurance  ◻ [YOU]
 - Quotes for **professional indemnity** + **cyber** + **public liability** (Superscript, Hiscox, Simply Business cover SaaS). Not mandatory but sensible given you hold data and touch payments.
 
 ### 9. Move subscriptions / direct debits to the company  ✔ (mostly) [YOU]
 - ✔ Done: Vercel, Supabase, Stripe, Resend, Google Workspace, domains (bought via Vercel → bill to business automatically).
-- 🔒 Apple dev fee — moves with the account (waiting on D-U-N-S).
+- ⏳ Apple dev fee — moves with the account (D-U-N-S obtained; individual→org conversion submitted, in Apple review).
 - Future: Expo/EAS is on the **free** tier (nothing to pay); move to a company Expo org later. Claude subscription → move to business (genuine expense).
 - ◻ Not used: AI/LLM API, Canva, social-scheduling tool.
 - Live status: `docs/direct-debits-to-move.md`.
@@ -87,10 +88,10 @@ Legend: **[YOU]** = you do it · **[ME]** = I produce it for you · **[ACCT]** =
 - New Builders Ready Ltd Stripe account is live and running everything: subscriptions, client payments, builder-payout onboarding. API on 2025-03-31.basil; Managed Payments off; automatic_tax off (not VAT-registered yet); Connect on the modern controller/managed-risk config; webhook at buildersready.uk/api/webhooks/stripe; 6 price IDs set.
 - ⏳ Remaining: 2 of 3 old subscribers re-created on the new account (Stephen, ltroofing); **Balraj still to migrate** (pays via "OneLink" — needs his payment-method type). Then **cancel the 2 old subscriptions** on the old account at end of billing period.
 
-### 11. App-store accounts → the company  🔒/◻ [YOU — plan, don't rush]
-- **Apple** 🔒: needs an **Apple Developer organisation account** (requires the Ltd's **D-U-N-S number** — free, ~1–2 weeks), then transfer the app to it. Blocked until the D-U-N-S arrives.
-- **Google Play** ◻: update the developer account's legal details to the Ltd, or use Play's app-transfer process (form + small fee).
-- Fiddliest migration, not urgent for running the business. Verify current steps on each platform's help pages before starting.
+### 11. App-store accounts → the company  ⏳ [YOU — both submitted, awaiting platform verification]
+- **Apple** ⏳: D-U-N-S number obtained. Individual→organisation conversion submitted and in Apple review (converting in place, so the app stays put — no transfer needed). Tax ID on the individual membership answered as "None" (correct for a UK individual). Don't edit name/address fields while it's under review.
+- **Google Play** ⏳: developer legal details updated to Builders Ready Ltd, payments profile added; in verification (up to 3 days). Updated in place, so no app transfer needed. Keep an eye on the developer email in case Google asks for one more document.
+- Both are converting the existing account in place, which preserves the live app, reviews and ratings. Nothing more to do but wait for each platform to confirm.
 
 ---
 
@@ -99,13 +100,13 @@ Legend: **[YOU]** = you do it · **[ME]** = I produce it for you · **[ACCT]** =
 12. **Business Plan** ◻ [ME] — draftable from everything built (model, market, roadmap, traction).
 13. **Roadmap / features plan** ⏳ [ME] — `docs/ROADMAP.md` started; refine and finalise.
 14. **Marketing Plan** ◻ [ME] — channels, cadence, the homeowner-acquisition gap, content engine.
-15. **Site branding + website + marketing material** ⏳ [ME] — redesign in progress (`docs/WEBSITE-DESIGN.md`); parked mid-iteration.
+15. **Site branding + website + marketing material** ✔ [ME] — full rebrand shipped live (warm palette, Hanken Grotesk, real screenshots, new dashboard), SEO pass done (sitemap, canonicals, manifest), Planning Radar + homeowners pages live.
 
 ---
 
 ## Suggested next moves
 - **Trademark** (2.4) and **ICO** (3.5) — start both; one is 10 minutes, the other takes months.
-- Chase the **D-U-N-S number** so Apple (4.11) unblocks.
+- Apple + Google Play conversions are **submitted and in verification** — nothing to do but wait for each platform to confirm.
 - Sign the **IP-assignment deed** and **director's loan agreement** (drafts ready).
 - Finish **Balraj's Stripe migration** + cancel the 2 old subs (10).
 - Pick an **accountant** so bookkeeping + the DLA are clean from the start (1).
