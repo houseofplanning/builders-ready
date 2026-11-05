@@ -173,6 +173,9 @@ export default async function ProjectSchedulePage({ params }: Props) {
       {/* header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
+          <div className="mb-1 text-[11px] font-bold uppercase tracking-widest text-ink-muted">
+            Project schedule
+          </div>
           <div className="flex items-center gap-2">
             <h1 className="truncate text-2xl font-extrabold tracking-tight">{project.name}</h1>
             <ProjectStatusPill status={project.status} />
