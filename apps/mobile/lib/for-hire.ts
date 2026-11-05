@@ -1,3 +1,5 @@
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode as base64ToArrayBuffer } from 'base64-arraybuffer';
 import { supabase } from './supabase';
 
 export interface ForHireProfile {
@@ -92,4 +94,68 @@ export async function placeSubBid(input: {
     message: input.message?.trim() || null,
   });
   if (error) throw error;
+}
+
+// --- Certificates on the For Hire profile (tenant_documents) ---------------
+
+export interface TenantDoc {
+  id: string;
+  doc_type: string;
+  reference: string | null;
+  expires_on: string | null;
+  file_path: string | null;
+  verified: boolean;
+}
+
+export async function listTenantDocs(tenantId: string): Promise<TenantDoc[]> {
+  const { data } = await supabase
+    .from('tenant_documents')
+    .select('id, doc_type, reference, expires_on, file_path, verified')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false });
+  return (data ?? []) as TenantDoc[];
+}
+
+/** Upload a cert file (image/pdf) to resource-docs under <tenant>/certs/. */
+export async function uploadCertFile(
+  tenantId: string,
+  uri: string,
+  contentType: string,
+  ext: string,
+): Promise<string> {
+  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+  const arrayBuffer = base64ToArrayBuffer(base64);
+  const path = `${tenantId}/certs/${Date.now()}-${Math.round(Math.random() * 1e6)}.${ext}`;
+  const { error } = await supabase.storage.from('resource-docs').upload(path, arrayBuffer, { contentType, upsert: false });
+  if (error) throw error;
+  return path;
+}
+
+export async function addTenantDoc(input: {
+  tenant_id: string;
+  doc_type: string;
+  reference: string | null;
+  expires_on: string | null;
+  file_path: string | null;
+}): Promise<void> {
+  const { error } = await supabase.from('tenant_documents').insert({
+    tenant_id: input.tenant_id,
+    doc_type: input.doc_type,
+    reference: input.reference?.trim() || null,
+    expires_on: input.expires_on || null,
+    file_path: input.file_path,
+  });
+  if (error) throw error;
+}
+
+export async function deleteTenantDoc(id: string, filePath: string | null): Promise<void> {
+  const { error } = await supabase.from('tenant_documents').delete().eq('id', id);
+  if (error) throw error;
+  if (filePath) await supabase.storage.from('resource-docs').remove([filePath]).catch(() => null);
+}
+
+/** A short-lived URL to view a cert file (owner only, per storage policy). */
+export async function getCertSignedUrl(filePath: string): Promise<string | null> {
+  const { data } = await supabase.storage.from('resource-docs').createSignedUrl(filePath, 300);
+  return data?.signedUrl ?? null;
 }
