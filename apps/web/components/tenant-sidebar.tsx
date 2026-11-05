@@ -26,27 +26,50 @@ export function TenantSidebar({
   const pathname = usePathname();
   const isTrade = role === 'owner' || role === 'pm';
 
-  type Scope = 'client' | 'internal';
-  const items: { href: string; label: string; icon: React.ReactNode; scope: Scope }[] = [
-    { href: `/${slug}/dashboard`, label: 'Dashboard', icon: <IconGrid />, scope: 'internal' },
-    ...(isTrade
-      ? [
-          { href: `/${slug}/find-work`, label: 'Marketplace', icon: <IconBag />, scope: 'client' as Scope },
-          { href: `/${slug}/planning-radar`, label: 'Planning Radar', icon: <IconRadar />, scope: 'internal' as Scope },
-          { href: `/${slug}/messages`, label: 'Messages', icon: <IconChat />, scope: 'client' as Scope },
-        ]
-      : []),
-    { href: `/${slug}/projects`, label: 'Projects', icon: <IconLayers />, scope: 'client' },
-    ...(isTrade
-      ? [
-          { href: `/${slug}/project-schedule`, label: 'Project Schedule', icon: <IconLayers />, scope: 'internal' as Scope },
-          { href: `/${slug}/schedule`, label: 'Schedule', icon: <IconGrid />, scope: 'internal' as Scope },
-          { href: `/${slug}/estimates`, label: 'Quotes', icon: <IconDoc />, scope: 'client' as Scope },
-          { href: `/${slug}/workforce`, label: 'Team & rates', icon: <IconPeople />, scope: 'internal' as Scope },
-          { href: `/${slug}/team`, label: 'Members', icon: <IconPeople />, scope: 'internal' as Scope },
-        ]
-      : []),
+  type Item = { href: string; label: string; icon: React.ReactNode };
+
+  // Owner/PM: grouped into what the client sees vs internal team tools.
+  const clientItems: Item[] = [
+    { href: `/${slug}/projects`, label: 'Projects', icon: <IconLayers /> },
+    { href: `/${slug}/estimates`, label: 'Quotes', icon: <IconDoc /> },
+    { href: `/${slug}/messages`, label: 'Messages', icon: <IconChat /> },
   ];
+  const teamItems: Item[] = [
+    { href: `/${slug}/dashboard`, label: 'Dashboard', icon: <IconGrid /> },
+    { href: `/${slug}/find-work`, label: 'Marketplace', icon: <IconBag /> },
+    { href: `/${slug}/planning-radar`, label: 'Planning Radar', icon: <IconRadar /> },
+    { href: `/${slug}/project-schedule`, label: 'Project Schedule', icon: <IconLayers /> },
+    { href: `/${slug}/schedule`, label: 'Schedule', icon: <IconGrid /> },
+    { href: `/${slug}/workforce`, label: 'Team & rates', icon: <IconPeople /> },
+    { href: `/${slug}/team`, label: 'Members', icon: <IconPeople /> },
+  ];
+  // Client role: just their own project(s) and overview, ungrouped.
+  const clientRoleItems: Item[] = [
+    { href: `/${slug}/dashboard`, label: 'Dashboard', icon: <IconGrid /> },
+    { href: `/${slug}/projects`, label: 'Projects', icon: <IconLayers /> },
+  ];
+
+  const isActive = (href: string) =>
+    href === `/${slug}/dashboard` ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+
+  const renderLink = (it: Item) => {
+    const active = isActive(it.href);
+    return (
+      <Link
+        key={it.href}
+        href={it.href}
+        aria-current={active ? 'page' : undefined}
+        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+          active ? 'bg-tenant-primary-soft text-tenant-primary' : 'text-ink-muted hover:bg-canvas hover:text-ink'
+        }`}
+      >
+        <span className="flex-shrink-0" style={active ? undefined : { color: '#9AA7A2' }}>
+          {it.icon}
+        </span>
+        <span className="truncate">{it.label}</span>
+      </Link>
+    );
+  };
 
   const roleLabel = role === 'owner' ? 'Owner' : role === 'pm' ? 'Project Manager' : 'Client';
 
@@ -71,51 +94,18 @@ export function TenantSidebar({
       </Link>
 
       {/* Nav */}
-      <nav className="flex flex-1 flex-col gap-0.5">
-        {items.map((it) => {
-          const active =
-            it.href === `/${slug}/dashboard`
-              ? pathname === it.href
-              : pathname === it.href || pathname.startsWith(`${it.href}/`);
-          return (
-            <Link
-              key={it.href}
-              href={it.href}
-              aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
-                active
-                  ? 'bg-tenant-primary-soft text-tenant-primary'
-                  : 'text-ink-muted hover:bg-canvas hover:text-ink'
-              }`}
-            >
-              <span className="flex-shrink-0" style={active ? undefined : { color: '#9AA7A2' }}>
-                {it.icon}
-              </span>
-              <span className="truncate">{it.label}</span>
-              <span
-                title={it.scope === 'client' ? 'Your client sees this' : 'Internal — team only'}
-                className={`ml-auto flex-shrink-0 text-[9px] font-bold uppercase tracking-wide ${
-                  it.scope === 'client' ? 'text-emerald-600' : 'text-ink-muted/70'
-                }`}
-              >
-                {it.scope === 'client' ? 'Client' : 'Internal'}
-              </span>
-            </Link>
-          );
-        })}
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
+        {isTrade ? (
+          <>
+            <GroupHeading hint="what your client sees">Client</GroupHeading>
+            {clientItems.map(renderLink)}
+            <GroupHeading className="mt-4" hint="internal, team only">Team</GroupHeading>
+            {teamItems.map(renderLink)}
+          </>
+        ) : (
+          clientRoleItems.map(renderLink)
+        )}
       </nav>
-
-      {/* Scope key */}
-      <div className="mb-2 mt-1 flex items-center gap-3 px-3 text-[10px] text-ink-muted">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          Client sees
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-ink-muted/50" />
-          Team only
-        </span>
-      </div>
 
       {/* Account */}
       <div className="mt-auto flex items-center gap-3 border-t border-hairline px-1 pt-3">
@@ -126,6 +116,23 @@ export function TenantSidebar({
         </div>
       </div>
     </aside>
+  );
+}
+
+function GroupHeading({
+  children,
+  className = '',
+  hint,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  hint?: string;
+}) {
+  return (
+    <div className={`px-3 pb-1 pt-1 ${className}`}>
+      <div className="text-[10px] font-extrabold uppercase tracking-widest text-ink-muted">{children}</div>
+      {hint && <div className="text-[9px] font-medium text-ink-muted/60">{hint}</div>}
+    </div>
   );
 }
 
