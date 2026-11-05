@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { requireTenantBySlug } from '@/lib/tenant-resolver';
 import { createSupabaseServer } from '@/lib/supabase-server';
 import type { ResourceKind } from '@br/shared';
+import { ScheduleGrid, type GridGroup, type DayCol } from '@/components/scheduling/schedule-grid';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -13,8 +14,6 @@ export const metadata = { title: 'Schedule · Builders Ready' };
 
 const money = (p: number) =>
   new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(p / 100);
-const initials = (n: string) =>
-  n.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('');
 
 const PALETTE = ['#0F4C5C', '#E07A5F', '#2F6DB5', '#3B8C6E', '#7A5AA6', '#B26A00', '#9A4B35'];
 
@@ -26,7 +25,6 @@ export default async function SchedulePage({ params, searchParams }: Props) {
   const { tenant, role } = await requireTenantBySlug(slug);
   if (role !== 'owner' && role !== 'pm') redirect(`/${slug}/dashboard`);
 
-  // Horizon starts Monday of the current week (UTC, matching 08:00Z bookings).
   const span = view === 'month' ? 28 : 7;
   const now = new Date();
   const diffToMon = (now.getUTCDay() + 6) % 7;
@@ -43,18 +41,8 @@ export default async function SchedulePage({ params, searchParams }: Props) {
 
   const supabase = await createSupabaseServer();
   const [{ data: resourceRows }, { data: projectRows }, { data: assignmentRows }] = await Promise.all([
-    supabase
-      .from('resources')
-      .select('id, display_name, kind, trade')
-      .eq('tenant_id', tenant.id)
-      .eq('active', true)
-      .order('display_name'),
-    supabase
-      .from('projects')
-      .select('id, name, status')
-      .eq('tenant_id', tenant.id)
-      .in('status', ['active', 'on_hold'])
-      .order('name'),
+    supabase.from('resources').select('id, display_name, kind, trade').eq('tenant_id', tenant.id).eq('active', true).order('display_name'),
+    supabase.from('projects').select('id, name, status').eq('tenant_id', tenant.id).in('status', ['active', 'on_hold']).order('name'),
     supabase
       .from('assignments')
       .select('resource_id, project_id, starts_at, cost_pence')
@@ -69,9 +57,7 @@ export default async function SchedulePage({ params, searchParams }: Props) {
   const projectColour = new Map(projects.map((p, i) => [p.id, PALETTE[i % PALETTE.length]!]));
   const projectName = new Map(projects.map((p) => [p.id, p.name]));
 
-  // peopleCell: rid -> date -> project_id (first booking that day)
   const peopleCell = new Map<string, Map<string, string>>();
-  // projResources: pid -> rid -> set(date)
   const projResources = new Map<string, Map<string, Set<string>>>();
   const peopleBooked = new Set<string>();
   let horizonCost = 0;
@@ -79,19 +65,14 @@ export default async function SchedulePage({ params, searchParams }: Props) {
     const rid = a.resource_id as string;
     const pid = a.project_id as string;
     const date = (a.starts_at as string).slice(0, 10);
-    const inner = peopleCell.get(rid) ?? new Map<string, string>();
-    if (!inner.has(date)) inner.set(date, pid);
-    peopleCell.set(rid, inner);
+    (peopleCell.get(rid) ?? peopleCell.set(rid, new Map()).get(rid)!).set(date, (peopleCell.get(rid)!.get(date) ?? pid));
     const pr = projResources.get(pid) ?? new Map<string, Set<string>>();
-    const dates = pr.get(rid) ?? new Set<string>();
-    dates.add(date);
-    pr.set(rid, dates);
+    (pr.get(rid) ?? pr.set(rid, new Set()).get(rid)!).add(date);
     projResources.set(pid, pr);
     peopleBooked.add(rid);
     horizonCost += a.cost_pence != null ? Number(a.cost_pence) : 0;
   }
 
-  // cover by trade (over the horizon)
   const byTrade = new Map<string, typeof resources>();
   for (const r of resources) {
     const key = r.trade || 'General / labour';
@@ -104,13 +85,58 @@ export default async function SchedulePage({ params, searchParams }: Props) {
       return { trade, total: list.length, booked, free: list.length - booked };
     });
 
+  // ---- serializable data for the interactive grid ----
+  const dayCols: DayCol[] = days.map((d, i) => ({
+    iso: dayStr[i]!,
+    weekday: d.toLocaleDateString('en-GB', { weekday: 'narrow' }),
+    date: d.getUTCDate(),
+    isToday: dayStr[i] === todayStr,
+    weekend: d.getUTCDay() === 0 || d.getUTCDay() === 6,
+  }));
+
+  const cellFor = (pid: string | undefined) =>
+    pid ? { pid, label: projectName.get(pid) ?? 'Job', colour: projectColour.get(pid) ?? '#64748b' } : null;
+
+  const groups: GridGroup[] =
+    group === 'people'
+      ? [...byTrade.entries()]
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([trade, list]) => ({
+            title: trade,
+            rows: list.map((r) => ({
+              resourceId: r.id,
+              name: r.display_name,
+              sub: r.kind === 'subcontractor',
+              cells: dayStr.map((ds) => cellFor(peopleCell.get(r.id)?.get(ds))),
+            })),
+          }))
+      : projects.map((p) => {
+          const pr = projResources.get(p.id);
+          const rids = pr ? [...pr.keys()] : [];
+          return {
+            title: p.name,
+            colour: projectColour.get(p.id),
+            href: `/${slug}/project-schedule/${p.id}`,
+            rows: rids
+              .map((rid) => resourceById.get(rid))
+              .filter((r): r is NonNullable<typeof r> => !!r)
+              .sort((a, b) => a.display_name.localeCompare(b.display_name))
+              .map((r) => ({
+                resourceId: r.id,
+                name: r.display_name,
+                sub: r.kind === 'subcontractor',
+                cells: dayStr.map((ds) =>
+                  pr?.get(r.id)?.has(ds) ? { pid: p.id, label: p.name, colour: projectColour.get(p.id) ?? '#64748b' } : null,
+                ),
+              })),
+          };
+        });
+
+  const projectOpts = projects.map((p) => ({ id: p.id, name: p.name, colour: projectColour.get(p.id) ?? '#64748b' }));
   const label = view === 'month' ? 'next 4 weeks' : 'this week';
 
   const Seg = ({ active, href, children }: { active: boolean; href: string; children: React.ReactNode }) => (
-    <Link
-      href={href}
-      className={`px-3 py-1.5 text-xs font-bold ${active ? 'bg-primary text-white' : 'bg-white text-ink-muted hover:text-ink'}`}
-    >
+    <Link href={href} className={`px-3 py-1.5 text-xs font-bold ${active ? 'bg-primary text-white' : 'bg-white text-ink-muted hover:text-ink'}`}>
       {children}
     </Link>
   );
@@ -120,7 +146,7 @@ export default async function SchedulePage({ params, searchParams }: Props) {
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Schedule</h1>
-          <p className="mt-1 text-sm text-ink-muted">Where your team and subbies are, {label}. Open a project to assign people.</p>
+          <p className="mt-1 text-sm text-ink-muted">Where your team and subbies are, {label}. Click a day to assign someone.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <div className="inline-flex overflow-hidden rounded-lg border border-hairline">
@@ -158,79 +184,11 @@ export default async function SchedulePage({ params, searchParams }: Props) {
       )}
 
       {resources.length === 0 ? (
-        <Empty>No team yet. Add crew and subbies on <span className="font-semibold">Team &amp; rates</span>, then assign them on a project.</Empty>
-      ) : (
-        <div className="overflow-x-auto rounded-card border border-hairline bg-white shadow-card">
-          <div style={{ minWidth: 200 + span * 40 }}>
-            {/* header */}
-            <div className="grid border-b border-hairline bg-canvas/50" style={{ gridTemplateColumns: `200px repeat(${span}, 1fr)` }}>
-              <div className="px-4 py-2 text-xs font-bold text-ink-muted">{group === 'projects' ? 'Project / person' : 'Team member'}</div>
-              {days.map((d, i) => {
-                const isToday = dayStr[i] === todayStr;
-                const weekend = d.getUTCDay() === 0 || d.getUTCDay() === 6;
-                return (
-                  <div key={dayStr[i]} className={`border-l border-hairline px-1 py-2 text-center text-[11px] ${isToday ? 'bg-primary-soft' : weekend ? 'bg-canvas/40' : ''}`}>
-                    <div className="text-ink-muted">{d.toLocaleDateString('en-GB', { weekday: 'narrow' })}</div>
-                    <div className={`font-bold ${isToday ? 'text-primary' : 'text-ink'}`}>{d.getUTCDate()}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {group === 'people'
-              ? [...byTrade.entries()]
-                  .sort((a, b) => a[0].localeCompare(b[0]))
-                  .map(([trade, list]) => (
-                    <GroupBlock key={trade} title={trade}>
-                      {list.map((r) => (
-                        <Row
-                          key={r.id}
-                          span={span}
-                          name={r.display_name}
-                          sub={r.kind === 'subcontractor'}
-                          cells={dayStr.map((ds) => {
-                            const pid = peopleCell.get(r.id)?.get(ds);
-                            return pid ? { pid, label: projectName.get(pid) ?? 'Job', colour: projectColour.get(pid) ?? '#64748b', href: `/${slug}/project-schedule/${pid}` } : null;
-                          })}
-                          dayStr={dayStr}
-                          todayStr={todayStr}
-                        />
-                      ))}
-                    </GroupBlock>
-                  ))
-              : projects.map((p) => {
-                  const pr = projResources.get(p.id);
-                  const rids = pr ? [...pr.keys()] : [];
-                  return (
-                    <GroupBlock key={p.id} title={p.name} colour={projectColour.get(p.id)} href={`/${slug}/project-schedule/${p.id}`}>
-                      {rids.length === 0 ? (
-                        <div className="px-4 py-2 text-xs text-ink-muted">No one assigned.</div>
-                      ) : (
-                        rids
-                          .map((rid) => resourceById.get(rid))
-                          .filter(Boolean)
-                          .sort((a, b) => a!.display_name.localeCompare(b!.display_name))
-                          .map((r) => (
-                            <Row
-                              key={r!.id}
-                              span={span}
-                              name={r!.display_name}
-                              sub={r!.kind === 'subcontractor'}
-                              cells={dayStr.map((ds) =>
-                                pr?.get(r!.id)?.has(ds)
-                                  ? { pid: p.id, label: p.name, colour: projectColour.get(p.id) ?? '#64748b', href: `/${slug}/project-schedule/${p.id}` }
-                                  : null,
-                              )}
-                              dayStr={dayStr}
-                              todayStr={todayStr}
-                            />
-                          ))
-                      )}
-                    </GroupBlock>
-                  );
-                })}
-          </div>
+        <div className="rounded-card border border-dashed border-hairline bg-white/60 p-8 text-center text-sm text-ink-muted">
+          No team yet. Add crew and subbies on <span className="font-semibold">Team &amp; rates</span>, then click a day to assign them.
         </div>
+      ) : (
+        <ScheduleGrid slug={slug} span={span} days={dayCols} groups={groups} projects={projectOpts} canWrite />
       )}
 
       {projects.length > 0 && (
@@ -247,61 +205,6 @@ export default async function SchedulePage({ params, searchParams }: Props) {
   );
 }
 
-function GroupBlock({ title, colour, href, children }: { title: string; colour?: string; href?: string; children: React.ReactNode }) {
-  const head = (
-    <div className="flex items-center gap-2 bg-canvas/60 px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">
-      {colour && <span className="h-2.5 w-2.5 rounded-sm" style={{ background: colour }} />}
-      {title}
-    </div>
-  );
-  return (
-    <div>
-      {href ? <Link href={href}>{head}</Link> : head}
-      {children}
-    </div>
-  );
-}
-
-function Row({
-  span,
-  name,
-  sub,
-  cells,
-  dayStr,
-  todayStr,
-}: {
-  span: number;
-  name: string;
-  sub: boolean;
-  cells: ({ pid: string; label: string; colour: string; href: string } | null)[];
-  dayStr: string[];
-  todayStr: string;
-}) {
-  return (
-    <div className="grid items-center border-b border-hairline last:border-b-0 hover:bg-canvas/30" style={{ gridTemplateColumns: `200px repeat(${span}, 1fr)` }}>
-      <div className="flex items-center gap-2 px-4 py-2">
-        <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-primary-soft text-[10px] font-bold text-primary">{initials(name) || '?'}</span>
-        <span className="min-w-0 truncate text-sm font-semibold">
-          {name}
-          {sub && <span className="ml-1 text-[10px] font-bold text-accent-deep">SUB</span>}
-        </span>
-      </div>
-      {cells.map((c, i) => {
-        const isToday = dayStr[i] === todayStr;
-        return (
-          <div key={dayStr[i]} className={`h-full border-l border-hairline px-1 py-1.5 ${isToday ? 'bg-primary-soft/40' : ''}`}>
-            {c && (
-              <Link href={c.href} className="block truncate rounded-md px-1.5 py-1 text-[10px] font-bold text-white" style={{ background: c.colour }} title={c.label}>
-                {c.label}
-              </Link>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-card border border-hairline bg-white p-4 shadow-card">
@@ -309,8 +212,4 @@ function Tile({ label, value }: { label: string; value: string }) {
       <div className="mt-1 text-xl font-extrabold tracking-tight">{value}</div>
     </div>
   );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-card border border-dashed border-hairline bg-white/60 p-8 text-center text-sm text-ink-muted">{children}</div>;
 }
