@@ -59,6 +59,21 @@ export const RATE_UNIT_LABELS: Record<RateUnit, string> = {
   annual: 'Salary (annual)',
 };
 
+/** Equipment categories offered when adding plant (stored in resource.trade). */
+export const PLANT_TYPES = [
+  'Excavator / digger',
+  'Dumper',
+  'Telehandler',
+  'Mini digger',
+  'Scaffold',
+  'Access platform / cherry picker',
+  'Generator',
+  'Compactor / roller',
+  'Cement mixer',
+  'Van / vehicle',
+  'Tools / other',
+] as const;
+
 /** Standard working day / year used to pro-rate rates. Keep in step with SQL. */
 export const WORKING_DAY_HOURS = 8;
 export const WORKING_DAYS_PER_YEAR = 232;

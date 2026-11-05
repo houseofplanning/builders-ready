@@ -10,6 +10,7 @@ import {
   RESOURCE_KIND_LABELS,
   RATE_UNIT_LABELS,
   TRADE_CATEGORIES,
+  PLANT_TYPES,
   DOCUMENT_TYPES,
   certStatus,
   daysToExpiry,
@@ -307,6 +308,7 @@ function EditDrawer({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const perm = isPermanent(d.kind);
+  const plant = isPlant(d.kind);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((p) => ({ ...p, [k]: v }));
 
   async function save() {
@@ -356,11 +358,11 @@ function EditDrawer({
         </div>
 
         <div className="space-y-4 px-5 py-5">
-          <Field label="Name">
+          <Field label={plant ? 'Equipment name' : 'Name'}>
             <input
               value={d.display_name}
               onChange={(e) => set('display_name', e.target.value)}
-              placeholder="e.g. Luke Evans"
+              placeholder={plant ? 'e.g. 3-ton digger, Scaffold tower A' : 'e.g. Luke Evans'}
               className="w-full rounded-lg border border-hairline px-3 py-2 text-sm"
             />
           </Field>
@@ -378,35 +380,64 @@ function EditDrawer({
                 <option value="plant">{RESOURCE_KIND_LABELS.plant}</option>
               </select>
             </Field>
-            <Field label="Trade">
-              <select
-                value={d.trade}
-                onChange={(e) => set('trade', e.target.value)}
-                className="w-full rounded-lg border border-hairline px-3 py-2 text-sm"
-              >
-                <option value="">None / general</option>
-                {TRADE_CATEGORIES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            {plant ? (
+              <Field label="Equipment type">
+                <select
+                  value={d.trade}
+                  onChange={(e) => set('trade', e.target.value)}
+                  className="w-full rounded-lg border border-hairline px-3 py-2 text-sm"
+                >
+                  <option value="">Select type…</option>
+                  {PLANT_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            ) : (
+              <Field label="Trade">
+                <select
+                  value={d.trade}
+                  onChange={(e) => set('trade', e.target.value)}
+                  className="w-full rounded-lg border border-hairline px-3 py-2 text-sm"
+                >
+                  <option value="">None / general</option>
+                  {TRADE_CATEGORIES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Pay basis">
+            <Field label={plant ? 'Hire basis' : 'Pay basis'}>
               <select
                 value={d.unit}
                 onChange={(e) => set('unit', e.target.value as RateUnit)}
                 className="w-full rounded-lg border border-hairline px-3 py-2 text-sm"
               >
-                <option value="day">{RATE_UNIT_LABELS.day}</option>
-                <option value="hour">{RATE_UNIT_LABELS.hour}</option>
+                <option value="day">{plant ? 'Per day' : RATE_UNIT_LABELS.day}</option>
+                <option value="hour">{plant ? 'Per hour' : RATE_UNIT_LABELS.hour}</option>
                 {perm && <option value="annual">{RATE_UNIT_LABELS.annual}</option>}
               </select>
             </Field>
-            <Field label={d.unit === 'annual' ? 'Annual salary (£)' : d.unit === 'hour' ? 'Hourly (£)' : 'Day rate (£)'}>
+            <Field
+              label={
+                plant
+                  ? d.unit === 'hour'
+                    ? 'Hire rate (£/hr)'
+                    : 'Hire rate (£/day)'
+                  : d.unit === 'annual'
+                    ? 'Annual salary (£)'
+                    : d.unit === 'hour'
+                      ? 'Hourly (£)'
+                      : 'Day rate (£)'
+              }
+            >
               <input
                 inputMode="decimal"
                 value={d.amount}
@@ -429,7 +460,7 @@ function EditDrawer({
             </Field>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Engaged from">
+              <Field label={plant ? 'On hire from' : 'Engaged from'}>
                 <input
                   type="date"
                   value={d.engaged_from}
@@ -437,7 +468,7 @@ function EditDrawer({
                   className="w-full rounded-lg border border-hairline px-3 py-2 text-sm"
                 />
               </Field>
-              <Field label="Engaged to">
+              <Field label={plant ? 'On hire to' : 'Engaged to'}>
                 <input
                   type="date"
                   value={d.engaged_to}
@@ -449,14 +480,14 @@ function EditDrawer({
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Phone">
+            <Field label={plant ? 'Supplier phone' : 'Phone'}>
               <input
                 value={d.phone}
                 onChange={(e) => set('phone', e.target.value)}
                 className="w-full rounded-lg border border-hairline px-3 py-2 text-sm"
               />
             </Field>
-            <Field label="Email">
+            <Field label={plant ? 'Supplier / hire co.' : 'Email'}>
               <input
                 value={d.email}
                 onChange={(e) => set('email', e.target.value)}
@@ -469,7 +500,7 @@ function EditDrawer({
             <CertsEditor resourceId={d.id} docs={docs} onChanged={onDocsChanged} />
           ) : (
             <p className="rounded-lg bg-canvas px-3 py-2 text-xs text-ink-muted">
-              Save this person first, then you can add their certs and insurance.
+              Save this first, then add certs, insurance or inspection records.
             </p>
           )}
 
