@@ -59,13 +59,6 @@ const ITEMS: MoreItem[] = [
     route: '/messages',
   },
   {
-    label: 'Work for other builders',
-    icon: 'hammer-outline',
-    hint: 'Jobs other builders have hired you for',
-    route: '/for-hire-work',
-    requiresTrade: true,
-  },
-  {
     label: 'Settings',
     icon: 'settings-outline',
     hint: 'Profile, biometric unlock, sign out',

@@ -1,24 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-  RefreshControl,
-  Linking,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { palette, spacing, typography, radius } from '@br/shared';
-import {
-  getMySchedule,
-  confirmMyAssignment,
-  shortAddress,
-  type MyScheduleItem,
-} from '../lib/schedule';
+import { getMySchedule, confirmMyAssignment, shortAddress, type MyScheduleItem } from '../../lib/schedule';
+import { ProfileToggle } from '../../components/profile-toggle';
 
 const dayKey = (iso: string) => iso.slice(0, 10);
 const dayHeading = (iso: string) => {
@@ -32,7 +21,6 @@ const dayHeading = (iso: string) => {
   if (same(d, tomorrow)) return `Tomorrow · ${label}`;
   return label;
 };
-
 const STATUS: Record<string, { label: string; bg: string; fg: string }> = {
   planned: { label: 'To confirm', bg: '#FEF3C7', fg: '#92400E' },
   confirmed: { label: 'Confirmed', bg: '#D1FAE5', fg: '#065F46' },
@@ -41,24 +29,16 @@ const STATUS: Record<string, { label: string; bg: string; fg: string }> = {
   cancelled: { label: 'Cancelled', bg: palette.canvas, fg: palette.inkMuted },
 };
 
-export default function ForHireWorkScreen() {
-  const router = useRouter();
+export default function ForHireMyWork() {
   const [rows, setRows] = useState<MyScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    try {
-      setRows(await getMySchedule());
-    } catch {
-      /* pull to refresh retries */
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+    try { setRows(await getMySchedule()); } catch { /* retry on pull */ }
+    finally { setLoading(false); setRefreshing(false); }
   }, []);
-
   useEffect(() => { void load(); }, [load]);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
@@ -66,12 +46,8 @@ export default function ForHireWorkScreen() {
     setBusyId(item.assignment_id);
     try {
       await confirmMyAssignment(item.assignment_id);
-      setRows((prev) => prev.map((r) => (r.assignment_id === item.assignment_id ? { ...r, status: 'confirmed' } : r)));
-    } catch {
-      /* ignore */
-    } finally {
-      setBusyId(null);
-    }
+      setRows((p) => p.map((r) => (r.assignment_id === item.assignment_id ? { ...r, status: 'confirmed' } : r)));
+    } catch { /* ignore */ } finally { setBusyId(null); }
   }
 
   const groups: { key: string; items: MyScheduleItem[] }[] = [];
@@ -85,15 +61,9 @@ export default function ForHireWorkScreen() {
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: palette.canvas }}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={10} style={{ marginRight: spacing.sm }}>
-          <Ionicons name="chevron-back" size={24} color={palette.ink} />
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.title}>Work for other builders</Text>
-          <Text style={styles.sub}>Jobs other builders have hired you for</Text>
-        </View>
+        <Text style={styles.title}>For Hire</Text>
+        <Text style={styles.sub}>Jobs other builders have booked you on</Text>
       </View>
-
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={palette.primary} /></View>
       ) : (
@@ -101,13 +71,12 @@ export default function ForHireWorkScreen() {
           contentContainerStyle={styles.scroll}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={palette.primary} />}
         >
+          <ProfileToggle mode="forhire" />
           {groups.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="hammer-outline" size={40} color={palette.inkMuted} />
               <Text style={styles.emptyTitle}>No jobs yet</Text>
-              <Text style={styles.emptyBody}>
-                Switch on "available for work" in your For Hire profile so other builders can find and hire you.
-              </Text>
+              <Text style={styles.emptyBody}>Turn on "available for work" in Profile so builders can find and hire you, then check Find jobs to bid.</Text>
             </View>
           ) : (
             groups.map((g) => (
@@ -120,9 +89,7 @@ export default function ForHireWorkScreen() {
                     <View key={item.assignment_id} style={styles.card}>
                       <View style={styles.cardTop}>
                         <Text style={styles.job} numberOfLines={1}>{item.project_name}</Text>
-                        <View style={[styles.chip, { backgroundColor: s.bg }]}>
-                          <Text style={[styles.chipText, { color: s.fg }]}>{s.label}</Text>
-                        </View>
+                        <View style={[styles.chip, { backgroundColor: s.bg }]}><Text style={[styles.chipText, { color: s.fg }]}>{s.label}</Text></View>
                       </View>
                       {item.business_name ? <Text style={styles.meta}>for {item.business_name}</Text> : null}
                       {item.stage_name ? <Text style={styles.meta}>Stage: {item.stage_name}</Text> : null}
@@ -134,8 +101,7 @@ export default function ForHireWorkScreen() {
                       <View style={styles.actions}>
                         {(item.business_phone || item.pm_phone) ? (
                           <TouchableOpacity style={styles.secondaryBtn} onPress={() => Linking.openURL(`tel:${item.pm_phone || item.business_phone}`)}>
-                            <Ionicons name="call-outline" size={15} color={palette.primary} />
-                            <Text style={styles.secondaryText}>Call</Text>
+                            <Ionicons name="call-outline" size={15} color={palette.primary} /><Text style={styles.secondaryText}>Call</Text>
                           </TouchableOpacity>
                         ) : <View />}
                         {item.status === 'planned' ? (
@@ -157,7 +123,7 @@ export default function ForHireWorkScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm },
   title: { fontSize: typography.size.xl, fontWeight: typography.weightBold as '700', color: palette.ink },
   sub: { fontSize: typography.size.sm, color: palette.inkMuted, marginTop: 2 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },

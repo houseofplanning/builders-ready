@@ -157,6 +157,7 @@ function AuthGate() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="customer" options={{ headerShown: false }} />
+      <Stack.Screen name="for-hire" options={{ headerShown: false }} />
       <Stack.Screen
         name="compose-update"
         options={{ presentation: 'modal', headerShown: false }}

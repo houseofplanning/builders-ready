@@ -14,6 +14,7 @@ import { useTenant } from '../lib/tenant-provider';
 import { useCurrentProject } from '../lib/current-project';
 import { ProjectStatusPill } from './stage-pill';
 import { ProgressBar } from './progress-bar';
+import { ProfileToggle } from './profile-toggle';
 
 /**
  * Quotes entry point. Estimates live BEFORE any project exists, so builders
@@ -218,6 +219,7 @@ export function ProjectGrid() {
           <RefreshControl refreshing={loading} onRefresh={refresh} />
         }
       >
+        {role !== 'client' && <ProfileToggle mode="builder" />}
         {role !== 'client' && <MarketplaceEntry />}
         {role !== 'client' && <PlanningRadarEntry />}
         {role !== 'client' && <QuotesEntry />}
@@ -255,6 +257,7 @@ export function ProjectGrid() {
         Tap a project to open it. Tabs will appear once you&apos;re inside.
       </Text>
 
+      {role !== 'client' && <ProfileToggle mode="builder" />}
       {role !== 'client' && <MarketplaceEntry />}
       {role !== 'client' && <PlanningRadarEntry />}
       {role !== 'client' && <QuotesEntry />}
