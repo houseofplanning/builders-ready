@@ -179,6 +179,36 @@ export default function FeaturesPage() {
         media={<PhoneFrame src={`${A}/s-margin.png`} alt="Costs and margin, team only" className={PHONE} />}
       />
 
+      {/* SCHEDULE & RESOURCES */}
+      <FeatureRow
+        eyebrow="Schedule & resources"
+        title="See where everyone is, and what the week costs."
+        lead="Put your team, subcontractors and plant on a week-by-week board across every job at once. Day rates, salaries and subbie costs feed a live scheduled-cost and cashflow view, and double-bookings are flagged in red before they bite."
+        checks={[
+          'Team, subbies and plant on one timeline, per day',
+          'Scheduled cost and cashflow (money out vs stage payments in)',
+          'Clash detection flags anyone booked on two jobs at once',
+          'Cover-by-trade and per-project schedules, cost and margin',
+        ]}
+        media={<BrowserFrame src={`${A}/s-web-schedule.png`} alt="The cross-project schedule" />}
+      />
+
+      {/* SUBCONTRACTOR NETWORK */}
+      <FeatureRow
+        reverse
+        eyebrow="Your subcontractor network"
+        title="Find, hire and manage subbies, all in one place."
+        lead="Connect the subs you already use so they see the jobs you book them on and confirm. Need more hands? Switch on your For Hire profile to get found by other builders, browse local tradespeople by trade and area, post a job for bids, and message either way."
+        checks={[
+          'Invite your subbies free; they see their jobs and confirm',
+          'A directory of available tradespeople by trade and area',
+          'Post a job, take bids, and hire the winner onto your team',
+          'A For Hire profile with your rate, certs and reviews',
+        ]}
+        media={<PhoneFrame src={`${A}/s-forhire-profile.png`} alt="The For Hire profile" className={PHONE} />}
+        learnMoreHref="/subcontractors"
+      />
+
       {/* RUN IT FROM THE OFFICE — desktop band */}
       <section className="border-y border-hairline-warm bg-paper-alt py-20 sm:py-28">
         <Rail>

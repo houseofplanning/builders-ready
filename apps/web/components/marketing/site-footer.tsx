@@ -24,6 +24,7 @@ export function SiteFooter() {
               </h3>
               <ul className="mt-3 space-y-2 text-sm">
                 <FooterLink href="/planning-radar" label="Planning Radar" />
+                <FooterLink href="/subcontractors" label="Subcontractors" />
                 <FooterLink href="/features" label="Features" />
                 <FooterLink href="/pricing" label="Pricing" />
                 <FooterLink href="/homeowners" label="For homeowners" />

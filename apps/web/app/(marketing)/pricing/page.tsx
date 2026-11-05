@@ -74,6 +74,10 @@ const FAQS = [
     a: 'Anything in the active or on-hold status. Once you archive a finished project it no longer counts against your tier limit, but all its data, including the handover PDF, stays in your account forever.',
   },
   {
+    q: 'Are scheduling and the subcontractor network included?',
+    a: 'Yes. Scheduling and resource management, cost and margin, and the subcontractor network (connect your subbies, the directory, posting jobs for bids and messaging) are on every plan. Subcontractors you invite join free; a tradesperson only pays when they want their own For Hire profile to be found for work.',
+  },
+  {
     q: 'What if I go over my tier?',
     a: 'Builders Ready stops you creating a new project once you hit the limit. Archive a finished project (free) or upgrade your plan (Stripe handles the prorated difference). No surprise fees.',
   },

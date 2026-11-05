@@ -131,10 +131,12 @@ export default function LandingPage() {
             {[
               'Planning Radar',
               'Quotes & estimates',
+              'Scheduling',
               'Projects',
               'Contracts',
               'Payments',
               'Client portal',
+              'Subcontractors',
               'Marketplace',
             ].map((w, i, arr) => (
               <span key={w} className="flex items-center gap-x-6">
@@ -209,6 +211,34 @@ export default function LandingPage() {
           'One tidy handover pack at the end',
         ]}
         media={<BrowserFrame src={`${A}/s-web-portal.png`} alt="The client web portal" />}
+      />
+
+      {/* SCHEDULE */}
+      <FeatureRow
+        eyebrow="Schedule & resources"
+        title="See where everyone is, and what the week costs."
+        lead="Put your team, subbies and plant across every job on one board. Day rates and subbie costs feed a live scheduled-cost and cashflow view, and double-bookings are flagged in red before they bite."
+        checks={[
+          'Everyone and every job on one weekly timeline',
+          'Live scheduled cost and cashflow',
+          'Clashes flagged so no one&rsquo;s booked twice',
+        ]}
+        media={<BrowserFrame src={`${A}/s-web-schedule.png`} alt="The cross-project schedule" />}
+      />
+
+      {/* SUBCONTRACTORS */}
+      <FeatureRow
+        reverse
+        eyebrow="Subcontractors & For Hire"
+        title="Find subbies, or get hired yourself."
+        lead="Connect the subs you use so they see their jobs, find local tradespeople to bring on, or flip to your For Hire profile and win work from other builders. One account, one switch."
+        checks={[
+          'Invite your subbies free; they see and confirm jobs',
+          'A directory of available trades, with rates and reviews',
+          'Switch to For Hire and bid on other builders&rsquo; jobs',
+        ]}
+        media={<PhoneFrame src={`${A}/s-forhire-profile.png`} alt="The For Hire profile" className="mx-auto w-[min(290px,78%)]" />}
+        cta={{ href: '/subcontractors', label: 'Explore subcontractors & For Hire' }}
       />
 
       {/* HOMEOWNERS */}
