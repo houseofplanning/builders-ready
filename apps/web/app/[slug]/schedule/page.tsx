@@ -190,7 +190,7 @@ export default async function SchedulePage({ params, searchParams }: Props) {
                           sub={r.kind === 'subcontractor'}
                           cells={dayStr.map((ds) => {
                             const pid = peopleCell.get(r.id)?.get(ds);
-                            return pid ? { pid, label: projectName.get(pid) ?? 'Job', colour: projectColour.get(pid) ?? '#64748b', href: `/${slug}/schedule/${pid}` } : null;
+                            return pid ? { pid, label: projectName.get(pid) ?? 'Job', colour: projectColour.get(pid) ?? '#64748b', href: `/${slug}/project-schedule/${pid}` } : null;
                           })}
                           dayStr={dayStr}
                           todayStr={todayStr}
@@ -202,7 +202,7 @@ export default async function SchedulePage({ params, searchParams }: Props) {
                   const pr = projResources.get(p.id);
                   const rids = pr ? [...pr.keys()] : [];
                   return (
-                    <GroupBlock key={p.id} title={p.name} colour={projectColour.get(p.id)} href={`/${slug}/schedule/${p.id}`}>
+                    <GroupBlock key={p.id} title={p.name} colour={projectColour.get(p.id)} href={`/${slug}/project-schedule/${p.id}`}>
                       {rids.length === 0 ? (
                         <div className="px-4 py-2 text-xs text-ink-muted">No one assigned.</div>
                       ) : (
@@ -218,7 +218,7 @@ export default async function SchedulePage({ params, searchParams }: Props) {
                               sub={r!.kind === 'subcontractor'}
                               cells={dayStr.map((ds) =>
                                 pr?.get(r!.id)?.has(ds)
-                                  ? { pid: p.id, label: p.name, colour: projectColour.get(p.id) ?? '#64748b', href: `/${slug}/schedule/${p.id}` }
+                                  ? { pid: p.id, label: p.name, colour: projectColour.get(p.id) ?? '#64748b', href: `/${slug}/project-schedule/${p.id}` }
                                   : null,
                               )}
                               dayStr={dayStr}
@@ -236,7 +236,7 @@ export default async function SchedulePage({ params, searchParams }: Props) {
       {projects.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-3 text-xs text-ink-muted">
           {projects.map((p) => (
-            <Link key={p.id} href={`/${slug}/schedule/${p.id}`} className="flex items-center gap-1.5 hover:text-ink">
+            <Link key={p.id} href={`/${slug}/project-schedule/${p.id}`} className="flex items-center gap-1.5 hover:text-ink">
               <span className="h-3 w-3 rounded-sm" style={{ background: projectColour.get(p.id) }} />
               {p.name}
             </Link>

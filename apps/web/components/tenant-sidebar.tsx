@@ -38,6 +38,7 @@ export function TenantSidebar({
     { href: `/${slug}/projects`, label: 'Projects', icon: <IconLayers /> },
     ...(isTrade
       ? [
+          { href: `/${slug}/project-schedule`, label: 'Project Schedule', icon: <IconLayers /> },
           { href: `/${slug}/schedule`, label: 'Schedule', icon: <IconGrid /> },
           { href: `/${slug}/estimates`, label: 'Quotes', icon: <IconDoc /> },
           { href: `/${slug}/workforce`, label: 'Team & rates', icon: <IconPeople /> },

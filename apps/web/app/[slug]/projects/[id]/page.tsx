@@ -389,20 +389,12 @@ export default async function ProjectDetail({ params }: Props) {
               Progress
             </div>
             {canWrite && (
-              <div className="mt-3 flex flex-col items-start gap-2 sm:items-end">
-                <Link
-                  href={`/${slug}/schedule/${project.id}`}
-                  className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
-                >
-                  Project schedule →
-                </Link>
-                <Link
-                  href={`/${slug}/projects/${project.id}/chat`}
-                  className="inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-canvas"
-                >
-                  Message client →
-                </Link>
-              </div>
+              <Link
+                href={`/${slug}/projects/${project.id}/chat`}
+                className="mt-3 inline-flex items-center gap-1 rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-canvas"
+              >
+                Message client →
+              </Link>
             )}
           </div>
         </div>
