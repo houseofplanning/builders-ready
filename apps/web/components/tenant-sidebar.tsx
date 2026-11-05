@@ -26,23 +26,24 @@ export function TenantSidebar({
   const pathname = usePathname();
   const isTrade = role === 'owner' || role === 'pm';
 
-  const items: { href: string; label: string; icon: React.ReactNode }[] = [
-    { href: `/${slug}/dashboard`, label: 'Dashboard', icon: <IconGrid /> },
+  type Scope = 'client' | 'internal';
+  const items: { href: string; label: string; icon: React.ReactNode; scope: Scope }[] = [
+    { href: `/${slug}/dashboard`, label: 'Dashboard', icon: <IconGrid />, scope: 'internal' },
     ...(isTrade
       ? [
-          { href: `/${slug}/find-work`, label: 'Marketplace', icon: <IconBag /> },
-          { href: `/${slug}/planning-radar`, label: 'Planning Radar', icon: <IconRadar /> },
-          { href: `/${slug}/messages`, label: 'Messages', icon: <IconChat /> },
+          { href: `/${slug}/find-work`, label: 'Marketplace', icon: <IconBag />, scope: 'client' as Scope },
+          { href: `/${slug}/planning-radar`, label: 'Planning Radar', icon: <IconRadar />, scope: 'internal' as Scope },
+          { href: `/${slug}/messages`, label: 'Messages', icon: <IconChat />, scope: 'client' as Scope },
         ]
       : []),
-    { href: `/${slug}/projects`, label: 'Projects', icon: <IconLayers /> },
+    { href: `/${slug}/projects`, label: 'Projects', icon: <IconLayers />, scope: 'client' },
     ...(isTrade
       ? [
-          { href: `/${slug}/project-schedule`, label: 'Project Schedule', icon: <IconLayers /> },
-          { href: `/${slug}/schedule`, label: 'Schedule', icon: <IconGrid /> },
-          { href: `/${slug}/estimates`, label: 'Quotes', icon: <IconDoc /> },
-          { href: `/${slug}/workforce`, label: 'Team & rates', icon: <IconPeople /> },
-          { href: `/${slug}/team`, label: 'Members', icon: <IconPeople /> },
+          { href: `/${slug}/project-schedule`, label: 'Project Schedule', icon: <IconLayers />, scope: 'internal' as Scope },
+          { href: `/${slug}/schedule`, label: 'Schedule', icon: <IconGrid />, scope: 'internal' as Scope },
+          { href: `/${slug}/estimates`, label: 'Quotes', icon: <IconDoc />, scope: 'client' as Scope },
+          { href: `/${slug}/workforce`, label: 'Team & rates', icon: <IconPeople />, scope: 'internal' as Scope },
+          { href: `/${slug}/team`, label: 'Members', icon: <IconPeople />, scope: 'internal' as Scope },
         ]
       : []),
   ];
@@ -90,11 +91,31 @@ export function TenantSidebar({
               <span className="flex-shrink-0" style={active ? undefined : { color: '#9AA7A2' }}>
                 {it.icon}
               </span>
-              {it.label}
+              <span className="truncate">{it.label}</span>
+              <span
+                title={it.scope === 'client' ? 'Your client sees this' : 'Internal — team only'}
+                className={`ml-auto flex-shrink-0 text-[9px] font-bold uppercase tracking-wide ${
+                  it.scope === 'client' ? 'text-emerald-600' : 'text-ink-muted/70'
+                }`}
+              >
+                {it.scope === 'client' ? 'Client' : 'Internal'}
+              </span>
             </Link>
           );
         })}
       </nav>
+
+      {/* Scope key */}
+      <div className="mb-2 mt-1 flex items-center gap-3 px-3 text-[10px] text-ink-muted">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          Client sees
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-ink-muted/50" />
+          Team only
+        </span>
+      </div>
 
       {/* Account */}
       <div className="mt-auto flex items-center gap-3 border-t border-hairline px-1 pt-3">
