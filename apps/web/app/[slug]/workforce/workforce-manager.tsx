@@ -129,8 +129,8 @@ export function WorkforceManager({ initialResources }: { initialResources: Resou
     [initialResources],
   );
 
-  function openNew() {
-    setEditing(emptyDraft());
+  function openNew(kind: ResourceKind = 'operative') {
+    setEditing({ ...emptyDraft(), kind });
     setEditingDocs([]);
   }
   function openEdit(r: ResourceWithDocs) {
@@ -148,12 +148,20 @@ export function WorkforceManager({ initialResources }: { initialResources: Resou
             salary. These costs feed the live margin on every job and the schedule.
           </p>
         </div>
-        <button
-          onClick={openNew}
-          className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white hover:opacity-90"
-        >
-          + Add person
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => openNew('operative')}
+            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white hover:opacity-90"
+          >
+            + Add person
+          </button>
+          <button
+            onClick={() => openNew('plant')}
+            className="rounded-xl border border-primary px-4 py-2.5 text-sm font-bold text-primary hover:bg-canvas"
+          >
+            + Add plant / equipment
+          </button>
+        </div>
       </header>
 
       <div className="mb-6 flex flex-wrap gap-2 text-xs font-semibold">
@@ -339,7 +347,9 @@ function EditDrawer({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
-          <h3 className="text-lg font-extrabold">{d.id ? 'Edit person' : 'Add person'}</h3>
+          <h3 className="text-lg font-extrabold">
+            {d.id ? 'Edit' : 'Add'} {isPlant(d.kind) ? 'plant / equipment' : 'person'}
+          </h3>
           <button onClick={onClose} className="text-ink-muted hover:text-ink" aria-label="Close">
             ✕
           </button>

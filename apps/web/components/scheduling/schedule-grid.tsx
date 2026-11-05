@@ -36,9 +36,17 @@ export interface ProjectOpt {
   name: string;
   colour: string;
 }
+export interface CashDay {
+  /** Scheduled cost going out this day (labour, subbies, plant). */
+  outPence: number;
+  /** Agreed stage payments / invoices due in this day. */
+  in: { label: string; colour: string; amountPence: number }[];
+}
 
 const initials = (n: string) =>
   n.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('');
+const money = (p: number) =>
+  new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(p / 100);
 const fmtIso = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' });
 
 type Selected = { resourceId: string; name: string; dateIso: string; cell: GridCell | null };
@@ -50,6 +58,7 @@ export function ScheduleGrid({
   groups,
   projects,
   canWrite,
+  cashflow,
 }: {
   slug: string;
   span: number;
@@ -57,6 +66,7 @@ export function ScheduleGrid({
   groups: GridGroup[];
   projects: ProjectOpt[];
   canWrite: boolean;
+  cashflow?: CashDay[];
 }) {
   const [sel, setSel] = useState<Selected | null>(null);
   const cols = `200px repeat(${span}, 1fr)`;
@@ -128,6 +138,30 @@ export function ScheduleGrid({
               )}
             </div>
           ))}
+
+          {cashflow && (
+            <div className="grid border-t-2 border-hairline bg-canvas/50" style={{ gridTemplateColumns: cols }}>
+              <div className="px-4 py-2 text-[11px] font-extrabold uppercase tracking-wide text-ink-soft">
+                Cashflow
+                <span className="ml-1 font-normal normal-case text-ink-muted">in / out</span>
+              </div>
+              {cashflow.map((cd, i) => (
+                <div key={days[i]!.iso} className={`border-l border-hairline px-1 py-1.5 text-center ${days[i]!.isToday ? 'bg-primary-soft/40' : ''}`}>
+                  {cd.in.map((it, j) => (
+                    <span
+                      key={j}
+                      className="mb-0.5 block truncate rounded px-1 text-[9px] font-bold text-white"
+                      style={{ background: it.colour }}
+                      title={`${it.label}: +${money(it.amountPence)} due`}
+                    >
+                      +{money(it.amountPence)}
+                    </span>
+                  ))}
+                  {cd.outPence > 0 && <span className="block text-[9px] font-bold text-red-600">−{money(cd.outPence)}</span>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

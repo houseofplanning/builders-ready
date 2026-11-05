@@ -73,6 +73,7 @@ export default async function SchedulePage({ params, searchParams }: Props) {
   const multi = new Map<string, Map<string, Set<string>>>();
   const projResources = new Map<string, Map<string, Set<string>>>();
   const peopleBooked = new Set<string>();
+  const outByDay = new Map<string, number>();
   let horizonCost = 0;
   let clashCount = 0;
   for (const a of assignmentRows ?? []) {
@@ -86,7 +87,35 @@ export default async function SchedulePage({ params, searchParams }: Props) {
     const pr = projResources.get(pid) ?? projResources.set(pid, new Map()).get(pid)!;
     (pr.get(rid) ?? pr.set(rid, new Set()).get(rid)!).add(date);
     if (!isPlant(resourceById.get(rid)?.kind ?? 'operative')) peopleBooked.add(rid);
-    horizonCost += a.cost_pence != null ? Number(a.cost_pence) : 0;
+    const c = a.cost_pence != null ? Number(a.cost_pence) : 0;
+    horizonCost += c;
+    outByDay.set(date, (outByDay.get(date) ?? 0) + c);
+  }
+
+  // Cashflow: scheduled cost out (above) + stage-payment invoices due in the window.
+  const activeIds = projects.map((p) => p.id);
+  const { data: invoiceRows } = activeIds.length
+    ? await supabase
+        .from('invoices')
+        .select('project_id, amount_gbp_pence, due_at, status')
+        .in('project_id', activeIds)
+        .neq('status', 'paid')
+        .gte('due_at', `${dayStr[0]}T00:00:00Z`)
+        .lt('due_at', `${isoDay(endExcl)}T00:00:00Z`)
+    : { data: [] as { project_id: string; amount_gbp_pence: number; due_at: string | null; status: string }[] };
+  const inByDay = new Map<string, { label: string; colour: string; amountPence: number }[]>();
+  let totalIn = 0;
+  for (const inv of invoiceRows ?? []) {
+    const due = (inv.due_at as string | null)?.slice(0, 10);
+    if (!due) continue;
+    const pid = inv.project_id as string;
+    const amt = Number(inv.amount_gbp_pence ?? 0);
+    (inByDay.get(due) ?? inByDay.set(due, []).get(due)!).push({
+      label: projectName.get(pid) ?? 'Invoice',
+      colour: projectColour.get(pid) ?? '#64748b',
+      amountPence: amt,
+    });
+    totalIn += amt;
   }
 
   const people = resources.filter((r) => !isPlant(r.kind));
@@ -154,6 +183,8 @@ export default async function SchedulePage({ params, searchParams }: Props) {
 
   const projectOpts = projects.map((p) => ({ id: p.id, name: p.name, colour: projectColour.get(p.id) ?? '#64748b' }));
   const rangeLabel = `${days[0]!.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} – ${days[span - 1]!.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}`;
+  const cashflow = dayStr.map((ds) => ({ outPence: outByDay.get(ds) ?? 0, in: inByDay.get(ds) ?? [] }));
+  const net = totalIn - horizonCost;
 
   const Seg = ({ active, href, children }: { active: boolean; href: string; children: React.ReactNode }) => (
     <Link href={href} className={`px-3 py-1.5 text-xs font-bold ${active ? 'bg-primary text-white' : 'bg-white text-ink-muted hover:text-ink'}`}>
@@ -194,6 +225,14 @@ export default async function SchedulePage({ params, searchParams }: Props) {
         <Tile label="Clashes" value={String(clashCount)} alert={clashCount > 0} />
       </div>
 
+      <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-1 rounded-card border border-hairline bg-white px-4 py-3 text-sm shadow-card">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">Cashflow · {rangeLabel}</span>
+        <span>Out <b className="text-red-600">{money(horizonCost)}</b></span>
+        <span>In <b className="text-emerald-600">{money(totalIn)}</b></span>
+        <span>Net <b className={net >= 0 ? 'text-emerald-600' : 'text-red-600'}>{money(net)}</b></span>
+        <span className="text-[11px] text-ink-muted">scheduled cost out · agreed stage payments due in</span>
+      </div>
+
       {cover.length > 0 && (
         <div className="mb-4 rounded-card border border-hairline bg-white p-4 shadow-card">
           <h3 className="mb-3 text-[11px] font-bold uppercase tracking-wide text-ink-muted">Cover by trade</h3>
@@ -216,7 +255,7 @@ export default async function SchedulePage({ params, searchParams }: Props) {
           No team or plant yet. Add crew, subbies and plant on <span className="font-semibold">Team &amp; rates</span>, then click a day to assign them.
         </div>
       ) : (
-        <ScheduleGrid slug={slug} span={span} days={dayCols} groups={groups} projects={projectOpts} canWrite />
+        <ScheduleGrid slug={slug} span={span} days={dayCols} groups={groups} projects={projectOpts} canWrite cashflow={cashflow} />
       )}
 
       {projects.length > 0 && (
