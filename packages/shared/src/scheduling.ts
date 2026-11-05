@@ -16,6 +16,18 @@ import type { CostCategory } from './types';
 
 export type ResourceKind = 'staff' | 'operative' | 'subcontractor' | 'plant';
 export type RateUnit = 'day' | 'hour' | 'annual';
+
+/**
+ * Connection state of a resource — whether the person behind a `resources`
+ * row can see their jobs and respond, or is just a typed-in contact card.
+ * A PAID tradesman connects via `marketplace_tenant_id` (they are a tenant);
+ * a FREE operative connects via `user_id` (a plain login). Both are valid.
+ */
+export type ConnectionStatus =
+  | 'contact_only'
+  | 'invited'
+  | 'connected'
+  | 'disconnected';
 export type BookingKind = 'work' | 'travel' | 'leave' | 'unplanned';
 export type AssignmentStatus =
   | 'planned'
@@ -84,6 +96,39 @@ export function isPermanent(kind: ResourceKind): boolean {
 }
 export const isPlant = (kind: ResourceKind): boolean => kind === 'plant';
 
+export const CONNECTION_STATUS_LABELS: Record<ConnectionStatus, string> = {
+  contact_only: 'Contact only',
+  invited: 'Invite sent',
+  connected: 'Connected',
+  disconnected: 'Disconnected',
+};
+
+/** Is this resource a live, two-way connection (sees their jobs, responds)? */
+export const isConnected = (s: ConnectionStatus): boolean => s === 'connected';
+
+/** Can this resource be invited to connect? (Plant can't; it has no person.) */
+export function canInviteToConnect(
+  kind: ResourceKind,
+  status: ConnectionStatus,
+): boolean {
+  return kind !== 'plant' && (status === 'contact_only' || status === 'disconnected');
+}
+
+/** A pending/accepted invite to connect a contact (Door A). */
+export interface ResourceInvite {
+  id: string;
+  tenant_id: string;
+  resource_id: string;
+  channel: 'email' | 'sms';
+  sent_to: string;
+  token: string;
+  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  invited_by: string | null;
+  accepted_user_id: string | null;
+  created_at: string;
+  responded_at: string | null;
+}
+
 export interface Resource {
   id: string;
   tenant_id: string;
@@ -93,6 +138,7 @@ export interface Resource {
   member_user_id: string | null;
   trade: string | null;
   marketplace_tenant_id: string | null;
+  connection_status: ConnectionStatus;
   phone: string | null;
   email: string | null;
   cost_rate_pence: number | null;

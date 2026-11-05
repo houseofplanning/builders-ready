@@ -14,6 +14,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { palette, spacing, typography, radius } from '@br/shared';
 import { useTenant } from '../../lib/tenant-provider';
 import { listCustomerProjects, type CustomerProjectListItem } from '../../lib/marketplace';
+import { getMySchedule, type MyScheduleItem } from '../../lib/schedule';
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'In progress',
@@ -26,10 +27,14 @@ export default function CustomerHome() {
   const router = useRouter();
   const { user_id } = useTenant();
   const [projects, setProjects] = useState<CustomerProjectListItem[]>([]);
+  const [work, setWork] = useState<MyScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
+    // "My work" (jobs builders booked me on) doesn't depend on the customer
+    // profile — it keys off the signed-in user — so fetch it regardless.
+    getMySchedule().then(setWork).catch(() => setWork([]));
     if (!user_id) {
       setLoading(false);
       return;
@@ -78,6 +83,27 @@ export default function CustomerHome() {
           />
         }
       >
+        {/* YOUR WORK — only when a builder has booked this person onto a job */}
+        {work.length > 0 && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/customer/my-work')}
+            style={styles.workCard}
+          >
+            <View style={styles.workIcon}>
+              <Ionicons name="hammer" size={20} color="#fff" />
+            </View>
+            <View style={{ flex: 1, marginLeft: spacing.md }}>
+              <Text style={styles.workTitle}>Your work</Text>
+              <Text style={styles.workSub} numberOfLines={1}>
+                {work.length} upcoming {work.length === 1 ? 'job' : 'jobs'}
+                {work[0]?.business_name ? ` · next with ${work[0].business_name}` : ''}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={palette.primary} />
+          </TouchableOpacity>
+        )}
+
         {/* MARKETPLACE CARD — mirrors the builder's home */}
         <TouchableOpacity
           activeOpacity={0.85}
@@ -185,6 +211,26 @@ const styles = StyleSheet.create({
   },
   mktTitle: { fontSize: typography.size.body, fontWeight: typography.weightExtraBold as '800', color: '#fff' },
   mktSub: { fontSize: typography.size.xs, marginTop: 2, lineHeight: 16, color: 'rgba(255,255,255,0.88)' },
+  workCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: palette.card,
+    borderWidth: 1,
+    borderColor: palette.hairline,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  workIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: palette.primary,
+  },
+  workTitle: { fontSize: typography.size.body, fontWeight: typography.weightExtraBold as '800', color: palette.ink },
+  workSub: { fontSize: typography.size.xs, marginTop: 2, lineHeight: 16, color: palette.inkMuted },
 
   heading: { fontSize: typography.size.xl, fontWeight: typography.weightExtraBold as '800', color: palette.ink, marginBottom: spacing.md },
 

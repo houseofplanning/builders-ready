@@ -4,6 +4,21 @@ import { revalidatePath } from 'next/cache';
 import type { BookingKind } from '@br/shared';
 import { createSupabaseServer } from '../supabase-server';
 import { resolveCurrentTenant } from '../tenant-resolver';
+import { sendBookingEmail } from '../email';
+
+/** Human label for a booking's date span, e.g. "Mon 10 Nov" or a range. */
+function whenLabel(days: string[]): string {
+  if (days.length === 0) return '';
+  const fmt = (d: string) =>
+    new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    });
+  if (days.length === 1) return fmt(days[0]!);
+  return `${fmt(days[0]!)} – ${fmt(days[days.length - 1]!)} (${days.length} days)`;
+}
 
 export interface ActionResult {
   ok: boolean;
@@ -79,6 +94,28 @@ export async function createProjectAssignment(input: AssignInput): Promise<Actio
 
   const { error } = await supabase.from('assignments').insert(rows);
   if (error) return { ok: false, error: error.message };
+
+  // Notify the person if they're connected (push + in-app via the RPC; email
+  // via Resend). Never block the booking on a notification hiccup.
+  try {
+    const { data: notif } = await supabase.rpc('notify_resource_booked', {
+      p_resource_id: input.resource_id,
+      p_project_id: input.project_id,
+    });
+    const row = Array.isArray(notif) ? notif[0] : notif;
+    const email = (row as { recipient_email?: string } | null)?.recipient_email;
+    if (email) {
+      await sendBookingEmail({
+        to: email,
+        recipientName: (row as { recipient_name?: string }).recipient_name ?? null,
+        businessName: (row as { business_name?: string }).business_name ?? tenant.tenant.name,
+        projectName: (row as { project_name?: string }).project_name ?? 'a job',
+        whenLabel: whenLabel(days),
+      });
+    }
+  } catch {
+    // Booking already succeeded; a failed notification must not fail the action.
+  }
 
   revalidatePath(`/${tenant.tenant.slug}/projects/${input.project_id}`);
   return { ok: true, created: rows.length };

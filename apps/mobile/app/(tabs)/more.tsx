@@ -21,6 +21,7 @@ type MoreRoute =
   | '/invoices'
   | '/reports'
   | '/messages'
+  | '/for-hire-work'
   | '/settings';
 
 interface MoreItem {
@@ -56,6 +57,13 @@ const ITEMS: MoreItem[] = [
     icon: 'chatbubbles-outline',
     hint: 'Direct chat with your project counterpart',
     route: '/messages',
+  },
+  {
+    label: 'Work for other builders',
+    icon: 'hammer-outline',
+    hint: 'Jobs other builders have hired you for',
+    route: '/for-hire-work',
+    requiresTrade: true,
   },
   {
     label: 'Settings',

@@ -101,6 +101,7 @@ export default function CustomerLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="my-work" options={{ href: null }} />
       <Tabs.Screen name="browse" options={{ href: null }} />
       <Tabs.Screen name="post" options={{ href: null }} />
       <Tabs.Screen name="thread/[id]" options={{ href: null }} />

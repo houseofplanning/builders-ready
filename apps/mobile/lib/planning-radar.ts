@@ -111,7 +111,7 @@ export async function geocodePostcode(input: string): Promise<GeoPoint | null> {
     try {
       const res = await fetch(url);
       if (!res.ok) continue;
-      const json = await res.json();
+      const json = (await res.json()) as { result?: { latitude?: number; longitude?: number } };
       const r = json?.result;
       if (r && typeof r.latitude === 'number' && typeof r.longitude === 'number') {
         return { lat: r.latitude, lon: r.longitude, label: raw };

@@ -41,6 +41,8 @@ export function TenantSidebar({
     { href: `/${slug}/project-schedule`, label: 'Project Schedule', icon: <IconLayers /> },
     { href: `/${slug}/schedule`, label: 'Schedule', icon: <IconGrid /> },
     { href: `/${slug}/workforce`, label: 'Team & rates', icon: <IconPeople /> },
+    { href: `/${slug}/hire`, label: 'Find subbies', icon: <IconBag /> },
+    { href: `/${slug}/for-hire`, label: 'For Hire profile', icon: <IconDoc /> },
     { href: `/${slug}/team`, label: 'Members', icon: <IconPeople /> },
   ];
   // Client role: just their own project(s) and overview, ungrouped.

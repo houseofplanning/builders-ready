@@ -63,7 +63,7 @@ export default async function ProjectScheduleDetailPage({ params }: Props) {
       .maybeSingle(),
     supabase
       .from('resources')
-      .select('id, display_name, kind, trade, cost_rate_pence, cost_rate_unit')
+      .select('id, display_name, kind, trade, cost_rate_pence, cost_rate_unit, marketplace_tenant_id')
       .eq('tenant_id', tenant.id)
       .eq('active', true)
       .order('display_name'),
@@ -82,6 +82,7 @@ export default async function ProjectScheduleDetailPage({ params }: Props) {
     trade: (r.trade as string | null) ?? null,
     cost_rate_pence: r.cost_rate_pence != null ? Number(r.cost_rate_pence) : null,
     cost_rate_unit: r.cost_rate_unit as RateUnit,
+    marketplace_tenant_id: (r.marketplace_tenant_id as string | null) ?? null,
   }));
 
   const bookings: BookingRow[] = (assignmentRows ?? []).map((a) => {

@@ -127,6 +127,9 @@ function AuthGate() {
           case 'stage_advanced':
             router.push('/updates');
             break;
+          case 'assignment_booked':
+            router.push('/customer/my-work');
+            break;
           case 'message_received':
             router.push('/messages');
             break;

@@ -25,6 +25,10 @@ import {
   addTeamMemberResource,
   type ResourceInput,
 } from '@/lib/server-actions/resources';
+import {
+  inviteResourceToConnect,
+  disconnectResource,
+} from '@/lib/server-actions/connections';
 
 export interface ResourceWithDocs extends Resource {
   documents: ResourceDocument[];
@@ -83,6 +87,7 @@ const initials = (name: string) =>
 type Draft = {
   id?: string;
   kind: ResourceKind;
+  connection_status?: Resource['connection_status'];
   display_name: string;
   trade: string;
   unit: RateUnit;
@@ -110,6 +115,7 @@ const emptyDraft = (): Draft => ({
 const toDraft = (r: ResourceWithDocs): Draft => ({
   id: r.id,
   kind: r.kind,
+  connection_status: r.connection_status,
   display_name: r.display_name,
   trade: r.trade ?? '',
   unit: r.cost_rate_unit,
@@ -341,6 +347,9 @@ function PersonCard({ r, onEdit }: { r: ResourceWithDocs; onEdit: () => void }) 
           </span>
         )}
         <span className={`rounded-md px-2 py-1 text-xs font-semibold ${cert.cls}`}>{cert.label}</span>
+        {(r.kind === 'operative' || r.kind === 'subcontractor') && (
+          <ConnectionChip status={r.connection_status} />
+        )}
       </div>
       {!isPermanent(r.kind) && (r.engaged_from || r.engaged_to) && (
         <div className="mt-2 text-xs text-ink-muted">
@@ -565,6 +574,15 @@ function EditDrawer({
             </p>
           )}
 
+          {d.id && (d.kind === 'operative' || d.kind === 'subcontractor') && (
+            <ConnectionPanel
+              resourceId={d.id}
+              status={d.connection_status ?? 'contact_only'}
+              defaultEmail={d.email}
+              onChanged={onDocsChanged}
+            />
+          )}
+
           {err && <p className="text-sm text-red-600">{err}</p>}
         </div>
 
@@ -590,6 +608,100 @@ function EditDrawer({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ConnectionChip({ status }: { status: Resource['connection_status'] }) {
+  const map: Record<Resource['connection_status'], { label: string; cls: string }> = {
+    connected: { label: 'Connected', cls: 'bg-emerald-50 text-emerald-700' },
+    invited: { label: 'Invite sent', cls: 'bg-amber-50 text-amber-700' },
+    contact_only: { label: 'Not connected', cls: 'bg-canvas text-ink-muted' },
+    disconnected: { label: 'Disconnected', cls: 'bg-canvas text-ink-muted' },
+  };
+  const s = map[status];
+  return <span className={`rounded-md px-2 py-1 text-xs font-semibold ${s.cls}`}>{s.label}</span>;
+}
+
+function ConnectionPanel({
+  resourceId,
+  status: initialStatus,
+  defaultEmail,
+  onChanged,
+}: {
+  resourceId: string;
+  status: Resource['connection_status'];
+  defaultEmail: string;
+  onChanged: () => void;
+}) {
+  const [status, setStatus] = useState(initialStatus);
+  const [email, setEmail] = useState(defaultEmail);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function invite() {
+    setBusy(true); setErr(null); setMsg(null);
+    const res = await inviteResourceToConnect({ resource_id: resourceId, email });
+    setBusy(false);
+    if (!res.ok) { setErr(res.error ?? 'Could not send invite.'); return; }
+    setStatus('invited');
+    setMsg(`Invite sent to ${email}.`);
+    onChanged();
+  }
+
+  async function disconnect() {
+    if (!confirm('Remove this connection? They will stop seeing their jobs. Their details stay on your team.')) return;
+    setBusy(true); setErr(null); setMsg(null);
+    const res = await disconnectResource(resourceId);
+    setBusy(false);
+    if (!res.ok) { setErr(res.error ?? 'Could not disconnect.'); return; }
+    setStatus('disconnected');
+    onChanged();
+  }
+
+  return (
+    <div className="rounded-lg border border-hairline bg-canvas/40 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">Connection</span>
+        <ConnectionChip status={status} />
+      </div>
+
+      {status === 'connected' ? (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-ink-muted">They can see the jobs you book them on and confirm.</p>
+          <button onClick={disconnect} disabled={busy} className="whitespace-nowrap text-xs font-semibold text-red-600 hover:underline">
+            Disconnect
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-xs text-ink-muted">
+            {status === 'invited'
+              ? 'Invite sent. They need to open the link and connect. You can resend to a different email below.'
+              : "Invite them to connect so they see their jobs and get notified. It's free for them."}
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="their@email.com"
+              className="min-w-0 flex-1 rounded-lg border border-hairline px-3 py-2 text-sm"
+            />
+            <button
+              onClick={invite}
+              disabled={busy || !email}
+              className="whitespace-nowrap rounded-lg border border-primary px-3 py-2 text-sm font-bold text-primary hover:bg-canvas disabled:opacity-50"
+            >
+              {busy ? 'Sending…' : status === 'invited' ? 'Resend' : 'Invite to connect'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {msg && <p className="mt-2 text-xs text-emerald-700">{msg}</p>}
+      {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
     </div>
   );
 }

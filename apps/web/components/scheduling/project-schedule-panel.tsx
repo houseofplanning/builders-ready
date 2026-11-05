@@ -13,6 +13,7 @@ import {
   createProjectAssignment,
   removeResourceFromProject,
 } from '@/lib/server-actions/assignments';
+import { ReviewControl } from '@/components/review-control';
 
 export interface AssignableResource {
   id: string;
@@ -21,6 +22,7 @@ export interface AssignableResource {
   trade: string | null;
   cost_rate_pence: number | null;
   cost_rate_unit: RateUnit;
+  marketplace_tenant_id?: string | null;
 }
 
 export interface BookingRow {
@@ -164,6 +166,16 @@ export function WhosOnJob({
                   <div className="text-xs text-ink-muted">
                     {fmtDay(g.from)} – {fmtDay(g.to)} · {g.days} day{g.days === 1 ? '' : 's'}
                   </div>
+                  {canWrite && rateById.get(g.resource_id)?.marketplace_tenant_id && (
+                    <div className="mt-1">
+                      <ReviewControl
+                        projectId={projectId}
+                        counterpartyTenantId={rateById.get(g.resource_id)!.marketplace_tenant_id!}
+                        direction="builder_to_sub"
+                        label="Rate this subcontractor"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold">{money(g.cost)}</div>

@@ -1077,3 +1077,146 @@ export async function sendInvoicePaidReceiptEmail(
     throw new Error(`Resend rejected the receipt email: ${error.message ?? 'unknown'}`);
   }
 }
+
+// -------------------------------------------------------------------------
+// Connection invite — a builder invites a subcontractor/operative to connect
+// so they can see the jobs they're booked on (Door A in the connections spec).
+// -------------------------------------------------------------------------
+export interface ConnectionInviteEmailParams {
+  to: string;
+  tenantName: string;
+  inviterName: string;
+  resourceName: string;
+  token: string;
+}
+
+export async function sendConnectionInviteEmail(
+  p: ConnectionInviteEmailParams,
+): Promise<void> {
+  const acceptUrl = `${appUrl()}/connect?token=${encodeURIComponent(p.token)}`;
+  const subject = `${p.inviterName} wants to add you on Builders Ready`;
+
+  const PRIMARY = '#0F4C5C';
+  const ACCENT = '#E07A5F';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+
+  const html = `<!doctype html>
+<html>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /><title>You're invited to connect</title></head>
+  <body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${CANVAS};">
+      <tr><td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#ffffff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+          <tr><td style="padding:28px 32px;border-bottom:1px solid ${HAIRLINE};">
+            <div style="font-weight:800;letter-spacing:2px;font-size:13px;color:${INK};">BUILDERS <span style="color:${PRIMARY};">READY</span></div>
+          </td></tr>
+          <tr><td style="padding:32px;">
+            <div style="font-size:11px;font-weight:600;color:${PRIMARY};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;">You're invited to connect</div>
+            <p style="font-size:16px;line-height:1.5;margin:0 0 16px;">
+              <strong>${escapeHtml(p.inviterName)}</strong> at <strong>${escapeHtml(p.tenantName)}</strong> works with you (listed as ${escapeHtml(p.resourceName)}) and has invited you to connect on Builders Ready.
+            </p>
+            <p style="font-size:15px;line-height:1.5;color:${MUTED};margin:0 0 24px;">
+              Connect to see the jobs they book you on, with the dates and site details, and to confirm when you're coming. It's free, and you can build your own profile at the same time if you'd like other builders to find you for work.
+            </p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+              <td style="border-radius:10px;background:${ACCENT};">
+                <a href="${acceptUrl}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">Connect with ${escapeHtml(p.tenantName)}</a>
+              </td>
+            </tr></table>
+            <p style="font-size:13px;line-height:1.5;color:${MUTED};margin:24px 0 0;">If you weren't expecting this, you can safely ignore this email.</p>
+          </td></tr>
+        </table>
+        <div style="font-size:12px;color:${MUTED};margin-top:16px;">Builders Ready</div>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+
+  const text = [
+    `${p.inviterName} at ${p.tenantName} has invited you to connect on Builders Ready.`,
+    '',
+    "Connect to see the jobs they book you on (dates and site details) and confirm when you're coming. It's free.",
+    '',
+    'Connect here:',
+    acceptUrl,
+    '',
+    "If you weren't expecting this, you can safely ignore this email.",
+    '',
+    '— Builders Ready',
+  ].join('\n');
+
+  const { error } = await getResend().emails.send({
+    from: fromAddress(),
+    to: p.to,
+    subject,
+    html,
+    text,
+  });
+  if (error) {
+    throw new Error(`Resend rejected the connection invite: ${error.message ?? 'unknown'}`);
+  }
+}
+
+// -------------------------------------------------------------------------
+// Booking notice — a builder has booked a connected tradesperson onto a job.
+// -------------------------------------------------------------------------
+export interface BookingEmailParams {
+  to: string;
+  recipientName?: string | null;
+  businessName: string;
+  projectName: string;
+  whenLabel: string; // e.g. "Mon 10 Nov" or "Mon 10 Nov – Fri 14 Nov (5 days)"
+}
+
+export async function sendBookingEmail(p: BookingEmailParams): Promise<void> {
+  const subject = `${p.businessName} booked you on ${p.projectName}`;
+  const PRIMARY = '#0F4C5C';
+  const INK = '#0B1418';
+  const MUTED = '#5F7480';
+  const HAIRLINE = '#E1E6E9';
+  const CANVAS = '#F4F6F7';
+  const hi = p.recipientName ? `Hi ${escapeHtml(p.recipientName.split(' ')[0] ?? p.recipientName)},` : 'Hi,';
+
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /><title>You've been booked</title></head>
+<body style="margin:0;padding:0;background:${CANVAS};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:${INK};">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${CANVAS};">
+    <tr><td align="center" style="padding:32px 16px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="max-width:560px;background:#fff;border:1px solid ${HAIRLINE};border-radius:14px;overflow:hidden;">
+        <tr><td style="padding:28px 32px;border-bottom:1px solid ${HAIRLINE};">
+          <div style="font-weight:800;letter-spacing:2px;font-size:13px;color:${INK};">BUILDERS <span style="color:${PRIMARY};">READY</span></div>
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <p style="font-size:16px;line-height:1.5;margin:0 0 12px;">${hi}</p>
+          <p style="font-size:16px;line-height:1.5;margin:0 0 16px;">
+            <strong>${escapeHtml(p.businessName)}</strong> has booked you on <strong>${escapeHtml(p.projectName)}</strong>.
+          </p>
+          <div style="font-size:11px;font-weight:600;color:${PRIMARY};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">When</div>
+          <p style="font-size:16px;line-height:1.5;margin:0 0 20px;"><strong>${escapeHtml(p.whenLabel)}</strong></p>
+          <p style="font-size:15px;line-height:1.5;color:${MUTED};margin:0;">
+            Open the Builders Ready app to see the site details and confirm you're coming.
+          </p>
+        </td></tr>
+      </table>
+      <div style="font-size:12px;color:${MUTED};margin-top:16px;">Builders Ready</div>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const text = [
+    `${p.businessName} has booked you on ${p.projectName}.`,
+    `When: ${p.whenLabel}`,
+    '',
+    "Open the Builders Ready app to see the site details and confirm you're coming.",
+    '',
+    '— Builders Ready',
+  ].join('\n');
+
+  const { error } = await getResend().emails.send({ from: fromAddress(), to: p.to, subject, html, text });
+  if (error) {
+    throw new Error(`Resend rejected the booking email: ${error.message ?? 'unknown'}`);
+  }
+}
