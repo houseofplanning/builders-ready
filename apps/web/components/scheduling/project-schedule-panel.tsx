@@ -44,6 +44,12 @@ const fmtDay = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-
 const initials = (n: string) =>
   n.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('');
 
+function rateLabel(r: AssignableResource | undefined): string | null {
+  if (!r || r.cost_rate_pence == null) return null;
+  const amt = money(r.cost_rate_pence);
+  return r.cost_rate_unit === 'annual' ? `${amt}/yr` : r.cost_rate_unit === 'hour' ? `${amt}/hr` : `${amt}/day`;
+}
+
 interface Grouped {
   resource_id: string;
   name: string;
@@ -56,29 +62,26 @@ interface Grouped {
 }
 
 /**
- * The interactive body of a project's schedule: cost summary, who's on the
- * job, and the assign control. Used on the dedicated Schedule pages (kept out
- * of the admin project detail page by design).
+ * The interactive "Who's on this job" card: list of assigned people with cost,
+ * plus the assign control. KPI tiles, cost breakdown and health live on the
+ * server-rendered page around it.
  */
-export function ProjectSchedulePanel({
+export function WhosOnJob({
   projectId,
   canWrite,
   resources,
   stages,
   bookings,
-  loggedCostPence,
-  contractValuePence,
 }: {
   projectId: string;
   canWrite: boolean;
   resources: AssignableResource[];
   stages: StageOpt[];
   bookings: BookingRow[];
-  loggedCostPence: number;
-  contractValuePence: number;
 }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
+  const rateById = useMemo(() => new Map(resources.map((r) => [r.id, r])), [resources]);
 
   const grouped = useMemo<Grouped[]>(() => {
     const m = new Map<string, Grouped>();
@@ -102,70 +105,55 @@ export function ProjectSchedulePanel({
     return [...m.values()].sort((a, b) => a.name.localeCompare(b.name));
   }, [bookings]);
 
-  const scheduled = grouped.reduce((n, g) => n + g.cost, 0);
-  const subCost = grouped.filter((g) => !isPermanent(g.kind)).reduce((n, g) => n + g.cost, 0);
-  const labourCost = scheduled - subCost;
-  const totalToBusiness = loggedCostPence + scheduled;
-  const margin = contractValuePence > 0 ? ((contractValuePence - totalToBusiness) / contractValuePence) * 100 : null;
-
   return (
-    <div>
-      {/* KPI tiles */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Tile label="Contract value" value={money(contractValuePence)} />
-        <Tile
-          label="Cost to business"
-          value={money(totalToBusiness)}
-          hint={`${money(loggedCostPence)} logged + ${money(scheduled)} scheduled`}
-        />
-        <Tile label="Margin (incl. scheduled)" value={margin == null ? '—' : `${margin.toFixed(1)}%`} good={margin != null && margin >= 0} />
-        <Tile label="Scheduled team cost" value={money(scheduled)} hint={`${money(labourCost)} labour · ${money(subCost)} subbies`} />
-      </div>
-
-      <section className="mt-4 rounded-card border border-hairline bg-white shadow-card">
-        <header className="flex items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold">Who&apos;s on this job</h2>
-            <span className="text-xs text-ink-muted">{grouped.length} assigned</span>
-          </div>
-          {canWrite && (
-            <button
-              onClick={() => setAdding((v) => !v)}
-              className="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-canvas"
-            >
-              {adding ? 'Close' : '+ Assign'}
-            </button>
-          )}
-        </header>
-
-        {canWrite && adding && (
-          <AssignForm
-            projectId={projectId}
-            resources={resources}
-            stages={stages}
-            onDone={() => {
-              setAdding(false);
-              router.refresh();
-            }}
-          />
+    <section className="rounded-card border border-hairline bg-white shadow-card">
+      <header className="flex items-center justify-between px-5 py-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xs font-extrabold uppercase tracking-wide text-ink-muted">Who&apos;s on it</h2>
+          <span className="text-xs text-ink-muted">{grouped.length} people</span>
+        </div>
+        {canWrite && (
+          <button
+            onClick={() => setAdding((v) => !v)}
+            className="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-canvas"
+          >
+            {adding ? 'Close' : '+ Assign'}
+          </button>
         )}
+      </header>
 
-        <ul className="border-t border-hairline">
-          {grouped.length === 0 ? (
-            <li className="px-5 py-8 text-center text-xs text-ink-muted">
-              No one assigned yet. {canWrite ? 'Assign your crew and subbies above.' : ''}
-            </li>
-          ) : (
-            grouped.map((g) => (
+      {canWrite && adding && (
+        <AssignForm
+          projectId={projectId}
+          resources={resources}
+          stages={stages}
+          onDone={() => {
+            setAdding(false);
+            router.refresh();
+          }}
+        />
+      )}
+
+      <ul className="border-t border-hairline">
+        {grouped.length === 0 ? (
+          <li className="px-5 py-8 text-center text-xs text-ink-muted">
+            No one assigned yet. {canWrite ? 'Assign your crew and subbies above.' : ''}
+          </li>
+        ) : (
+          grouped.map((g) => {
+            const rate = rateLabel(rateById.get(g.resource_id));
+            return (
               <li key={g.resource_id} className="flex items-center gap-3 border-b border-hairline px-5 py-3 last:border-b-0">
-                <span className="grid h-9 w-9 flex-none place-items-center rounded-full bg-primary-soft text-xs font-bold text-primary">
+                <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-primary-soft text-xs font-bold text-primary">
                   {initials(g.name) || '?'}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate font-semibold">{g.name}</span>
+                    <span className="truncate font-bold">{g.name}</span>
                     {g.trade && (
-                      <span className="rounded-md bg-canvas px-1.5 py-0.5 text-[11px] font-semibold text-ink-muted">{g.trade}</span>
+                      <span className="rounded-md bg-primary-soft px-1.5 py-0.5 text-[11px] font-semibold text-primary">
+                        {g.trade}
+                      </span>
                     )}
                     {!isPermanent(g.kind) && (
                       <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[11px] font-bold text-accent-deep">
@@ -179,24 +167,15 @@ export function ProjectSchedulePanel({
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold">{money(g.cost)}</div>
+                  {rate && <div className="text-[11px] text-ink-muted">{rate}</div>}
                   {canWrite && <RemoveBtn projectId={projectId} resourceId={g.resource_id} onDone={() => router.refresh()} />}
                 </div>
               </li>
-            ))
-          )}
-        </ul>
-      </section>
-    </div>
-  );
-}
-
-function Tile({ label, value, hint, good }: { label: string; value: string; hint?: string; good?: boolean }) {
-  return (
-    <div className="rounded-card border border-hairline bg-white p-4 shadow-card">
-      <div className="text-[10px] uppercase tracking-widest text-ink-muted">{label}</div>
-      <div className={`mt-1 text-xl font-extrabold tracking-tight ${good ? 'text-emerald-600' : 'text-ink'}`}>{value}</div>
-      {hint && <div className="mt-0.5 text-[10px] text-ink-muted">{hint}</div>}
-    </div>
+            );
+          })
+        )}
+      </ul>
+    </section>
   );
 }
 
