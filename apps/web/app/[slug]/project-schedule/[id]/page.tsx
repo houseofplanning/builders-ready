@@ -113,17 +113,19 @@ export default async function ProjectScheduleDetailPage({ params }: Props) {
 
   let schedLabour = 0;
   let schedSub = 0;
+  let schedPlant = 0;
   for (const b of bookings) {
     if (b.kind === 'subcontractor') schedSub += b.cost_pence;
+    else if (b.kind === 'plant') schedPlant += b.cost_pence;
     else schedLabour += b.cost_pence;
   }
-  const scheduledTotal = schedLabour + schedSub;
+  const scheduledTotal = schedLabour + schedSub + schedPlant;
 
   const breakdown = [
     { label: 'Materials', value: loggedByCat.materials, colour: 'var(--br-primary)' },
     { label: 'Labour (crew)', value: loggedByCat.labour + schedLabour, colour: '#2F6DB5' },
     { label: 'Subcontractor', value: loggedByCat.subcontractor + schedSub, colour: 'var(--br-accent)' },
-    { label: 'Plant / hire', value: loggedByCat.plant_hire, colour: '#7A5AA6' },
+    { label: 'Plant / hire', value: loggedByCat.plant_hire + schedPlant, colour: '#7A5AA6' },
     { label: 'Other', value: loggedByCat.other, colour: '#8A979C' },
   ].filter((b) => b.value > 0);
   const costToDate = loggedTotal + scheduledTotal;

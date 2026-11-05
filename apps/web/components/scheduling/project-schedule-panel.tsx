@@ -157,7 +157,7 @@ export function WhosOnJob({
                     )}
                     {!isPermanent(g.kind) && (
                       <span className="rounded-md bg-accent/10 px-1.5 py-0.5 text-[11px] font-bold text-accent-deep">
-                        {RESOURCE_KIND_LABELS.subcontractor}
+                        {RESOURCE_KIND_LABELS[g.kind]}
                       </span>
                     )}
                   </div>

@@ -14,7 +14,7 @@
 
 import type { CostCategory } from './types';
 
-export type ResourceKind = 'staff' | 'operative' | 'subcontractor';
+export type ResourceKind = 'staff' | 'operative' | 'subcontractor' | 'plant';
 export type RateUnit = 'day' | 'hour' | 'annual';
 export type BookingKind = 'work' | 'travel' | 'leave' | 'unplanned';
 export type AssignmentStatus =
@@ -28,12 +28,14 @@ export const RESOURCE_KINDS: ResourceKind[] = [
   'staff',
   'operative',
   'subcontractor',
+  'plant',
 ];
 
 export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = {
   staff: 'Office / staff',
   operative: 'Operative',
   subcontractor: 'Subcontractor',
+  plant: 'Plant / equipment',
 };
 
 export const BOOKING_KIND_LABELS: Record<BookingKind, string> = {
@@ -61,10 +63,11 @@ export const RATE_UNIT_LABELS: Record<RateUnit, string> = {
 export const WORKING_DAY_HOURS = 8;
 export const WORKING_DAYS_PER_YEAR = 232;
 
-/** Permanent team (on the books) vs hired-in subcontractors. */
+/** Permanent team (staff + operatives) — not subbies, not plant. */
 export function isPermanent(kind: ResourceKind): boolean {
-  return kind !== 'subcontractor';
+  return kind === 'staff' || kind === 'operative';
 }
+export const isPlant = (kind: ResourceKind): boolean => kind === 'plant';
 
 export interface Resource {
   id: string;
@@ -199,7 +202,9 @@ export function computeAssignmentCostPence(
 
 /** Which cost bucket a resource's scheduled time lands in on the margin view. */
 export function resourceKindToCostCategory(kind: ResourceKind): CostCategory {
-  return kind === 'subcontractor' ? 'subcontractor' : 'labour';
+  if (kind === 'subcontractor') return 'subcontractor';
+  if (kind === 'plant') return 'plant_hire';
+  return 'labour';
 }
 
 /**

@@ -14,6 +14,7 @@ import {
   certStatus,
   daysToExpiry,
   isPermanent,
+  isPlant,
 } from '@br/shared';
 import {
   saveResource,
@@ -117,7 +118,8 @@ export function WorkforceManager({ initialResources }: { initialResources: Resou
   const [editingDocs, setEditingDocs] = useState<ResourceDocument[]>([]);
 
   const team = useMemo(() => initialResources.filter((r) => isPermanent(r.kind)), [initialResources]);
-  const subs = useMemo(() => initialResources.filter((r) => !isPermanent(r.kind)), [initialResources]);
+  const subs = useMemo(() => initialResources.filter((r) => r.kind === 'subcontractor'), [initialResources]);
+  const plant = useMemo(() => initialResources.filter((r) => isPlant(r.kind)), [initialResources]);
   const expiringCount = useMemo(
     () =>
       initialResources.reduce(
@@ -186,6 +188,18 @@ export function WorkforceManager({ initialResources }: { initialResources: Resou
         ) : (
           <Grid>
             {subs.map((r) => (
+              <PersonCard key={r.id} r={r} onEdit={() => openEdit(r)} />
+            ))}
+          </Grid>
+        )}
+      </Section>
+
+      <Section title="Plant & equipment" subtitle="Diggers, scaffold, vans and tools you schedule, with their hire rate.">
+        {plant.length === 0 ? (
+          <Empty label="No plant yet. Add a digger, scaffold or vehicle to schedule it with a hire rate." />
+        ) : (
+          <Grid>
+            {plant.map((r) => (
               <PersonCard key={r.id} r={r} onEdit={() => openEdit(r)} />
             ))}
           </Grid>
@@ -351,6 +365,7 @@ function EditDrawer({
                 <option value="operative">{RESOURCE_KIND_LABELS.operative}</option>
                 <option value="staff">{RESOURCE_KIND_LABELS.staff}</option>
                 <option value="subcontractor">{RESOURCE_KIND_LABELS.subcontractor}</option>
+                <option value="plant">{RESOURCE_KIND_LABELS.plant}</option>
               </select>
             </Field>
             <Field label="Trade">

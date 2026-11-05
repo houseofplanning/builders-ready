@@ -9,11 +9,13 @@ export interface GridCell {
   pid: string;
   label: string;
   colour: string;
+  /** Resource is on more than one job this day. */
+  clash?: boolean;
 }
 export interface GridRow {
   resourceId: string;
   name: string;
-  sub: boolean;
+  badge: 'SUB' | 'PLANT' | null;
   cells: (GridCell | null)[];
 }
 export interface GridGroup {
@@ -95,7 +97,7 @@ export function ScheduleGrid({
                       <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-primary-soft text-[10px] font-bold text-primary">{initials(r.name) || '?'}</span>
                       <span className="min-w-0 truncate text-sm font-semibold">
                         {r.name}
-                        {r.sub && <span className="ml-1 text-[10px] font-bold text-accent-deep">SUB</span>}
+                        {r.badge && <span className="ml-1 text-[10px] font-bold text-accent-deep">{r.badge}</span>}
                       </span>
                     </div>
                     {r.cells.map((c, i) => {
@@ -107,7 +109,12 @@ export function ScheduleGrid({
                           className={`h-full min-h-[38px] border-l border-hairline px-1 py-1.5 text-left ${d.isToday ? 'bg-primary-soft/40' : ''} ${canWrite ? 'hover:bg-primary-soft/60' : ''}`}
                         >
                           {c ? (
-                            <span className="block truncate rounded-md px-1.5 py-1 text-[10px] font-bold text-white" style={{ background: c.colour }} title={c.label}>
+                            <span
+                              className={`block truncate rounded-md px-1.5 py-1 text-[10px] font-bold text-white ${c.clash ? 'ring-2 ring-red-500' : ''}`}
+                              style={{ background: c.colour }}
+                              title={c.clash ? `Clash: ${r.name} is on more than one job this day` : c.label}
+                            >
+                              {c.clash ? '⚠ ' : ''}
                               {c.label}
                             </span>
                           ) : canWrite ? (
